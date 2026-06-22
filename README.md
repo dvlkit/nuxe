@@ -16,7 +16,7 @@ Una capa de convenciones opinionadas sobre Vue 3, Vite y vue-router: file-based 
 ## Quick start
 
 ```bash
-git clone https://github.com/devlusoft/nuxe
+git clone https://github.com/dvlkit/nuxe
 cd nuxe
 pnpm install
 pnpm dev
