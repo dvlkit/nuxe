@@ -1,5 +1,5 @@
 {
-  "name": "vuxe",
+  "name": "@dvlkit/nuxe",
   "version": "0.2.0",
   "type": "module",
   "main": "./dist/lib/index.js",
@@ -13,13 +13,13 @@
       "types": "./dist/lib/entry-server.d.ts",
       "default": "./dist/lib/entry-server.js"
     },
-    "./components/vuxe-layout": {
-      "types": "./dist/lib/components/vuxe-layout.d.ts",
-      "default": "./dist/lib/components/vuxe-layout.js"
+    "./components/nuxe-layout": {
+      "types": "./dist/lib/components/nuxe-layout.d.ts",
+      "default": "./dist/lib/components/nuxe-layout.js"
     }
   },
   "bin": {
-    "vuxe": "dist/bin/vuxe.js"
+    "nuxe": "dist/bin/nuxe.js"
   },
   "files": [
     "dist",

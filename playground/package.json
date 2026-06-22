@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vuxe dev",
-    "build": "vuxe build",
-    "start": "vuxe start"
+    "dev": "nuxe dev",
+    "build": "nuxe build",
+    "start": "nuxe start"
   },
   "dependencies": {
-    "vuxe": "workspace:*",
+    "@dvlkit/nuxe": "workspace:*",
     "vue": "3.5.38",
     "vue-router": "5.1.0",
     "@unhead/vue": "3.1.4"

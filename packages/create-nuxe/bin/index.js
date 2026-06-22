@@ -9,7 +9,7 @@ var __dirname = dirname(__filename);
 var TEMPLATE_DIR = resolve(__dirname, "../lib/template");
 var projectName = process.argv[2];
 if (!projectName) {
-  console.error("Usage: create-vuxe <project-name>");
+  console.error("Usage: create-nuxe <project-name>");
   process.exit(1);
 }
 if (!/^[a-z0-9-_]+$/i.test(projectName)) {

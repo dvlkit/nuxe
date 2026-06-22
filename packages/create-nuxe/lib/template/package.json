@@ -1,16 +1,16 @@
 {
-  "name": "my-vuxe-app",
+  "name": "my-nuxe-app",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vuxe dev",
-    "build": "vuxe build",
-    "start": "vuxe start"
+    "dev": "nuxe dev",
+    "build": "nuxe build",
+    "start": "nuxe start"
   },
   "dependencies": {
     "vue": "3.5.38",
     "vue-router": "5.1.0",
-    "vuxe": "0.2.0"
+    "@dvlkit/nuxe": "0.2.0"
   },
   "devDependencies": {
     "typescript": "5.9.3"

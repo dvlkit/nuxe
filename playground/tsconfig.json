@@ -4,12 +4,12 @@
     "types": ["vite/client", "node"]
   },
   "include": [
-    ".vuxe/**/*.d.ts",
+    ".nuxe/**/*.d.ts",
     "app.vue",
     "pages/**/*.vue",
     "layouts/**/*.vue",
     "components/**/*.vue",
     "composables/**/*.ts",
-    "vuxe.config.ts"
+    "nuxe.config.ts"
   ]
 }

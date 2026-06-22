@@ -28,17 +28,17 @@ switch (command) {
   case '--help':
   case '-h':
     console.log(`                                                                                                                                                                                                                    
-   vuxe — meta-framework ligero de Vue                                                                                                                                                                                                  
+   nuxe — meta-framework ligero de Vue                                                                                                                                                                                                  
                                                                                                                                                                                                                                         
    Usage:                                                                                                                                                                                                                               
-     vuxe dev         Start development server                                                                                                                                                                                          
-     vuxe build       Build for production                                                                                                                                                                                              
-     vuxe start       Start production server                                                                                                                                                                                           
+     nuxe dev         Start development server                                                                                                                                                                                          
+     nuxe build       Build for production                                                                                                                                                                                              
+     nuxe start       Start production server                                                                                                                                                                                           
        `.trim())
     break
   default:
     console.error(`Unknown command: ${command}`)
-    console.error('Usage: vuxe <dev|build|start>')
+    console.error('Usage: nuxe <dev|build|start>')
     process.exit(1)
 }
 

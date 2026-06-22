@@ -9,13 +9,13 @@
     "types": ["vite/client"]
   },
   "include": [
-    ".vuxe/**/*.d.ts",
-    ".vuxe/typed-router.d.ts",
+    ".nuxe/**/*.d.ts",
+    ".nuxe/typed-router.d.ts",
     "app.vue",
     "pages/**/*.vue",
     "layouts/**/*.vue",
     "components/**/*.vue",
     "composables/**/*.ts",
-    "vuxe.config.ts"
+    "nuxe.config.ts"
   ]
 }

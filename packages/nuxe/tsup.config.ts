@@ -5,9 +5,9 @@ import {defineConfig} from 'tsup'
 export default defineConfig({
   entry: [
     'lib/index.ts',
-    'bin/vuxe.ts',
+    'bin/nuxe.ts',
     'lib/entry-server.ts',
-    'lib/components/vuxe-layout.ts',
+    'lib/components/nuxe-layout.ts',
     'lib/cli/dev.ts',
     'lib/cli/build.ts',
     'lib/cli/start.ts',

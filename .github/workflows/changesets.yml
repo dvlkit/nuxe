@@ -59,7 +59,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build --filter vuxe
+      - run: pnpm build --filter nuxe
       - name: Publish to npm via OIDC trusted publishing
         run: pnpm changeset publish
         env:

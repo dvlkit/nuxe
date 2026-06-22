@@ -1,4 +1,4 @@
-# vuxe
+# nuxe
 
 > Meta-framework de Vue para apps con SSR y file-based routing
 
@@ -16,8 +16,8 @@ Una capa de convenciones opinionadas sobre Vue 3, Vite y vue-router: file-based 
 ## Quick start
 
 ```bash
-git clone https://github.com/devlusoft/vuxe
-cd vuxe
+git clone https://github.com/devlusoft/nuxe
+cd nuxe
 pnpm install
 pnpm dev
 ```
@@ -39,7 +39,7 @@ my-app/
 │   └── admin.vue
 ├── components/            # Auto-imported en templates
 ├── composables/           # Auto-imported en setup
-└── vuxe.config.ts         # Framework config (opcional)
+└── nuxe.config.ts         # Framework config (opcional)
 ```
 
 Solo esos directorios. app.vue puede tener <RouterLink> y <RouterView> para la navegación.
@@ -72,7 +72,7 @@ Composable useHead para <title> y <meta> por página:
 ```vue
 <!-- pages/about.vue -->                                                                                                                                                                                                             
 <script setup lang="ts">
-import { useHead } from 'vuxe'
+import { useHead } from '@dvlkit/nuxe'
 
 useHead({
  title: 'About — my-app',
@@ -91,10 +91,10 @@ Funciona en SSR (los tags se inyectan en el HTML inicial) y client (se actualiza
 
 ## Config
 
-Crea vuxe.config.ts solo si necesitas customizar:
+Crea nuxe.config.ts solo si necesitas customizar:
 
 ```ts
-import { defineConfig } from 'vuxe'
+import { defineConfig } from '@dvlkit/nuxe'
 
 export default defineConfig({
   port: 4000,  // default: 300
@@ -108,9 +108,9 @@ export default defineConfig({
 
 | Comando         | Descripción                                       |
 |-----------------|---------------------------------------------------|
-| vuxe dev        | Dev server con SSR + HMR en http://localhost:3000 |
-| vuxe build      | Build de producción (dist/client/ + dist/server/) |
-| vuxe start      | Sirve el build de producción                      |
-| vuxe --version  | Versión del framework                             |
+| nuxe dev        | Dev server con SSR + HMR en http://localhost:3000 |
+| nuxe build      | Build de producción (dist/client/ + dist/server/) |
+| nuxe start      | Sirve el build de producción                      |
+| nuxe --version  | Versión del framework                             |
 
 Variables de entorno: PORT (default 3000), NODE_ENV.

@@ -3,20 +3,20 @@ import vue from '@vitejs/plugin-vue'
 import VueRouter from 'vue-router/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import vuxe, {DEFAULT_INDEX_HTML} from './plugin.js'
+import nuxe, {DEFAULT_INDEX_HTML} from './plugin.js'
 import {existsSync, mkdirSync, readdirSync, writeFileSync} from 'node:fs'
 import {resolve} from 'path'
 import {ComponentResolver} from "unplugin-vue-components";
 
 export async function runBuild(cwd: string): Promise<void> {
-  const userConfigModule = await import(resolve(cwd, 'vuxe.config.ts'))
+  const userConfigModule = await import(resolve(cwd, 'nuxe.config.ts'))
   const userConfig = userConfigModule.default ?? {}
   const userVite = userConfig.vite ?? {}
 
-  const vuxeDir = resolve(cwd, '.vuxe')
-  const htmlPath = resolve(vuxeDir, 'index.html')
+  const nuxeDir = resolve(cwd, '.nuxe')
+  const htmlPath = resolve(nuxeDir, 'index.html')
   if (!existsSync(htmlPath)) {
-    mkdirSync(vuxeDir, {recursive: true})
+    mkdirSync(nuxeDir, {recursive: true})
     writeFileSync(htmlPath, DEFAULT_INDEX_HTML)
   }
 
@@ -35,7 +35,7 @@ export async function runBuild(cwd: string): Promise<void> {
 
   const frameworkPlugins = [
     vue(),
-    VueRouter({routesFolder: 'pages', dts: '.vuxe/typed-router.d.ts'}),
+    VueRouter({routesFolder: 'pages', dts: '.nuxe/typed-router.d.ts'}),
     AutoImport({
       imports: ['vue'],
       dirs: ['composables'],
@@ -47,7 +47,7 @@ export async function runBuild(cwd: string): Promise<void> {
       directoryAsNamespace: true,
       resolvers: [autoImportResolver]
     }),
-    vuxe({layouts: layoutFiles})
+    nuxe({layouts: layoutFiles})
   ]
 
   const baseConfig = {
@@ -77,7 +77,7 @@ export async function runBuild(cwd: string): Promise<void> {
     ...baseConfig,
     build: {
       outDir: 'dist/server',
-      ssr: resolve(cwd, 'node_modules/vuxe/dist/lib/entry-server.js'),
+      ssr: resolve(cwd, 'node_modules/@dvlkit/nuxe/dist/lib/entry-server.js'),
       emptyOutDir: true,
       ...userVite.build
     }

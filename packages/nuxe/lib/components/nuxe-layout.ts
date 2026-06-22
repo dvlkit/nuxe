@@ -1,9 +1,9 @@
 import { defineComponent, computed, h, type Component } from 'vue'
 import { useRoute } from 'vue-router'
-import layouts from 'virtual:vuxe/layouts'
+import layouts from 'virtual:nuxe/layouts'
 
-export const VuxeLayout = defineComponent({
-  name: 'VuxeLayout',
+export const NuxeLayout = defineComponent({
+  name: 'NuxeLayout',
   setup(_, { slots }) {
     const route = useRoute()
     const layout = computed<Component | null>(() => {

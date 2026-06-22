@@ -1,11 +1,11 @@
 {
-  "name": "create-vuxe",
+  "name": "create-nuxe",
   "version": "0.1.0",
-  "description": "Scaffold a new vuxe project",
+  "description": "Scaffold a new nuxe project",
   "private": true,
   "type": "module",
   "bin": {
-    "create-vuxe": "./bin/index.js"
+    "create-nuxe": "./bin/index.js"
   },
   "files": [
     "bin",

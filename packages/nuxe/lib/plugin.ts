@@ -4,11 +4,11 @@ export const DEFAULT_INDEX_HTML = `<!DOCTYPE html>
    <html lang="en">
      <head>
        <meta charset="UTF-8" />
-       <title>vuxe app</title>
+       <title>nuxe app</title>
      </head>
      <body>
        <div id="app"></div>
-       <script type="module" src="/virtual:vuxe/entry-client"></script>
+       <script type="module" src="/virtual:nuxe/entry-client"></script>
      </body>
    </html>
    `
@@ -50,7 +50,7 @@ const ENTRY_SERVER_SOURCE = `
    }
 `
 
-export interface VuxeOptions {
+export interface NuxeOptions {
   layouts: string[]
 }
 
@@ -73,7 +73,7 @@ function buildLayoutsModule(layouts: string[]): string {
 const ENTRY_CLIENT_SOURCE = `                                                                                                                                                                                                        
    import { createApp } from 'vue'                                                                                                                                                                                                      
    import App from '/app.vue'                                                                                                                                                                                                           
-   import { router } from 'virtual:vuxe/router'                                                                                                                                                                                        
+   import { router } from 'virtual:nuxe/router'                                                                                                                                                                                        
    import { createHead } from '@unhead/vue/client'                                                                                                                                                                                      
                                                                                                                                                                                                                                         
    const app = createApp(App)                                                                                                                                                                                                           
@@ -83,37 +83,37 @@ const ENTRY_CLIENT_SOURCE = `
    app.mount('#app')                                                                                                                                                                                                                    
    `
 
-export default function vuxe(options: VuxeOptions = {layouts: []}): Plugin {
+export default function nuxe(options: NuxeOptions = {layouts: []}): Plugin {
   const layoutsModule = buildLayoutsModule(options.layouts)
 
   return {
-    name: 'vuxe:framework',
+    name: 'nuxe:framework',
 
     resolveId(id) {
       if (
-        id === 'virtual:vuxe/entry-client' ||
-        id === '/@id/virtual:vuxe/entry-client' ||
-        id === '/virtual:vuxe/entry-client'
-      ) return '\0virtual:vuxe/entry-client'
+        id === 'virtual:nuxe/entry-client' ||
+        id === '/@id/virtual:nuxe/entry-client' ||
+        id === '/virtual:nuxe/entry-client'
+      ) return '\0virtual:nuxe/entry-client'
 
       if (
-        id === 'virtual:vuxe/router' ||
-        id === '/@id/virtual:vuxe/router' ||
-        id === '/virtual:vuxe/router'
-      ) return '\0virtual:vuxe/router'
+        id === 'virtual:nuxe/router' ||
+        id === '/@id/virtual:nuxe/router' ||
+        id === '/virtual:nuxe/router'
+      ) return '\0virtual:nuxe/router'
 
-      if (id === 'virtual:vuxe/entry-server') return '\0virtual:vuxe/entry-server'
+      if (id === 'virtual:nuxe/entry-server') return '\0virtual:nuxe/entry-server'
 
-      if (id === 'virtual:vuxe/layouts' || id === '\0virtual:vuxe/layouts') {
-        return '\0virtual:vuxe/layouts'
+      if (id === 'virtual:nuxe/layouts' || id === '\0virtual:nuxe/layouts') {
+        return '\0virtual:nuxe/layouts'
       }
     },
 
     load(id) {
-      if (id === '\0virtual:vuxe/entry-client') return ENTRY_CLIENT_SOURCE
-      if (id === '\0virtual:vuxe/router') return ROUTER_SOURCE
-      if (id === '\0virtual:vuxe/entry-server') return ENTRY_SERVER_SOURCE
-      if (id === '\0virtual:vuxe/layouts') return layoutsModule
+      if (id === '\0virtual:nuxe/entry-client') return ENTRY_CLIENT_SOURCE
+      if (id === '\0virtual:nuxe/router') return ROUTER_SOURCE
+      if (id === '\0virtual:nuxe/entry-server') return ENTRY_SERVER_SOURCE
+      if (id === '\0virtual:nuxe/layouts') return layoutsModule
     },
 
     transformIndexHtml() {

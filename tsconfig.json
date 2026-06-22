@@ -2,7 +2,7 @@
   "files": [],
   "references": [
     {
-      "path": "./packages/vuxe"
+      "path": "./packages/nuxe"
     },
     {
       "path": "./playground"

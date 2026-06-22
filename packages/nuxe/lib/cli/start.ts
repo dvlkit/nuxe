@@ -6,12 +6,12 @@ import {serveStatic} from '@hono/node-server/serve-static'
 import {transformHtmlTemplate} from '@unhead/vue/server'
 
 const cwd = process.cwd()
-const configPath = resolve(cwd, 'vuxe.config.ts')
+const configPath = resolve(cwd, 'nuxe.config.ts')
 const mod = await import(configPath)
 const userConfig = mod.default ?? {}
 const port = Number(userConfig.port ?? process.env.PORT ?? 3000)
 
-const template = readFileSync(resolve(cwd, 'dist/client/.vuxe/index.html'), 'utf-8')
+const template = readFileSync(resolve(cwd, 'dist/client/.nuxe/index.html'), 'utf-8')
 const {render} = await import(resolve(cwd, 'dist/server/entry-server.js'))
 
 const app = new Hono()

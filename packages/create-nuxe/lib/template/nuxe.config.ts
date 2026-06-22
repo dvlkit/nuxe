@@ -1,4 +1,4 @@
-import { defineConfig } from 'vuxe'
+import { defineConfig } from '@dvlkit/nuxe'
 
 export default defineConfig({
   port: 3000,

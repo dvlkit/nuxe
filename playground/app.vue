@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {RouterLink, RouterView} from 'vue-router'
-import {VuxeLayout} from 'vuxe/components/vuxe-layout'
+import {NuxeLayout} from '@dvlkit/nuxe/components/nuxe-layout'
 </script>
 
 <template>
@@ -10,8 +10,8 @@ import {VuxeLayout} from 'vuxe/components/vuxe-layout'
       <RouterLink to="/about">About</RouterLink>
       <RouterLink to="/admin">Admin</RouterLink>
     </nav>
-    <VuxeLayout>
+    <NuxeLayout>
       <RouterView/>
-    </VuxeLayout>
+    </NuxeLayout>
   </div>
 </template>
