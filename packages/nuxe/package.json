@@ -1,6 +1,7 @@
 {
   "name": "@dvlkit/nuxe",
   "version": "0.2.0",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/lib/index.js",
   "types": "./dist/lib/index.d.ts",
