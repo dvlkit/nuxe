@@ -69,6 +69,11 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
 
   const baseConfig = mergeConfig({
     root: cwd,
+    resolve: {
+      alias: {
+        '#nuxe': resolve(cwd, '.nuxe'),
+      },
+    },
     plugins: frameworkPlugins,
     environments: {
       client: {

@@ -1,22 +1,6 @@
 import { copyFile } from 'node:fs/promises'
 import { join } from 'node:path'
-
 import { defineConfig } from 'tsdown'
-import type { Plugin } from 'rolldown'
-
-const virtualLayoutsPlugin: Plugin = {
-  name: 'nuxe-virtual-layouts',
-  resolveId(id) {
-    if (id === 'virtual:nuxe/layouts' || id === '\0virtual:nuxe/layouts') {
-      return '\0virtual:nuxe/layouts'
-    }
-  },
-  load(id) {
-    if (id === '\0virtual:nuxe/layouts') {
-      return 'export default {}'
-    }
-  },
-}
 
 export default defineConfig([
   {
@@ -44,9 +28,9 @@ export default defineConfig([
         'c12',
         'valibot',
         'citty',
+        '#nuxe/layouts.mjs',
       ],
     },
-    plugins: [virtualLayoutsPlugin],
     hooks: {
       'build:done': async (ctx) => {
         const outDir = ctx.options.outDir
@@ -56,9 +40,8 @@ export default defineConfig([
         await copyFile(join(outDir, 'setup.d.mts'), join(outDir, 'setup.d.ts'))
         await copyFile(join(outDir, 'plugin.mjs'), join(outDir, 'plugin.js'))
         await copyFile(join(outDir, 'plugin.d.mts'), join(outDir, 'plugin.d.ts'))
-        await copyFile(join(outDir, 'components/nuxe-layout.mjs'), join(outDir, 'components/nuxe-layout.js'),)
-        await copyFile(join(outDir, 'components/nuxe-layout.d.mts'), join(outDir, 'components/nuxe-layout.d.ts'),)
-        await copyFile('lib/virtual-modules.d.ts', join(outDir, 'lib/virtual-modules.d.ts'))
+        await copyFile(join(outDir, 'components/nuxe-layout.mjs'), join(outDir, 'components/nuxe-layout.js'))
+        await copyFile(join(outDir, 'components/nuxe-layout.d.mts'), join(outDir, 'components/nuxe-layout.d.ts'))
       },
     },
   },

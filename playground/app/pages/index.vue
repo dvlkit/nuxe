@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useNow } from '../composables/use-now'
+import Hello from '../components/hello.vue'
+import FormsInput from '../components/forms/input.vue'
+
 const now = useNow()
 </script>
 

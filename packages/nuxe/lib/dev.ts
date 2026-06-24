@@ -2,8 +2,10 @@ import { listen } from 'listhen'
 import { createServer as createViteServer } from 'vite'
 import { loadNuxeConfig } from './config'
 import { createNuxeProjectSetup } from './nuxe-setup'
+import { prepareLayouts } from './prepare-layouts'
 
 export async function runDev(cwd: string): Promise<void> {
+  prepareLayouts(cwd)
   const config = await loadNuxeConfig({ cwd })
   const port = config.server.port
   const setup = await createNuxeProjectSetup(cwd, config)

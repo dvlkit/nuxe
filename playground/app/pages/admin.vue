@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { definePage } from 'vue-router/experimental'
+
 definePage({
   meta: {
-    layout: 'Admin'
+    layout: 'admin'
   }
 })
 </script>

@@ -7,5 +7,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["lib/**/*.ts", "bin/**/*.ts", "tsup.config.ts"]
+  "include": ["lib/**/*.ts", "lib/**/*.d.ts", "bin/**/*.ts", "tsup.config.ts"]
 }
