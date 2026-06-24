@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.4.0
+
+### Minor Changes
+
+- 2efb36b: feat: add useHead composable + SSR-aware head management
+
 ## 0.2.0
 
 ### Minor Changes
