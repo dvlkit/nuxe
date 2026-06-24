@@ -54,7 +54,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
     patchVueExclude(vue() as VuePlugin, /\?assets/),
     VueRouter({routesFolder: 'app/pages', dts: '.nuxe/typed-router.d.ts'}),
     AutoImport({
-      imports: ['vue'],
+      imports: ['vue', 'vue-router'],
       dirs: ['app/composables'],
       dts: '.nuxe/auto-imports.d.ts',
     }),

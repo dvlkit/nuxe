@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import {RouterLink, RouterView} from 'vue-router'
 import {NuxeLayout} from '@dvlkit/nuxe/components/nuxe-layout'
 </script>
 
