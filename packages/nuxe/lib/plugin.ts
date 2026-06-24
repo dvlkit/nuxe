@@ -72,8 +72,8 @@ export default {
 }
 `
 
-export const NUXE_ENTRY_SERVER = ENTRY_SERVER_SOURCE
-export const NUXE_ENTRY_CLIENT = ENTRY_CLIENT_SOURCE
+export const NUXE_ENTRY_SERVER: string = ENTRY_SERVER_SOURCE
+export const NUXE_ENTRY_CLIENT: string = ENTRY_CLIENT_SOURCE
 
 export interface NuxeOptions {
   layouts: string[]

@@ -6,7 +6,7 @@ const AutoImportEntrySchema = v.object({
   names: v.array(v.string())
 })
 
-export const NuxeConfigSchema = v.object({
+const nuxeConfigSchema = v.object({
   server: v.optional(
     v.object({
       port: v.optional(v.pipe(v.number(), v.minValue(1), v.maxValue(65535))),
@@ -17,6 +17,8 @@ export const NuxeConfigSchema = v.object({
   autoImport: v.optional(v.array(AutoImportEntrySchema), [])
 })
 
-export type NuxeConfig = v.InferOutput<typeof NuxeConfigSchema>
+export const NuxeConfigSchema: typeof nuxeConfigSchema = nuxeConfigSchema
 
-export type NuxeConfigInput = v.InferInput<typeof NuxeConfigSchema>
+export type NuxeConfig = v.InferOutput<typeof nuxeConfigSchema>
+
+export type NuxeConfigInput = v.InferInput<typeof nuxeConfigSchema>

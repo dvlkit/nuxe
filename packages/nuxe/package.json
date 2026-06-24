@@ -3,20 +3,20 @@
   "version": "0.2.0",
   "license": "MIT",
   "type": "module",
-  "main": "./dist/lib/index.js",
-  "types": "./dist/lib/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/lib/index.d.ts",
-      "default": "./dist/lib/index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./components/nuxe-layout": {
-      "types": "./dist/lib/components/nuxe-layout.d.ts",
-      "default": "./dist/lib/components/nuxe-layout.js"
+      "types": "./dist/components/nuxe-layout.d.ts",
+      "default": "./dist/components/nuxe-layout.js"
     },
     "./setup": {
-      "types": "./dist/lib/nuxe-setup.d.ts",
-      "default": "./dist/lib/nuxe-setup.js"
+      "types": "./dist/nuxe-setup.d.ts",
+      "default": "./dist/nuxe-setup.js"
     }
   },
   "bin": {
@@ -55,6 +55,7 @@
     "vue-router": "^5.0.0"
   },
   "devDependencies": {
+    "@types/node": "22.20.0",
     "tsdown": "0.22.3",
     "typescript": "6.0.3",
     "vite": "8.0.16"
