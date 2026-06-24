@@ -1,36 +1,13 @@
-import {build as viteBuild} from 'vite'
-import {resolve} from 'path'
+import { createBuilder } from 'vite'
 import { loadNuxeConfig } from './config'
 import { createNuxeProjectSetup } from './nuxe-setup'
 
 export async function runBuild(cwd: string): Promise<void> {
-  const config = await loadNuxeConfig({cwd})
-  const userBuild = config.vite.build
+  const config = await loadNuxeConfig({ cwd })
   const setup = await createNuxeProjectSetup(cwd, config)
 
-  console.log('Building client...')
-  await viteBuild({
-    ...setup.baseConfig,
-    build: {
-      outDir: 'dist/client',
-      emptyOutDir: true,
-      rolldownOptions: {
-        input: setup.htmlPath,
-      },
-      ...userBuild
-    }
-  })
+  const builder = await createBuilder(setup.baseConfig)
+  await builder.buildApp()
 
-  console.log('Building server...')
-  await viteBuild({
-    ...setup.baseConfig,
-    build: {
-      outDir: 'dist/server',
-      ssr: resolve(cwd, 'node_modules/@dvlkit/nuxe/dist/lib/entry-server.js'),
-      emptyOutDir: true,
-      ...userBuild,
-    }
-  })
-
-  console.log('Build complete. Output in dist/')
+  console.log('Build complete. Output in .output/')
 }

@@ -1,46 +1,39 @@
-import { Hono } from 'hono'
-import { serve } from '@hono/node-server'
-import { serveStatic } from '@hono/node-server/serve-static'
-import { transformHtmlTemplate } from '@unhead/vue/server'
-import { readFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 import { loadNuxeConfig } from './config'
 
 export async function runStart(cwd: string): Promise<void> {
-  const config = await loadNuxeConfig({cwd})
+  const config = await loadNuxeConfig({ cwd })
   const port = config.server.port
 
-  const template = readFileSync(resolve(cwd, 'dist/client/.nuxe/index.html'), 'utf-8')
-  const {render} = await import(resolve(cwd, 'dist/server/entry-server.js'))
+  const serverPath = resolve(cwd, '.output/server/index.mjs')
+  if (!existsSync(serverPath)) {
+    console.error(`Nitro server bundle not found at ${serverPath}`)
+    console.error(`Run \`nuxe build\` first.`)
+    process.exit(1)
+  }
 
-  const app = new Hono()
+  console.log(`Starting nuxe production server on http://localhost:${port}`)
 
-  app.use('/assets/*', serveStatic({root: './dist/client'}))
-
-  app.get('*', async (c) => {
-    try {
-      const url = c.req.path
-      const {html: appHtml, head} = await render(url)
-      const html = transformHtmlTemplate(head, template.replace('<div id="app"></div>', `<div id="app">${appHtml}</div>`))
-      return c.html(html)
-    } catch (err) {
-      console.error(err)
-      return c.html(
-        `<h1>Internal Server Error</h1><pre>${(err as Error).message}</pre>`,
-        500
-      )
-    }
+  const child = spawn('node', [serverPath], {
+    env: { ...process.env, PORT: String(port), NODE_ENV: 'production' },
+    stdio: 'inherit',
   })
 
-  const server = serve({ fetch: app.fetch, port }, (info) => {
-    console.log(`http://localhost:${info.port}`)
-  })
-
-  const shutdown = async () => {
-    console.log('\nShutting down...')
-    server.close()
+  const shutdown = (signal: NodeJS.Signals) => {
+    console.log(`\nReceived ${signal}, shutting down...`)
+    child.kill(signal)
     process.exit(0)
   }
+
   process.on('SIGINT', shutdown)
   process.on('SIGTERM', shutdown)
+
+  child.on('exit', (code) => {
+    if (code !== 0 && code !== null) {
+      console.error(`Server exited with code ${code}`)
+      process.exit(code)
+    }
+  })
 }

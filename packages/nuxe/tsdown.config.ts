@@ -3,8 +3,9 @@ import { defineConfig } from 'tsdown'
 export default defineConfig({
   entry: [
     'lib/index.ts',
+    'lib/nuxe-setup.ts',
+    'lib/plugin.ts',
     'bin/nuxe.ts',
-    'lib/entry-server.ts',
     'lib/components/nuxe-layout.ts',
     'lib/cli/main.ts',
     'lib/cli/commands/dev.ts',
@@ -26,7 +27,8 @@ export default defineConfig({
       '@unhead/vue',
       '@unhead/vue/client',
       '@unhead/vue/server',
-      '/app.vue',
+      '/app/app.vue',
+      '/app/layouts/',
       /^virtual:/
     ],
   },

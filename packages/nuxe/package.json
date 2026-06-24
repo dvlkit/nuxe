@@ -10,13 +10,13 @@
       "types": "./dist/lib/index.d.ts",
       "default": "./dist/lib/index.js"
     },
-    "./entry-server": {
-      "types": "./dist/lib/entry-server.d.ts",
-      "default": "./dist/lib/entry-server.js"
-    },
     "./components/nuxe-layout": {
       "types": "./dist/lib/components/nuxe-layout.d.ts",
       "default": "./dist/lib/components/nuxe-layout.js"
+    },
+    "./setup": {
+      "types": "./dist/lib/nuxe-setup.d.ts",
+      "default": "./dist/lib/nuxe-setup.js"
     }
   },
   "bin": {
@@ -36,12 +36,12 @@
     "dev": "tsdown --watch"
   },
   "dependencies": {
-    "@hono/node-server": "2.0.5",
     "@unhead/vue": "3.1.4",
     "@vitejs/plugin-vue": "6.0.7",
     "c12": "4.0.0-beta.5",
     "citty": "0.2.2",
-    "hono": "4.12.26",
+    "listhen": "^1.10.0",
+    "nitro": "3.0.260610-beta",
     "unplugin-auto-import": "21.0.0",
     "unplugin-vue-components": "32.1.0",
     "valibot": "1.4.1",
