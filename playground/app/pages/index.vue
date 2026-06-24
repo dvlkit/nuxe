@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import Hello from '../components/hello.vue'
-import FormsInput from '../components/forms/input.vue'
-import { onMounted, ref } from 'vue'
-
 const now = ref(new Date())
 const mounted = ref(false)
 

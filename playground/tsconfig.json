@@ -2,15 +2,11 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["vite/client", "node"],
-    "typeRoots": ["./types"]
   },
   "include": [
     ".nuxe/**/*.d.ts",
-    "app.vue",
-    "pages/**/*.vue",
-    "layouts/**/*.vue",
-    "components/**/*.vue",
-    "composables/**/*.ts",
+    "app/**/*.vue",
+    "app/**/*.ts",
     "nuxe.config.ts"
   ]
 }
