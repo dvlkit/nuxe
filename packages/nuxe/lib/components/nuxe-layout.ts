@@ -10,9 +10,6 @@ declare module 'vue-router' {
 }
 
 type LayoutName = keyof typeof layouts
-type LayoutProps<K extends LayoutName = LayoutName> = K extends string ? (typeof layouts)[K] extends {
-  props: infer P
-} ? P : Record<string, never> : Record<string, never>
 
 export const NuxeLayout = defineComponent({
   name: 'NuxeLayout',
