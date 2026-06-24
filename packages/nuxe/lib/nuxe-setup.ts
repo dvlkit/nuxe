@@ -8,12 +8,10 @@ import type { PluginOption, UserConfig } from 'vite'
 import { nitro } from 'nitro/vite'
 import { NuxeConfig } from './config'
 import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
-import { ComponentResolver } from 'unplugin-vue-components'
 import vue from '@vitejs/plugin-vue'
 
 export interface NuxeProjectSetup {
   layoutFiles: string[]
-  autoImportResolver: ComponentResolver
   frameworkPlugins: PluginOption[]
   baseConfig: UserConfig
 }
@@ -52,14 +50,6 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
     ? readdirSync(layoutsDir).filter(f => f.endsWith('.vue'))
     : []
 
-  const autoImportResolver: ComponentResolver = (componentName) => {
-    for (const entry of config.autoImport ?? []) {
-      if (entry.names.includes(componentName)) {
-        return {name: componentName, from: entry.from}
-      }
-    }
-  }
-
   const frameworkPlugins: PluginOption[] = [
     patchVueExclude(vue() as VuePlugin, /\?assets/),
     VueRouter({routesFolder: 'app/pages', dts: '.nuxe/typed-router.d.ts'}),
@@ -72,7 +62,6 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       dirs: ['app/components'],
       dts: '.nuxe/components.d.ts',
       directoryAsNamespace: true,
-      resolvers: [autoImportResolver]
     }),
     nuxe({layouts: layoutFiles}),
     nitro({ preset: 'node-server' }),
@@ -106,7 +95,6 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
 
   return {
     layoutFiles,
-    autoImportResolver,
     frameworkPlugins,
     baseConfig
   }

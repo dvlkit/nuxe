@@ -2,7 +2,7 @@
 
 > Meta-framework de Vue para apps con SSR y file-based routing
 
-Una capa de convenciones opinionadas sobre Vue 3, Vite y vue-router: file-based routing, layouts, auto-imports, SSR y per-page head management. Escribes SFCs y configs, el framework se encarga del resto.
+Una capa de convenciones opinionadas sobre Vue 3, Vite y vue-router: file-based routing, layouts, auto-imports, SSR y per-page head management.
 
 ## Features
 

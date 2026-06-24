@@ -1,11 +1,6 @@
 import * as v from 'valibot'
 import type { UserConfig } from 'vite'
 
-const AutoImportEntrySchema = v.object({
-  from: v.string(),
-  names: v.array(v.string())
-})
-
 const nuxeConfigSchema = v.object({
   server: v.optional(
     v.object({
@@ -13,8 +8,7 @@ const nuxeConfigSchema = v.object({
     }),
     {},
   ),
-  vite: v.optional(v.custom<UserConfig>(() => true), {}),
-  autoImport: v.optional(v.array(AutoImportEntrySchema), [])
+  vite: v.optional(v.custom<UserConfig>(() => true), {})
 })
 
 export const NuxeConfigSchema: typeof nuxeConfigSchema = nuxeConfigSchema
