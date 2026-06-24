@@ -1,5 +1,4 @@
 import * as v from 'valibot'
-import { loadConfig } from 'c12'
 import { NuxeConfigSchema, type NuxeConfig, type NuxeConfigInput } from './schema'
 
 export const defineConfig = <T extends NuxeConfigInput>(config: T): T => config
@@ -15,6 +14,8 @@ export type ResolvedNuxeConfig = Omit<NuxeConfig, 'server'> & {
 }
 
 export async function loadNuxeConfig(opts: LoadNuxeConfigOptions): Promise<ResolvedNuxeConfig> {
+  const { loadConfig } = await import('c12')
+
   const { config } = await loadConfig<NuxeConfigInput>({
     cwd: opts.cwd,
     name: 'nuxe',

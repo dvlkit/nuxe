@@ -1,6 +1,6 @@
 {
   "name": "@dvlkit/nuxe",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -37,7 +37,6 @@
   },
   "dependencies": {
     "@unhead/vue": "3.1.4",
-    "@vitejs/plugin-vue": "6.0.7",
     "c12": "4.0.0-beta.5",
     "citty": "0.2.2",
     "listhen": "1.10.0",
@@ -56,6 +55,7 @@
   },
   "devDependencies": {
     "@types/node": "22.20.0",
+    "@vitejs/plugin-vue": "6.0.7",
     "tsdown": "0.22.3",
     "typescript": "6.0.3",
     "vite": "8.0.16"

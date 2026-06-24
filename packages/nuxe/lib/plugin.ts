@@ -41,6 +41,8 @@ return HTML_HEAD + HTML_BODY_OPEN + body + HTML_BODY_CLOSE
 
 async function handler(request) {
   const app = createSSRApp(App)
+  const head = createHead()
+  app.use(head)
   const router = createRouter({
     history: createMemoryHistory(),
     routes,
@@ -52,7 +54,6 @@ async function handler(request) {
   await router.push(href)
   await router.isReady()
 
-  const head = createHead()
   head.push({
     script: [{ type: 'module', src: clientAssets.entry }],
   })

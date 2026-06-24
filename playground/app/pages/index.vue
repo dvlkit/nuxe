@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { useNow } from '../composables/use-now'
 import Hello from '../components/hello.vue'
 import FormsInput from '../components/forms/input.vue'
+import { onMounted, ref } from 'vue'
 
-const now = useNow()
+const now = ref(new Date())
+const mounted = ref(false)
+
+onMounted(() => {
+  mounted.value = true
+  setInterval(() => { now.value = new Date() }, 1000)
+})
 </script>
 
 <template>

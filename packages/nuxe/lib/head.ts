@@ -1,0 +1,1 @@
+export { useHead, useHeadSafe, useSeoMeta } from '@unhead/vue'
