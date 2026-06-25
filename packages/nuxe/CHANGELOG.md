@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.5.0
+
+### Minor Changes
+
+- e026fff: Add route middleware system. Create files in `app/middleware/` with `.global.ts` for global middleware (runs on every navigation) or `.ts` for named middleware (referenced via `definePage({ meta: { middleware: 'name' } })` inyour page). Auto-imported helpers: `defineNuxeRouteMiddleware`, `navigateTo`, `abortNavigation`.
+
 ## 0.4.0
 
 ### Minor Changes
