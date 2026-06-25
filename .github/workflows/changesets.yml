@@ -69,4 +69,4 @@ jobs:
       - name: Publish
         run: pnpm changeset publish --provenance
         env:
-          NODE_AUTH_TOKEN: 'oidc'}
+          NODE_AUTH_TOKEN: 'oidc'
