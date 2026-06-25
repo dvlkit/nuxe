@@ -1,10 +1,46 @@
 import type { Plugin } from 'vite'
+import { generateMiddlewaresModule } from './middleware/codegen'
+import type { scanMiddlewares, ScannedMiddleware } from './middleware/scanner'
+
+const MIDDLEWARE_CHAIN_SOURCE = `
+import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares'
+
+function __nuxe_runMiddlewareChain(to, from) {
+  return __nuxe_runMiddlewareChainInner(to, from, new Set())
+}
+
+async function __nuxe_runMiddlewareChainInner(to, from, seen) {
+  for (const mw of globalMiddlewares) {
+    if (seen.has(mw)) continue
+    seen.add(mw)
+    const result = await mw(to, from)
+    if (result === false) return false
+    if (result && result !== true) return result
+  }
+  const meta = to && to.meta
+  const named = meta && meta.middleware
+  if (named) {
+    const names = Array.isArray(named) ? named : [named]
+    for (const name of names) {
+      const mw = middlewares[name]
+      if (!mw) continue
+      if (seen.has(mw)) continue
+      seen.add(mw)
+      const result = await mw(to, from)
+      if (result === false) return false
+      if (result && result !== true) return result
+    }
+  }
+  return true
+}
+`
 
 const ENTRY_CLIENT_SOURCE = `import { createSSRApp } from 'vue'
 import { RouterView, createRouter, createWebHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 import { createHead } from '@unhead/vue/client'
 import App from '/app/app.vue'
+${MIDDLEWARE_CHAIN_SOURCE}
 
 async function main() {
   const head = createHead()
@@ -15,6 +51,7 @@ async function main() {
     routes,
   })
   app.use(router)
+  router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
   await router.isReady()
   app.mount('#app')
 }
@@ -28,6 +65,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { createHead, transformHtmlTemplate } from '@unhead/vue/server'
 import { routes } from 'vue-router/auto-routes'
 import App from '/app/app.vue'
+${MIDDLEWARE_CHAIN_SOURCE}
 
 import clientAssets from '/.nuxe/entry-client.ts?assets=client'
 
@@ -48,11 +86,29 @@ async function handler(request) {
     routes,
   })
   app.use(router)
+  
+  let navigationError = null
+  router.onError((err) => { navigationError = err })
+  router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
 
   const url = new URL(request.url)
   const href = url.href.slice(url.origin.length)
-  await router.push(href)
+  
+  try {
+    await router.push(href)
+  } catch (err) {
+    if (err && typeof err == 'object' && 'type' in err) {
+      navigationError = err
+    } else {
+      throw err
+    }
+  }
+  
   await router.isReady()
+  
+  if (navigationError) {
+    return new Response('Redirecting', { status: 302, headers: { Location: '/' } })
+  }
 
   head.push({
     script: [{ type: 'module', src: clientAssets.entry }],
@@ -78,6 +134,7 @@ export const NUXE_ENTRY_CLIENT: string = ENTRY_CLIENT_SOURCE
 
 export interface NuxeOptions {
   layouts: string[]
+  middlewares?: ScannedMiddleware[]
 }
 
 function buildLayoutsModule(layouts: string[]): string {
@@ -98,6 +155,7 @@ function buildLayoutsModule(layouts: string[]): string {
 
 export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
   const layoutsModule = buildLayoutsModule(options.layouts)
+  const middlewaresModule = generateMiddlewaresModule(options.middlewares ?? [])
 
   return {
     name: 'nuxe:framework',
@@ -106,10 +164,14 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
       if (id === 'virtual:nuxe/layouts' || id === '\0virtual:nuxe/layouts') {
         return '\0virtual:nuxe/layouts'
       }
+      if (id === 'virtual:nuxe/middlewares' || id === '\0virtual:nuxe/middlewares') {
+        return '\0virtual:nuxe/middlewares'
+      }
     },
 
     load(id) {
       if (id === '\0virtual:nuxe/layouts') return layoutsModule
+      if (id === '\0virtual:nuxe/middlewares') return middlewaresModule
     },
   }
 }

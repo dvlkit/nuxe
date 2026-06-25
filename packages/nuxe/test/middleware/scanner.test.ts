@@ -1,0 +1,5 @@
+import { describe, expect, it, beforeEach } from 'vitest'
+import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { scanMiddlewares } from '../../lib/middleware/scanner'

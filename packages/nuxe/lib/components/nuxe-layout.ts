@@ -1,11 +1,13 @@
 import { computed, defineComponent, h, Suspense, Transition, type PropType } from 'vue'
-import { useRoute, type RouteMeta } from 'vue-router'
+import { useRoute, type NavigationGuard, type RouteMeta } from 'vue-router'
 import layouts from '#nuxe/layouts.mjs'
+import { RouteMiddleware } from '../middleware/runtime'
 
 declare module 'vue-router' {
   interface RouteMeta {
     layout?: string | false | null
     layoutProps?: Record<string, unknown>
+    middleware?: string | NavigationGuard | (string | NavigationGuard)[]
   }
 }
 

@@ -7,6 +7,7 @@ import { mergeConfig } from 'vite'
 import type { PluginOption, UserConfig } from 'vite'
 import { nitro } from 'nitro/vite'
 import { NuxeConfig } from './config'
+import { scanMiddlewares } from './middleware/scanner'
 import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
 import vue from '@vitejs/plugin-vue'
 
@@ -19,7 +20,7 @@ export interface NuxeProjectSetup {
 function generateNuxeEntries(cwd: string): void {
   const nuxeDir = join(cwd, '.nuxe')
   if (!existsSync(nuxeDir)) {
-    mkdirSync(nuxeDir, { recursive: true })
+    mkdirSync(nuxeDir, {recursive: true})
   }
   writeFileSync(join(nuxeDir, 'entry-server.ts'), NUXE_ENTRY_SERVER)
   writeFileSync(join(nuxeDir, 'entry-client.ts'), NUXE_ENTRY_CLIENT)
@@ -49,12 +50,17 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
   const layoutFiles = existsSync(layoutsDir)
     ? readdirSync(layoutsDir).filter(f => f.endsWith('.vue'))
     : []
+  const scannedMiddlewares = scanMiddlewares(cwd)
 
   const frameworkPlugins: PluginOption[] = [
     patchVueExclude(vue() as VuePlugin, /\?assets/),
     VueRouter({routesFolder: 'app/pages', dts: '.nuxe/typed-router.d.ts'}),
     AutoImport({
-      imports: ['vue', 'vue-router'],
+      imports: [
+        'vue',
+        'vue-router',
+        {'@dvlkit/nuxe': ['defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation']},
+      ],
       dirs: ['app/composables'],
       dts: '.nuxe/auto-imports.d.ts',
     }),
@@ -63,8 +69,8 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       dts: '.nuxe/components.d.ts',
       directoryAsNamespace: true,
     }),
-    nuxe({layouts: layoutFiles}),
-    nitro({ preset: 'node-server' }),
+    nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares}),
+    nitro({preset: 'node-server'}),
   ]
 
   const baseConfig = mergeConfig({
@@ -94,7 +100,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
         }
       },
     },
-    server: { middlewareMode: true },
+    server: {middlewareMode: true},
     appType: 'custom',
   }, config.vite) as UserConfig
 
