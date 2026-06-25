@@ -59,7 +59,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       imports: [
         'vue',
         'vue-router',
-        {'@dvlkit/nuxe': ['defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation', 'useAsyncData']},
+        {'@dvlkit/nuxe': ['defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation', 'useAsyncData', '$fetch', 'createFetch']},
       ],
       dirs: ['app/composables'],
       dts: '.nuxe/auto-imports.d.ts',

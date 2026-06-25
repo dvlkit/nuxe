@@ -13,3 +13,13 @@ export {
   type AbortNavigationOptions
 } from './middleware/runtime'
 export { useAsyncData, setHydratedPayload, type UseAsyncDataOptions, type UseAsyncDataReturn } from './runtime'
+export {
+  $fetch,
+  createFetch,
+  FetchError,
+  type FetchOptions,
+  type CreateFetchDefaults,
+  type FetchRequestContext,
+  type FetchResponseContext,
+  type FetchErrorContext,
+} from './runtime/fetch'
