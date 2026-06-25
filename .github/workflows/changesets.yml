@@ -67,6 +67,6 @@ jobs:
       - name: Build
         run: pnpm build --filter nuxe
       - name: Publish
-        run: pnpm changeset publish
+        run: pnpm changeset publish --provenance
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: 'oidc'}
