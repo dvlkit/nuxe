@@ -1,9 +1,10 @@
-import { isRef, ref, type Ref, shallowRef } from 'vue'
+import { getCurrentInstance, isRef, onMounted, onServerPrefetch, ref, type Ref, shallowRef } from 'vue'
 import { getCurrentContext } from './request-context'
 
 export interface UseAsyncDataOptions<T> {
   default?: () => T | Ref<T>
   server?: boolean
+  lazy?: boolean
 }
 
 export interface UseAsyncDataReturn<T> {
@@ -22,6 +23,11 @@ export function setHydratedPayload(payload: Record<string, unknown | null>): voi
   hydratedPayload = payload
 }
 
+export function readHydratedKey<T = unknown>(key: string): T | undefined {
+  if (!hydratedPayload || !(key in hydratedPayload)) return undefined
+  return hydratedPayload[key] as T
+}
+
 function readHydrated<T>(key: string): T | undefined {
   if (!hydratedPayload || !(key in hydratedPayload)) return undefined
   return hydratedPayload[key] as T
@@ -35,15 +41,55 @@ export function useAsyncData<T>(key: string, handler: () => Promise<T>, options:
   const runOnServer = !isClient && ctx !== undefined && options.server !== false
 
   const data = shallowRef<T | null>(null) as Ref<T | null>
-  const pending = ref(false)
+  const pending = ref(!!options.lazy)
   const error = shallowRef<Error | null>(null)
   const status = ref<Status>('idle')
 
-  if (isClient) {
-    const hydrated = readHydrated<T>(key)
-    if (hydrated !== undefined) {
-      data.value = hydrated
+  const runHandler = async (): Promise<void> => {
+    try {
+      const result = await handler()
+      data.value = result
       status.value = 'success'
+      if (ctx) ctx.payload[key] = result
+    } catch (err) {
+      error.value = err instanceof Error ? err : new Error(String(err))
+      status.value = 'error'
+      if (ctx) ctx.payload[key] = {__error: error.value.message}
+    } finally {
+      pending.value = false
+      if (ctx) ctx.pending.delete(key)
+    }
+  }
+
+  if (isClient) {
+    if (options.lazy) {
+      onMounted(() => {
+        const hydrated = readHydrated<T>(key)
+        if (hydrated !== undefined) {
+          if (hydrated !== null && typeof hydrated === 'object' && '__error' in hydrated) {
+            error.value = new Error(String((hydrated as { __error: unknown }).__error))
+            status.value = 'error'
+          } else {
+            data.value = hydrated
+            status.value = 'success'
+          }
+          pending.value = false
+        } else {
+          status.value = 'pending'
+          void runHandler()
+        }
+      })
+    } else {
+      const hydrated = readHydrated<T>(key)
+      if (hydrated !== undefined) {
+        if (hydrated !== null && typeof hydrated === 'object' && '__error' in hydrated) {
+          error.value = new Error(String((hydrated as { __error: unknown }).__error))
+          status.value = 'error'
+        } else {
+          data.value = hydrated
+          status.value = 'success'
+        }
+      }
     }
   }
 
@@ -52,26 +98,24 @@ export function useAsyncData<T>(key: string, handler: () => Promise<T>, options:
     data.value = (isRef(d) ? d.value : d) as T
   }
 
-  if (status.value !== 'success' && (runOnServer || isClient)) {
-    pending.value = true
-    status.value = 'pending'
-
-    const runHandler = async (): Promise<void> => {
-      try {
-        const result = await handler()
-        data.value = result
-        status.value = 'success'
-        if (ctx) ctx.payload[key] = result
-      } catch (err) {
-        error.value = err instanceof Error ? err : new Error(String(err))
-        status.value = 'error'
-        if (ctx) ctx.payload[key] = {__error: error.value.message}
-      } finally {
-        pending.value = false
-        if (ctx) ctx.pending.delete(key)
+  if (status.value === 'idle' && runOnServer) {
+    if (options.lazy) {
+      const handlerPromise = runHandler()
+      if (ctx) ctx.pending.set(key, handlerPromise)
+    } else {
+      pending.value = true
+      status.value = 'pending'
+      const handlerPromise = runHandler()
+      if (ctx) ctx.pending.set(key, handlerPromise)
+      if (getCurrentInstance()) {
+        onServerPrefetch(() => handlerPromise)
       }
     }
+  }
 
+  if (status.value === 'idle' && isClient && !options.lazy) {
+    pending.value = true
+    status.value = 'pending'
     if (ctx) {
       ctx.pending.set(key, runHandler())
     } else {
@@ -82,10 +126,10 @@ export function useAsyncData<T>(key: string, handler: () => Promise<T>, options:
   const refresh = async (): Promise<void> => {
     pending.value = true
     status.value = 'pending'
-    error.value = null
     try {
       data.value = await handler()
       status.value = 'success'
+      error.value = null
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err))
       status.value = 'error'

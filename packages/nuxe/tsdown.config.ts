@@ -12,6 +12,7 @@ export default defineConfig([
       'components/nuxe-layout': 'lib/components/nuxe-layout.ts',
       'components/nuxe-root': 'lib/components/nuxe-root.ts',
       'runtime/index': 'lib/runtime/index.ts',
+      'server/index': 'lib/server/index.ts',
     },
     deps: {
       onlyBundle: [],
@@ -48,6 +49,8 @@ export default defineConfig([
         await copyFile(join(outDir, 'components/nuxe-root.d.mts'), join(outDir, 'components/nuxe-root.d.ts'))
         await copyFile(join(outDir, 'runtime/index.mjs'), join(outDir, 'runtime/index.js'))
         await copyFile(join(outDir, 'runtime/index.d.mts'), join(outDir, 'runtime/index.d.ts'))
+        await copyFile(join(outDir, 'server/index.mjs'), join(outDir, 'server/index.js'))
+        await copyFile(join(outDir, 'server/index.d.mts'), join(outDir, 'server/index.d.ts'))
       },
     },
   },

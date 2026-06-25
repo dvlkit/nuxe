@@ -17,7 +17,12 @@ export async function runStart(cwd: string): Promise<void> {
   console.log(`Starting nuxe production server on http://localhost:${port}`)
 
   const child = spawn('node', [serverPath], {
-    env: { ...process.env, PORT: String(port), NODE_ENV: 'production' },
+    env: {
+      ...process.env,
+      PORT: String(port),
+      NODE_ENV: 'production',
+      NUXE_BASE_URL: process.env.NUXE_BASE_URL ?? `http://localhost:${port}`,
+    },
     stdio: 'inherit',
   })
 

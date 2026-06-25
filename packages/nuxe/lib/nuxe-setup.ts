@@ -59,7 +59,8 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       imports: [
         'vue',
         'vue-router',
-        {'@dvlkit/nuxe': ['defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation', 'useAsyncData', 'useFetch', '$fetch', 'createFetch']},
+        {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
+        {'@dvlkit/nuxe': ['defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation']},
       ],
       dirs: ['app/composables'],
       dts: '.nuxe/auto-imports.d.ts',
@@ -70,7 +71,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       directoryAsNamespace: true,
     }),
     nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares}),
-    nitro({preset: 'node-server'}),
+    nitro({preset: 'node-server', serverDir: 'server'}),
   ]
 
   const baseConfig = mergeConfig({
@@ -79,6 +80,9 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       alias: {
         '#nuxe': resolve(cwd, '.nuxe'),
       },
+    },
+    optimizeDeps: {
+      force: true,
     },
     plugins: frameworkPlugins,
     environments: {

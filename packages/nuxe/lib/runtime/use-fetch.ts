@@ -1,4 +1,13 @@
-import { shallowRef, watch, type Ref, type WatchSource } from 'vue'
+import {
+  isRef,
+  reactive,
+  shallowRef,
+  toValue,
+  watch,
+  type MultiWatchSources,
+  type Ref,
+  type WatchSource,
+} from 'vue'
 import {
   $fetch,
   type FetchContext,
@@ -7,13 +16,21 @@ import {
 } from 'ofetch'
 import {
   useAsyncData,
+  readHydratedKey,
   type UseAsyncDataOptions,
   type UseAsyncDataReturn,
 } from './use-async-data'
+import { getCurrentContext } from './request-context'
 
-// Error shape exposed via the onError hook. `.status` / `.statusText` /
-// `.response` are populated only for non-OK responses; for network failures
-// (where ofetch throws the underlying fetch error) they're undefined.
+const REF_OR_GETTER_OPTIONS = [
+  'method',
+  'baseURL',
+  'query',
+  'params',
+  'body',
+  'headers',
+] as const
+
 export interface UseFetchError extends Error {
   status?: number
   statusText?: string
@@ -28,6 +45,35 @@ export interface UseFetchOptions<T = any> extends FetchOptions<'json', T>, UseAs
 
 export interface UseFetchReturn<T> extends UseAsyncDataReturn<T> {
   statusCode: Ref<number | null>
+}
+
+function resolveServerBaseURL(explicit: unknown): string | undefined {
+  if (typeof window !== 'undefined') return toValue(explicit) as string | undefined
+  const v = toValue(explicit) as string | undefined
+  if (v) return v
+  return process.env.NUXE_BASE_URL ?? 'http://localhost:3000'
+}
+
+async function runHook<C>(hook: unknown, ctx: C): Promise<void> {
+  if (!hook) return
+  if (Array.isArray(hook)) {
+    for (const h of hook) await (h as (c: C) => void | Promise<void>)(ctx)
+  } else {
+    await (hook as (c: C) => void | Promise<void>)(ctx)
+  }
+}
+
+function deepUnwrapRefs<T>(value: T): T {
+  if (isRef(value)) return value.value as T
+  if (Array.isArray(value)) return value.map((v) => deepUnwrapRefs(v)) as T
+  if (value && typeof value === 'object') {
+    const result: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      result[k] = deepUnwrapRefs(v)
+    }
+    return result as T
+  }
+  return value
 }
 
 export function useFetch<T = unknown>(
@@ -46,36 +92,52 @@ export function useFetch<T = unknown>(
 
   const statusCode = shallowRef<number | null>(null)
 
-  const userOnResponse = options.onResponse
-  const userOnError = options.onError
-
-  async function runHook<C>(hook: unknown, ctx: C): Promise<void> {
-    if (!hook) return
-    if (Array.isArray(hook)) {
-      for (const h of hook) await (h as (c: C) => void | Promise<void>)(ctx)
-    } else {
-      await (hook as (c: C) => void | Promise<void>)(ctx)
+  if (typeof window !== 'undefined') {
+    const ssStatus = readHydratedKey<number | null>(`${key}::__statusCode`)
+    if (typeof ssStatus === 'number') {
+      statusCode.value = ssStatus
     }
   }
 
+  const userOnResponse = options.onResponse
+  const userOnError = options.onError
+
+  const _options = reactive(options as UseFetchOptions<T>)
+
   const handler = async (): Promise<T> => {
     const resolvedUrl = typeof url === 'string' ? url : url()
+
+    const callOptions: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(_options)) {
+      callOptions[k] = v
+    }
+    for (const key of REF_OR_GETTER_OPTIONS) {
+      if (key in callOptions) {
+        callOptions[key] = deepUnwrapRefs(toValue(callOptions[key]))
+      }
+    }
+
     return await $fetch<T>(resolvedUrl, {
-      ...options,
+      ...(callOptions as UseFetchOptions<T>),
+      retry: (callOptions.retry as number | false | undefined) ?? 0,
+      baseURL: resolveServerBaseURL(callOptions.baseURL),
       onResponse: async (ctx: FetchContext & { response: FetchResponse<T> }) => {
         statusCode.value = ctx.response.status
+        const ssrCtx = getCurrentContext()
+        if (ssrCtx) ssrCtx.payload[`${key}::__statusCode`] = ctx.response.status
         await runHook(userOnResponse, ctx as never)
       },
       onRequestError: async (ctx: FetchContext & { error: Error }) => {
         statusCode.value = null
+        const ssrCtx = getCurrentContext()
+        if (ssrCtx) ssrCtx.payload[`${key}::__statusCode`] = null
         if (userOnError) await userOnError({ error: ctx.error as UseFetchError })
       },
       onResponseError: async (ctx: FetchContext & { response: FetchResponse<T> }) => {
         statusCode.value = ctx.response.status
+        const ssrCtx = getCurrentContext()
+        if (ssrCtx) ssrCtx.payload[`${key}::__statusCode`] = ctx.response.status
         if (userOnError) {
-          // Build a synthetic Error with status/statusText/response attached,
-          // since the real FetchError isn't constructed until ofetch's onError
-          // throws (which happens AFTER our hook fires).
           const err = new Error(`${ctx.response.status} ${ctx.response.statusText}`) as UseFetchError
           err.status = ctx.response.status
           err.statusText = ctx.response.statusText
@@ -95,9 +157,13 @@ export function useFetch<T = unknown>(
     watch(url, () => { void asyncResult.refresh() })
   }
 
-  if (options.watch && options.watch.length > 0) {
-    watch(options.watch, () => { void asyncResult.refresh() }, { deep: true })
-  }
+  const watchSources: MultiWatchSources = [
+    ...(options.watch ?? []),
+    _options,
+  ]
+  watch(watchSources, () => {
+    void asyncResult.refresh()
+  })
 
   return {
     ...asyncResult,

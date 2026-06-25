@@ -22,6 +22,10 @@
       "types": "./dist/runtime/index.d.ts",
       "default": "./dist/runtime/index.js"
     },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    },
     "./setup": {
       "types": "./dist/nuxe-setup.d.ts",
       "default": "./dist/nuxe-setup.js"
@@ -51,6 +55,7 @@
     "acorn": "8.17.0",
     "c12": "4.0.0-beta.5",
     "citty": "0.2.2",
+    "h3": "2.0.1-rc.22",
     "listhen": "1.10.0",
     "magic-string": "0.30.21",
     "nitro": "3.0.260610-beta",

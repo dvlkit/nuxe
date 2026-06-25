@@ -18,6 +18,7 @@ const {data, pending, error, status, refresh} = useAsyncData('slow-data', () => 
   setTimeout(() => resolve({message: 'Loaded after 1s (async data fetch)'}), 10000)
 }), {
   default: () => ({message: 'Loading...'}),
+  lazy: true,
 })
 </script>
 
@@ -40,7 +41,7 @@ const {data, pending, error, status, refresh} = useAsyncData('slow-data', () => 
           @click="refresh()"
           style="margin-top: 0.5rem; padding: 0.5rem 1rem;"
       >
-        {{ pending ? 'Refreshing...' : 'Refresh' }}
+        {{ pending ? 'Loading...' : 'Refresh' }}
       </button>
     </div>
   </div>

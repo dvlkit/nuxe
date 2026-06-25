@@ -9,6 +9,7 @@ import {NuxeLayout} from '@dvlkit/nuxe/components/nuxe-layout'
       <RouterLink to="/about">About</RouterLink>
       <RouterLink to="/admin">Admin</RouterLink>
       <RouterLink to="/streaming">Streaming Demo</RouterLink>
+      <RouterLink to="/fetch-demo">Fetch Demo</RouterLink>
     </nav>
     <NuxeLayout>
       <RouterView/>

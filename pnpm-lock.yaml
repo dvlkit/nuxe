@@ -38,6 +38,9 @@ importers:
       citty:
         specifier: 0.2.2
         version: 0.2.2
+      h3:
+        specifier: 2.0.1-rc.22
+        version: 2.0.1-rc.22(crossws@0.4.6(srvx@0.11.17))
       listhen:
         specifier: 1.10.0
         version: 1.10.0(srvx@0.11.17)

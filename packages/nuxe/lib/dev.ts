@@ -17,10 +17,12 @@ export async function runDev(cwd: string): Promise<void> {
     }
   })
 
-  await listen((req, res) => {
+  const listener = await listen((req, res) => {
     vite.middlewares(req, res)
   }, {
     port,
     showURL: true,
   })
+
+  process.env.NUXE_BASE_URL = listener.url
 }
