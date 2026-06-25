@@ -27,11 +27,24 @@ jobs:
           node-version: 22
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - name: Check for pending changesets
+        id: check
+        run: |
+          PENDING=$(ls .changeset/*.md 2>/dev/null | grep -v README.md | wc -l | tr -d ' ')
+          if [ "$PENDING" -gt 0 ]; then
+            echo "pending=true" >> "$GITHUB_OUTPUT"
+            echo "Found $PENDING pending changeset(s)"
+          else
+            echo "pending=false" >> "$GITHUB_OUTPUT"
+            echo "No pending changesets, skipping release"
+          fi
       - name: Bump version and update CHANGELOG
+        if: steps.check.outputs.pending == 'true'
         run: pnpm changeset version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Commit bumped versions
+        if: steps.check.outputs.pending == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -39,24 +52,43 @@ jobs:
           git commit -m "chore: release packages" || echo "No changes to commit"
           git push
       - name: Create and push tag
+        if: steps.check.outputs.pending == 'true'
         id: tag
         run: |
           VERSION=$(node -p "require('./packages/nuxe/package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          git tag -a "v$VERSION" -m "Release v$VERSION"
-          git push origin "v$VERSION"
+          TAG="v$VERSION"
+          HEAD_SHA=$(git rev-parse HEAD)
+
+          if CURRENT_TAG_SHA=$(git rev-parse "$TAG" 2>/dev/null); then
+            if [ "$CURRENT_TAG_SHA" = "$HEAD_SHA" ]; then
+              echo "Tag $TAG already points at HEAD, keeping it"
+            else
+              echo "::error::Tag $TAG exists but points to $CURRENT_TAG_SHA, not HEAD ($HEAD_SHA)"
+              echo "::error::Refusing to move a published tag. Bump the version or fix manually."
+              exit 1
+            fi
+          else
+            git tag -a "$TAG" -m "Release $TAG"
+            git push origin "$TAG"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.pending == 'true'
         with:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
       - run: pnpm install --frozen-lockfile
+        if: steps.check.outputs.pending == 'true'
       - name: Build
+        if: steps.check.outputs.pending == 'true'
         run: pnpm build --filter nuxe
       - name: Publish to npm
+        if: steps.check.outputs.pending == 'true'
         run: pnpm changeset publish --provenance
         env:
           NODE_AUTH_TOKEN: 'oidc'
       - name: Create GitHub Release
+        if: steps.check.outputs.pending == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.tag.outputs.version }}
