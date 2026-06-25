@@ -1,10 +1,8 @@
 import type { Plugin } from 'vite'
-import { generateMiddlewaresModule } from './middleware/codegen'
+import { generateClientMiddlewaresModule, generateServerMiddlewaresModule } from './middleware/codegen'
 import type { ScannedMiddleware } from './middleware/scanner'
 
-const MIDDLEWARE_CHAIN_SOURCE = `
-import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares'
-
+const MIDDLEWARE_CHAIN_LOGIC = `
 function __nuxe_runMiddlewareChain(to, from) {
   return __nuxe_runMiddlewareChainInner(to, from, new Set())
 }
@@ -40,7 +38,8 @@ import { RouterView, createRouter, createWebHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 import { createHead } from '@unhead/vue/client'
 import App from '/app/app.vue'
-${MIDDLEWARE_CHAIN_SOURCE}
+import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
+${MIDDLEWARE_CHAIN_LOGIC}
 
 async function main() {
   const head = createHead()
@@ -65,7 +64,8 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { createHead, transformHtmlTemplate } from '@unhead/vue/server'
 import { routes } from 'vue-router/auto-routes'
 import App from '/app/app.vue'
-${MIDDLEWARE_CHAIN_SOURCE}
+import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
+${MIDDLEWARE_CHAIN_LOGIC}
 
 import clientAssets from '/.nuxe/entry-client.ts?assets=client'
 
@@ -155,7 +155,8 @@ function buildLayoutsModule(layouts: string[]): string {
 
 export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
   const layoutsModule = buildLayoutsModule(options.layouts)
-  const middlewaresModule = generateMiddlewaresModule(options.middlewares ?? [])
+  const clientMiddlewaresModule = generateClientMiddlewaresModule(options.middlewares ?? [])
+  const serverMiddlewaresModule = generateServerMiddlewaresModule(options.middlewares ?? [])
 
   return {
     name: 'nuxe:framework',
@@ -164,14 +165,18 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
       if (id === 'virtual:nuxe/layouts' || id === '\0virtual:nuxe/layouts') {
         return '\0virtual:nuxe/layouts'
       }
-      if (id === 'virtual:nuxe/middlewares' || id === '\0virtual:nuxe/middlewares') {
-        return '\0virtual:nuxe/middlewares'
+      if (id === 'virtual:nuxe/middlewares-client' || id === '\0virtual:nuxe/middlewares-client') {
+        return '\0virtual:nuxe/middlewares-client'
+      }
+      if (id === 'virtual:nuxe/middlewares-server' || id === '\0virtual:nuxe/middlewares-server') {
+        return '\0virtual:nuxe/middlewares-server'
       }
     },
 
     load(id) {
       if (id === '\0virtual:nuxe/layouts') return layoutsModule
-      if (id === '\0virtual:nuxe/middlewares') return middlewaresModule
+      if (id === '\0virtual:nuxe/middlewares-client') return clientMiddlewaresModule
+      if (id === '\0virtual:nuxe/middlewares-server') return serverMiddlewaresModule
     },
   }
 }

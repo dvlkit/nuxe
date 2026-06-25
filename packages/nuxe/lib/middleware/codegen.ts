@@ -1,9 +1,17 @@
 import type { ScannedMiddleware } from './scanner'
 
-export function generateMiddlewaresModule(middlewares: ScannedMiddleware[]): string {
+export function generateClientMiddlewaresModule(middlewares: ScannedMiddleware[]): string {
+  return generateModule(middlewares.filter(m => !m.serverOnly))
+}
+
+export function generateServerMiddlewaresModule(middlewares: ScannedMiddleware[]): string {
+  return generateModule(middlewares)
+}
+
+export function generateModule(middlewares: ScannedMiddleware[]): string {
   if (middlewares.length === 0) {
     return [
-      'export const middlewares: {}',
+      'export const middlewares = {}',
       'export const globalMiddlewares = []',
       '',
     ].join('\n')
@@ -21,7 +29,7 @@ export function generateMiddlewaresModule(middlewares: ScannedMiddleware[]): str
 
   const globalEntries = middlewares
     .filter(m => m.global)
-    .map(m => `  __mw_${indexOf(m)}`)
+    .map(m => `__mw_${indexOf(m)}`)
     .join(', ')
 
   return [
