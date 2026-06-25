@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { $fetch, type $Fetch, createFetch, FetchError, type FetchOptions, } from 'ofetch'
+import { $fetch, createFetch, FetchError, type FetchOptions, } from 'ofetch'
 
 let fetchMock: ReturnType<typeof vi.fn>
 
