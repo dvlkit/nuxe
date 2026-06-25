@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { scanMiddlewares } from '../../lib/middleware/scanner.ts'
+import { scanMiddlewares } from '../../lib/middleware/scanner'
 
 describe('scanMiddlewares', () => {
   let cwd: string
