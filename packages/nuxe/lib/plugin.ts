@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite'
 import { generateMiddlewaresModule } from './middleware/codegen'
-import type { scanMiddlewares, ScannedMiddleware } from './middleware/scanner'
+import type { ScannedMiddleware } from './middleware/scanner'
 
 const MIDDLEWARE_CHAIN_SOURCE = `
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares'

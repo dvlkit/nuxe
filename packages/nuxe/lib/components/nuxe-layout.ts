@@ -1,7 +1,6 @@
 import { computed, defineComponent, h, Suspense, Transition, type PropType } from 'vue'
 import { useRoute, type NavigationGuard, type RouteMeta } from 'vue-router'
 import layouts from '#nuxe/layouts.mjs'
-import { RouteMiddleware } from '../middleware/runtime'
 
 declare module 'vue-router' {
   interface RouteMeta {
