@@ -1,4 +1,4 @@
-import { computed, defineComponent, h, Suspense, Transition, type PropType } from 'vue'
+import { computed, defineComponent, h, Transition, type PropType } from 'vue'
 import { useRoute, type NavigationGuard, type RouteMeta } from 'vue-router'
 import layouts from '#nuxe/layouts.mjs'
 
