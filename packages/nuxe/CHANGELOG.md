@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.5.1
+
+### Patch Changes
+
+- 101b1c5: middleware server only
+
 ## 0.5.0
 
 ### Minor Changes
