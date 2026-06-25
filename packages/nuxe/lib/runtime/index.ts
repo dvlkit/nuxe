@@ -12,3 +12,8 @@ export {
   type FetchErrorContext,
   type FetchBody,
 } from './fetch'
+export {
+  useFetch,
+  type UseFetchOptions,
+  type UseFetchReturn,
+} from './use-fetch'

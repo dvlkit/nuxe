@@ -23,3 +23,4 @@ export {
   type FetchResponseContext,
   type FetchErrorContext,
 } from './runtime/fetch'
+export { useFetch, type UseFetchOptions, type UseFetchReturn } from './runtime/use-fetch'
