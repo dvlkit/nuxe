@@ -37,13 +37,18 @@ const ENTRY_CLIENT_SOURCE = `import { createSSRApp } from 'vue'
 import { RouterView, createRouter, createWebHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
 import { createHead } from '@unhead/vue/client'
+import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
+import { setHydratedPayload } from '@dvlkit/nuxe/runtime'
 ${MIDDLEWARE_CHAIN_LOGIC}
 
 async function main() {
+  if (typeof window !== 'undefined' && window.__NUXE__) {
+    setHydratedPayload(window.__NUXE__.data || null)
+  }
   const head = createHead()
-  const app = createSSRApp(App)
+  const app = createSSRApp(NuxeRoot, { app: App })
   app.use(head)
   const router = createRouter({
     history: createWebHistory(),
@@ -59,68 +64,117 @@ void main()
 `
 
 const ENTRY_SERVER_SOURCE = `import { createSSRApp } from 'vue'
-import { renderToString } from 'vue/server-renderer'
+import { renderToWebStream } from 'vue/server-renderer'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { createHead, transformHtmlTemplate } from '@unhead/vue/server'
+import { createStreamableHead } from '@unhead/vue/stream/server'
+import { renderSSRHeadShell, renderSSRHeadSuspenseChunk } from '@unhead/vue/stream/server'
+import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'vue-router/auto-routes'
+import { createRequestContext, runWithContext } from '@dvlkit/nuxe/runtime' 
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
 ${MIDDLEWARE_CHAIN_LOGIC}
 
-import clientAssets from '/.nuxe/entry-client.ts?assets=client'
-
-const HTML_HEAD = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>nuxe</title></head>'
-const HTML_BODY_OPEN = '<body><div id="app">'
-const HTML_BODY_CLOSE = '</div></body></html>'
-
-function htmlTemplate(body) {
-return HTML_HEAD + HTML_BODY_OPEN + body + HTML_BODY_CLOSE
-}
+const HTML_TEMPLATE_SHELL = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head><body><div id="app">'
+const HTML_CLOSE = '<script type="module" src="/.nuxe/entry-client.ts"></script></div></body></html>'
 
 async function handler(request) {
-  const app = createSSRApp(App)
-  const head = createHead()
-  app.use(head)
-  const router = createRouter({
-    history: createMemoryHistory(),
-    routes,
-  })
-  app.use(router)
+  const ctx = createRequestContext()
+  return await runWithContext(ctx, async () => {
+    const app = createSSRApp(NuxeRoot, { app: App })
+    const { head } = createStreamableHead()
+    app.use(head)
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes,
+    })
+    app.use(router)
   
-  let navigationError = null
-  router.onError((err) => { navigationError = err })
-  router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
-
-  const url = new URL(request.url)
-  const href = url.href.slice(url.origin.length)
+    let navigationError = null
+    router.onError((err) => { navigationError = err })
+    router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
   
-  try {
-    await router.push(href)
-  } catch (err) {
-    if (err && typeof err == 'object' && 'type' in err) {
-      navigationError = err
-    } else {
+    const url = new URL(request.url)
+    const href = url.href.slice(url.origin.length)
+  
+    try {
+      await router.push(href)
+    } catch (err) {
+      if (err && typeof err == 'object' && 'type' in err) {
+        navigationError = err
+      } else {
+        throw err
+      }
+    }
+  
+    await router.isReady()
+  
+    if (navigationError) {
+      return new Response('Redirecting', { status: 302, headers: { Location: '/' } })
+    }
+  
+    const vueStream = renderToWebStream(app)
+    const reader = vueStream.getReader()
+    const encoder = new TextEncoder()
+  
+    let firstChunk
+    try {
+      const result = await reader.read()
+      if (!result.done) firstChunk = result.value
+    } catch (err) {
+      reader.releaseLock()
       throw err
     }
-  }
   
-  await router.isReady()
+    const shellWithBodyOpen = renderSSRHeadShell(head, HTML_TEMPLATE_SHELL)
+    const htmlStream = new ReadableStream({
+      async start(controller) {
+        try {
+          controller.enqueue(encoder.encode(shellWithBodyOpen))
   
-  if (navigationError) {
-    return new Response('Redirecting', { status: 302, headers: { Location: '/' } })
-  }
-
-  head.push({
-    script: [{ type: 'module', src: clientAssets.entry }],
-  })
+          if (firstChunk) {
+            controller.enqueue(firstChunk)
+            const headChunk = renderSSRHeadSuspenseChunk(head)
+            if (headChunk) {
+              controller.enqueue(encoder.encode(\`<script>\${headChunk};document.currentScript.remove()</script>\`))
+            }
+          }
   
-  const renderedApp = await renderToString(app)
-  const html = await transformHtmlTemplate(head, htmlTemplate(renderedApp))
-
-  return new Response(html, {
-    headers: {
-      'Content-Type': 'text/html',
-    },
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            controller.enqueue(value)
+            const headChunk = renderSSRHeadSuspenseChunk(head)
+            if (headChunk) {
+              controller.enqueue(encoder.encode(\`<script>\${headChunk};document.currentScript.remove()</script>\`))
+            }
+          }
+          
+          await ctx.awaitAll()
+          if (Object.keys(ctx.payload).length > 0) {
+            const payloadJson = JSON.stringify({data: ctx.payload }).replace(/</g, '\\u003c')
+            controller.enqueue(encoder.encode(\`<script>window.__NUXE__=\${payloadJson};</script>\`))
+          }
+  
+          controller.enqueue(encoder.encode(HTML_CLOSE))
+          controller.close()
+        } catch (error) {
+          controller.error(error)
+        } finally {
+          reader.releaseLock()
+        }
+      },
+      cancel(reason) {
+        reader.cancel(reason).catch(() => {})
+      }
+    })
+  
+    return new Response(htmlStream, {
+      headers: {
+        'Content-Type': 'text/html',
+        'Transfer-Encoding': 'chunked',
+      },
+    })
   })
 }
 

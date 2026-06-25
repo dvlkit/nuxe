@@ -14,6 +14,14 @@
       "types": "./dist/components/nuxe-layout.d.ts",
       "default": "./dist/components/nuxe-layout.js"
     },
+    "./components/nuxe-root": {
+      "types": "./dist/components/nuxe-root.d.ts",
+      "default": "./dist/components/nuxe-root.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "default": "./dist/runtime/index.js"
+    },
     "./setup": {
       "types": "./dist/nuxe-setup.d.ts",
       "default": "./dist/nuxe-setup.js"

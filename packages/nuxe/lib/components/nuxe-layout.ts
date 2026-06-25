@@ -72,16 +72,14 @@ export const NuxeLayout = defineComponent({
 
       const layoutVNode = h(LayoutComponent, layoutProps, {default: slots.default})
 
-      const suspenseVNode = h(Suspense, null, {default: () => layoutVNode})
-
       if (props.transition) {
         const transitionProps = typeof props.transition === 'object' ? props.transition : {name: 'fade'}
         return h(Transition, transitionProps as any, {
-          default: () => suspenseVNode
+          default: () => layoutVNode
         })
       }
 
-      return suspenseVNode
+      return layoutVNode
     }
   }
 })
