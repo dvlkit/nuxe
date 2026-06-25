@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.5.2
+
+### Patch Changes
+
+- 46f60c0: useAsyncData
+
 ## 0.5.1
 
 ### Patch Changes
