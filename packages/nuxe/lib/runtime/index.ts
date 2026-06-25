@@ -5,15 +5,15 @@ export {
   createFetch,
   FetchError,
   type $Fetch,
-  type CreateFetchDefaults,
+  type CreateFetchOptions,
   type FetchOptions,
-  type FetchRequestContext,
-  type FetchResponseContext,
-  type FetchErrorContext,
-  type FetchBody,
+  type FetchContext,
+  type FetchResponse,
+  type FetchRequest,
 } from './fetch'
 export {
   useFetch,
   type UseFetchOptions,
   type UseFetchReturn,
+  type UseFetchError,
 } from './use-fetch'

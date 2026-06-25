@@ -47,6 +47,9 @@ importers:
       nitro:
         specifier: 3.0.260610-beta
         version: 3.0.260610-beta(chokidar@5.0.0)(jiti@2.7.0)(rollup@4.62.2)(vite@8.0.16(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))
+      ofetch:
+        specifier: 2.0.0-alpha.3
+        version: 2.0.0-alpha.3
       unplugin:
         specifier: 3.0.0
         version: 3.0.0

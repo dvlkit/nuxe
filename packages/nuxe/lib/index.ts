@@ -17,10 +17,11 @@ export {
   $fetch,
   createFetch,
   FetchError,
+  type $Fetch,
+  type CreateFetchOptions,
   type FetchOptions,
-  type CreateFetchDefaults,
-  type FetchRequestContext,
-  type FetchResponseContext,
-  type FetchErrorContext,
+  type FetchContext,
+  type FetchResponse,
+  type FetchRequest,
 } from './runtime/fetch'
-export { useFetch, type UseFetchOptions, type UseFetchReturn } from './runtime/use-fetch'
+export { useFetch, type UseFetchOptions, type UseFetchReturn, type UseFetchError } from './runtime/use-fetch'

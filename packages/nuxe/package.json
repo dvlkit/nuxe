@@ -54,6 +54,7 @@
     "listhen": "1.10.0",
     "magic-string": "0.30.21",
     "nitro": "3.0.260610-beta",
+    "ofetch": "2.0.0-alpha.3",
     "unplugin": "3.0.0",
     "unplugin-auto-import": "21.0.0",
     "unplugin-vue-components": "32.1.0",

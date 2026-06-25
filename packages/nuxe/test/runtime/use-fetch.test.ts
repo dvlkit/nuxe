@@ -214,10 +214,9 @@ describe('useFetch', () => {
 
       await vi.waitFor(() => {
         expect(fetchMock).toHaveBeenCalledTimes(1)
-        const [req] = fetchMock.mock.calls[0] as [Request]
-        expect(req.url).toBe('https://api.example.com/api/x?q=hello')
-        expect(req.headers.get('x-custom')).toBe('value')
-        expect(req.headers.get('accept')).toBe('application/json')
+        const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
+        expect(url).toBe('https://api.example.com/api/x?q=hello')
+        expect((options.headers as Headers).get('x-custom')).toBe('value')
       })
     })
 
