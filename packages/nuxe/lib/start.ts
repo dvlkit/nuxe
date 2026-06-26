@@ -1,7 +1,9 @@
-import { spawn } from 'node:child_process'
 import { resolve } from 'node:path'
 import { existsSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { loadNuxeConfig } from './config'
+import { printDevBanner } from './utils/banner'
+import { logInfo } from './utils/logger'
 
 export async function runStart(cwd: string): Promise<void> {
   const config = await loadNuxeConfig({ cwd })
@@ -14,31 +16,23 @@ export async function runStart(cwd: string): Promise<void> {
     process.exit(1)
   }
 
-  console.log(`Starting nuxe production server on http://localhost:${port}`)
+  logInfo('starting production server...')
+  process.env.PORT = String(port)
+  process.env.NODE_ENV = 'production'
+  process.env.NUXE_BASE_URL = process.env.NUXE_BASE_URL ?? `http://localhost:${port}`
 
-  const child = spawn('node', [serverPath], {
-    env: {
-      ...process.env,
-      PORT: String(port),
-      NODE_ENV: 'production',
-      NUXE_BASE_URL: process.env.NUXE_BASE_URL ?? `http://localhost:${port}`,
-    },
-    stdio: 'inherit',
-  })
+  printDevBanner(port)
+
+  await import(pathToFileURL(serverPath).href)
 
   const shutdown = (signal: NodeJS.Signals) => {
-    console.log(`\nReceived ${signal}, shutting down...`)
-    child.kill(signal)
+    logInfo(`received ${signal}, shutting down...`)
+    clearInterval(keepAlive)
     process.exit(0)
   }
-
   process.on('SIGINT', shutdown)
   process.on('SIGTERM', shutdown)
 
-  child.on('exit', (code) => {
-    if (code !== 0 && code !== null) {
-      console.error(`Server exited with code ${code}`)
-      process.exit(code)
-    }
-  })
+  const keepAlive = setInterval(() => {
+  }, 60_000)
 }

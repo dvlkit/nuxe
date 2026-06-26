@@ -3,8 +3,11 @@ import { createServer as createViteServer } from 'vite'
 import { loadNuxeConfig } from './config'
 import { createNuxeProjectSetup } from './nuxe-setup'
 import { prepareLayouts } from './prepare-layouts'
+import { printDevBanner } from './utils/banner'
+import { logInfo } from './utils/logger'
 
 export async function runDev(cwd: string): Promise<void> {
+  const startedAt = Date.now()
   prepareLayouts(cwd)
   const config = await loadNuxeConfig({ cwd })
   const port = config.server.port
@@ -17,12 +20,15 @@ export async function runDev(cwd: string): Promise<void> {
     }
   })
 
+  logInfo('starting dev server...')
   const listener = await listen((req, res) => {
     vite.middlewares(req, res)
   }, {
     port,
-    showURL: true,
+    showURL: false,
   })
 
   process.env.NUXE_BASE_URL = listener.url
+
+  printDevBanner(port, Date.now() - startedAt)
 }
