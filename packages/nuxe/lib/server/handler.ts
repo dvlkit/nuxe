@@ -8,6 +8,12 @@ import {
   renderSSRHeadSuspenseChunk,
   createStreamableHead,
 } from '@unhead/vue/stream/server'
+import {
+  createRendererContext,
+  getRequestDependencies,
+  type RendererContext,
+} from 'vue-bundle-renderer/runtime'
+import type { Manifest as RendererManifest } from 'vue-bundle-renderer'
 import type { App } from 'vue'
 import { readFileSync } from 'node:fs'
 import { createViteNodeClient } from '../vite/vite-node-client.js'
@@ -43,6 +49,24 @@ function loadOptions(): NuxeViteNodeOptions | null {
 
 const HTML_CLOSE = '</div></body></html>'
 
+function createRouteStylesTracker() {
+  const emitted = new Set<string>()
+  return (ssrContext: NuxeSSRContext, rendererContext: RendererContext): string => {
+    const { styles } = getRequestDependencies(ssrContext as VueSSRContext, rendererContext)
+    let html = ''
+    for (const key in styles) {
+      const resource = styles[key]
+      const file = resource.file
+      if (emitted.has(file)) continue
+      if (file.includes('?inline')) continue
+      emitted.add(file)
+      const url = rendererContext.buildAssetsURL(file)
+      html += `<link rel="stylesheet" crossorigin href="${url}">`
+    }
+    return html
+  }
+}
+
 export default async function handler(request: Request): Promise<Response> {
   const options = loadOptions()
   if (!options) {
@@ -62,6 +86,9 @@ export default async function handler(request: Request): Promise<Response> {
       fetchModule: (id) =>
         client.module(id) as Promise<{ code?: string, externalize?: string }>,
     })
+
+    const manifest = (await client.manifest() as RendererManifest | null) ?? {}
+    const rendererContext = createRendererContext({ manifest })
 
     const ssrContext: NuxeSSRContext = {
       url: request.url,
@@ -101,8 +128,18 @@ export default async function handler(request: Request): Promise<Response> {
       return ssrContext._renderResponse
     }
 
+    const updatedManifest = (await client.manifest() as RendererManifest | null) ?? {}
+    rendererContext.updateManifest(updatedManifest)
+
     const head = ssrContext.head!
-    const shellHtml = renderSSRHeadShell(head, '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head><body><div id="app">')
+    const renderRouteStyles = createRouteStylesTracker()
+    const routeStyles = renderRouteStyles(ssrContext, rendererContext)
+    const shellHtml = renderSSRHeadShell(
+      head,
+      '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />'
+      + routeStyles
+      + '</head><body><div id="app">',
+    )
 
     const htmlStream = new ReadableStream<Uint8Array>({
       async start(controller) {
@@ -111,6 +148,8 @@ export default async function handler(request: Request): Promise<Response> {
 
           if (firstChunk) {
             controller.enqueue(firstChunk)
+            const lateStyles = renderRouteStyles(ssrContext, rendererContext)
+            if (lateStyles) controller.enqueue(encoder.encode(lateStyles))
             const headChunk = renderSSRHeadSuspenseChunk(head)
             if (headChunk) {
               controller.enqueue(encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
@@ -121,6 +160,8 @@ export default async function handler(request: Request): Promise<Response> {
             const { done, value } = await reader.read()
             if (done) break
             controller.enqueue(value)
+            const lateStyles = renderRouteStyles(ssrContext, rendererContext)
+            if (lateStyles) controller.enqueue(encoder.encode(lateStyles))
             const headChunk = renderSSRHeadSuspenseChunk(head)
             if (headChunk) {
               controller.enqueue(encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))

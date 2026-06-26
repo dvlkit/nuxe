@@ -11,6 +11,7 @@ import {
   cleanupSocketPath,
   pickSocketPath
 } from './vite-node-shared'
+import { getDevManifest } from './client-manifest'
 
 const INITIAL_BUFFER_SIZE = 64 * 1024
 const MAX_BUFFER_SIZE = 1024 * 1024 * 1024
@@ -178,30 +179,7 @@ async function handleRequest(node: ViteNodeServerImpl, server: ViteDevServer, re
       return { id: request.id, type: 'response', data: resolved }
     }
     case 'manifest': {
-      const client = server.environments.client
-      const manifest: Record<string, { file: string, css?: string[], module?: boolean, isEntry?: boolean }> = {}
-
-      manifest['/@vite/client'] = { file: '/@vite/client', module: true, isEntry: true }
-      manifest['/.nuxe/entry-client.ts'] = { file: '/.nuxe/entry-client.ts', module: true, isEntry: true }
-
-      const cssImportRegex = /import\s+["']([^"']+\.css(?:\?[^"']*)?)["']/g
-      for (const mod of client.moduleGraph.idToModuleMap.values()) {
-        if (!mod.id || !mod.transformResult) continue
-        const cssImports = new Set<string>()
-        let match: RegExpExecArray | null
-        cssImportRegex.lastIndex = 0
-        while ((match = cssImportRegex.exec(mod.transformResult.code)) !== null) {
-          cssImports.add(match[1])
-        }
-        if (cssImports.size === 0 && !mod.id.endsWith('.css')) continue
-        manifest[mod.id] = {
-          file: mod.url || mod.id,
-          css: cssImports.size > 0 ? [...cssImports] : undefined,
-          module: !mod.id.endsWith('.vue') && !mod.id.endsWith('.css'),
-        }
-      }
-
-      return { id: request.id, type: 'response', data: manifest }
+      return { id: request.id, type: 'response', data: getDevManifest() }
     }
     case 'invalidates':
       return { id: request.id, type: 'response', data: null }

@@ -12,6 +12,8 @@ import { scanMiddlewares } from './middleware/scanner'
 import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
 import vue from '@vitejs/plugin-vue'
 import { NuxeViteNodePlugin } from './vite/vite-node-server'
+import { NuxeClientManifestPlugin } from './vite/client-manifest'
+import { NuxeDevStyleSSRPlugin } from './vite/dev-style-ssr'
 
 export interface NuxeProjectSetup {
   layoutFiles: string[]
@@ -61,6 +63,11 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       root: cwd,
       entryPath: join(cwd, '.nuxe', 'entry-server.ts'),
     }),
+    NuxeClientManifestPlugin({
+      clientEntry: join(cwd, '.nuxe', 'entry-client.ts'),
+      serverOutDir: join(cwd, '.nuxe'),
+    }),
+    NuxeDevStyleSSRPlugin({ root: cwd }),
     AutoImport({
       imports: [
         'vue',
@@ -126,6 +133,19 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       },
       ssr: {
         consumer: 'server',
+        define: {
+          'process.server': true,
+          'process.client': false,
+          'process.browser': false,
+          'import.meta.server': true,
+          'import.meta.client': false,
+          'import.meta.browser': false,
+          'window': 'undefined',
+          'document': 'undefined',
+          'navigator': 'undefined',
+          'location': 'undefined',
+          'XMLHttpRequest': 'undefined',
+        },
         build: {
           rollupOptions: {
             input: join(cwd, '.nuxe', 'entry-server.ts'),

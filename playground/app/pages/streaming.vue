@@ -15,7 +15,7 @@ useHead({
 const {data, pending, error, status, refresh} = useAsyncData('slow-data', () => new Promise<{
   message: string
 }>((resolve) => {
-  setTimeout(() => resolve({message: 'Loaded after 1s (async data fetch)'}), 10000)
+  setTimeout(() => resolve({message: 'Loaded after 1s (async data fetch)'}), 1000)
 }), {
   default: () => ({message: 'Loading...'}),
   lazy: true,

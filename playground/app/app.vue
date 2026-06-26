@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { useHead } from '@dvlkit/nuxe'
 import { NuxeLayout } from '@dvlkit/nuxe/components/nuxe-layout'
-import cssText from './assets/main.css?inline'
+import './assets/main.css'
 
 useHead({
   title: 'nuxe playground',
-  style: () => [
-    {
-      innerHTML: cssText,
-    },
-  ],
 })
 
 const links = [
