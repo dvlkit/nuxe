@@ -31,15 +31,14 @@ const {data, pending, error, status, refresh} = useAsyncData('slow-data', () => 
       content streams in ~1s later.
     </p>
 
-    <div style="margin-top: 1rem; padding: 1rem; border: 2px solid #4caf50; border-radius: 8px; background: #f1f8e9;">
+    <div class="fetch-card">
       <h2>Status: {{ status }}</h2>
       <p v-if="error" style="color: #c62828;"><strong>Error:</strong> {{ error.message }}</p>
-      <p v-else><strong>Message:</strong> {{ data?.message }}</p>
+      <p v-else><strong>Message:</strong> <code>{{ data?.message }}</code></p>
       <button
           type="button"
           :disabled="pending"
           @click="refresh()"
-          style="margin-top: 0.5rem; padding: 0.5rem 1rem;"
       >
         {{ pending ? 'Loading...' : 'Refresh' }}
       </button>

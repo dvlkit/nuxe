@@ -63,27 +63,26 @@ function formatTime(ts: number) {
       Open DevTools → Network to see the requests and the streamed payload.
     </p>
 
-    <section style="margin-top: 1.5rem; padding: 1rem; border: 2px solid #4caf50; border-radius: 8px; background: #f1f8e9;">
+    <section class="fetch-card" style="border-color: #4caf50;">
       <h2>1. Basic fetch with refresh</h2>
       <p>
         <strong>Status:</strong> {{ basicStatus }} |
         <strong>HTTP:</strong> {{ basicStatusCode }} |
         <strong>Pending:</strong> {{ basicPending }}
       </p>
-      <p v-if="basicData"><strong>Message:</strong> {{ basicData.message }}</p>
+      <p v-if="basicData"><strong>Message:</strong> <code>{{ basicData.message }}</code></p>
       <p v-if="basicData"><strong>Timestamp:</strong> {{ formatTime(basicData.timestamp) }}</p>
       <p v-if="basicData"><strong>Echoed query:</strong> {{ basicData.query ?? '(none)' }}</p>
       <button
         type="button"
         :disabled="basicPending"
         @click="refreshBasic()"
-        style="margin-top: 0.5rem; padding: 0.5rem 1rem;"
       >
         {{ basicPending ? 'Refreshing...' : 'Refresh' }}
       </button>
     </section>
 
-    <section style="margin-top: 1.5rem; padding: 1rem; border: 2px solid #2196f3; border-radius: 8px; background: #e3f2fd;">
+    <section class="fetch-card" style="border-color: #2196f3;">
       <h2>2. Reactive query (watch option)</h2>
       <p>
         Type in the input — the fetch refetches automatically because
@@ -100,7 +99,7 @@ function formatTime(ts: number) {
       <p v-if="reactiveData"><strong>Timestamp:</strong> {{ formatTime(reactiveData.timestamp) }}</p>
     </section>
 
-    <section style="margin-top: 1.5rem; padding: 1rem; border: 2px solid #f44336; border-radius: 8px; background: #ffebee;">
+    <section class="fetch-card" style="border-color: #f44336;">
       <h2>3. Error handling</h2>
       <p>
         This call hits <code>/api/ping?status=500</code> to demo the error state.
@@ -114,12 +113,11 @@ function formatTime(ts: number) {
       <p v-if="errorError" style="color: #c62828;">
         <strong>Error:</strong> {{ errorError.message }}
       </p>
-      <p v-else-if="errorData"><strong>Message:</strong> {{ errorData.message }}</p>
+      <p v-else-if="errorData"><strong>Message:</strong> <code>{{ errorData.message }}</code></p>
       <button
         type="button"
         :disabled="errorPending"
         @click="refreshError()"
-        style="margin-top: 0.5rem; padding: 0.5rem 1rem;"
       >
         {{ errorPending ? 'Retrying...' : 'Retry' }}
       </button>

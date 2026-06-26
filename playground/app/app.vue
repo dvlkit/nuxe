@@ -1,15 +1,38 @@
 <script setup lang="ts">
-import {NuxeLayout} from '@dvlkit/nuxe/components/nuxe-layout'
+import { useHead } from '@dvlkit/nuxe'
+import { NuxeLayout } from '@dvlkit/nuxe/components/nuxe-layout'
+import cssText from './assets/main.css?inline'
+
+useHead({
+  title: 'nuxe playground',
+  style: () => [
+    {
+      innerHTML: cssText,
+    },
+  ],
+})
+
+const links = [
+  { to: '/', label: 'Home' },
+  { to: '/about', label: 'About' },
+  { to: '/admin', label: 'Admin' },
+  { to: '/streaming', label: 'Streaming Demo' },
+  { to: '/fetch-demo', label: 'Fetch Demo' },
+]
 </script>
 
 <template>
-  <div>
-    <nav style="background: #f5f5f5; padding: 1rem; display: flex; gap: 1rem;">
-      <RouterLink to="/">Home</RouterLink>
-      <RouterLink to="/about">About</RouterLink>
-      <RouterLink to="/admin">Admin</RouterLink>
-      <RouterLink to="/streaming">Streaming Demo</RouterLink>
-      <RouterLink to="/fetch-demo">Fetch Demo</RouterLink>
+  <div class="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <nav class="flex flex-wrap gap-2 bg-slate-100 p-4 dark:bg-slate-900">
+      <RouterLink
+        v-for="link in links"
+        :key="link.to"
+        :to="link.to"
+        class="rounded-md px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-indigo-500 hover:text-white dark:text-slate-200"
+        active-class="bg-indigo-500 text-white"
+      >
+        {{ link.label }}
+      </RouterLink>
     </nav>
     <NuxeLayout>
       <RouterView/>
