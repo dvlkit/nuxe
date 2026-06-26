@@ -63,7 +63,7 @@ export function NuxeViteNodePlugin(opts: { root: string, entryPath: string }): P
         socket.on('data', (chunk) => {
           try {
             writeChunk(state, chunk)
-            processMessages(state, socket, viteNodeServer!)
+            void processMessages(state, socket, viteNodeServer!, server)
           }
           catch (error) {
             socket.destroy(error instanceof Error ? error : new Error(String(error)))
@@ -138,7 +138,7 @@ function resetState(state: SocketState) {
   state.readOffset = 0
 }
 
-async function processMessages(state: SocketState, socket: Socket, node: ViteNodeServerImpl): Promise<void> {
+async function processMessages(state: SocketState, socket: Socket, node: ViteNodeServerImpl, server: ViteDevServer): Promise<void> {
   while (state.writeOffset - state.readOffset >= 4) {
     const messageLength = state.buffer.readUInt32BE(state.readOffset)
     const total = 4 + messageLength
@@ -155,7 +155,7 @@ async function processMessages(state: SocketState, socket: Socket, node: ViteNod
     }
 
     try {
-      const response = await handleRequest(node, request)
+      const response = await handleRequest(node, server, request)
       sendMessage(socket, response)
     } catch (error) {
       sendMessage(socket, errorResponse(request.id, error))
@@ -165,7 +165,7 @@ async function processMessages(state: SocketState, socket: Socket, node: ViteNod
   }
 }
 
-async function handleRequest(node: ViteNodeServerImpl, request: ViteNodeRequest): Promise<ViteNodeMessage> {
+async function handleRequest(node: ViteNodeServerImpl, server: ViteDevServer, request: ViteNodeRequest): Promise<ViteNodeMessage> {
   switch (request.type as ViteNodeRequestType) {
     case 'module': {
       const { moduleId } = request.payload as { moduleId: string }
@@ -177,7 +177,32 @@ async function handleRequest(node: ViteNodeServerImpl, request: ViteNodeRequest)
       const resolved = await node.resolveId(id, importer)
       return { id: request.id, type: 'response', data: resolved }
     }
-    case 'manifest':
+    case 'manifest': {
+      const client = server.environments.client
+      const manifest: Record<string, { file: string, css?: string[], module?: boolean, isEntry?: boolean }> = {}
+
+      manifest['/@vite/client'] = { file: '/@vite/client', module: true, isEntry: true }
+      manifest['/.nuxe/entry-client.ts'] = { file: '/.nuxe/entry-client.ts', module: true, isEntry: true }
+
+      const cssImportRegex = /import\s+["']([^"']+\.css(?:\?[^"']*)?)["']/g
+      for (const mod of client.moduleGraph.idToModuleMap.values()) {
+        if (!mod.id || !mod.transformResult) continue
+        const cssImports = new Set<string>()
+        let match: RegExpExecArray | null
+        cssImportRegex.lastIndex = 0
+        while ((match = cssImportRegex.exec(mod.transformResult.code)) !== null) {
+          cssImports.add(match[1])
+        }
+        if (cssImports.size === 0 && !mod.id.endsWith('.css')) continue
+        manifest[mod.id] = {
+          file: mod.url || mod.id,
+          css: cssImports.size > 0 ? [...cssImports] : undefined,
+          module: !mod.id.endsWith('.vue') && !mod.id.endsWith('.css'),
+        }
+      }
+
+      return { id: request.id, type: 'response', data: manifest }
+    }
     case 'invalidates':
       return { id: request.id, type: 'response', data: null }
     default:

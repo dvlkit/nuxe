@@ -64,21 +64,16 @@ void main()
 `
 
 const ENTRY_SERVER_SOURCE = `import { createSSRApp } from 'vue'
-import { renderToWebStream } from 'vue/server-renderer'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createStreamableHead } from '@unhead/vue/stream/server'
-import { renderSSRHeadShell, renderSSRHeadSuspenseChunk } from '@unhead/vue/stream/server'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'vue-router/auto-routes'
-import { createRequestContext, provideRequestContext } from '@dvlkit/nuxe/runtime' 
+import { createRequestContext, provideRequestContext } from '@dvlkit/nuxe/runtime'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
 ${MIDDLEWARE_CHAIN_LOGIC}
 
-const HTML_TEMPLATE_SHELL = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /></head><body><div id="app">'
-const HTML_CLOSE = '<script type="module" src="/.nuxe/entry-client.ts"></script></div></body></html>'
-
-async function handler(request) {
+async function createApp(ssrContext) {
   const ctx = createRequestContext()
   const app = createSSRApp(NuxeRoot, { app: App })
   provideRequestContext(app, ctx)
@@ -94,8 +89,8 @@ async function handler(request) {
   router.onError((err) => { navigationError = err })
   router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
 
-  const url = new URL(request.url)
-  const href = url.href.slice(url.origin.length)
+  const url = new URL(ssrContext.url, 'http://localhost')
+  const href = url.pathname + url.search
 
   try {
     await router.push(href)
@@ -110,76 +105,17 @@ async function handler(request) {
   await router.isReady()
 
   if (navigationError) {
-    return new Response('Redirecting', { status: 302, headers: { Location: '/' } })
+    ssrContext._renderResponse = new Response('Redirecting', { status: 302, headers: { Location: '/' } })
   }
 
-  const vueStream = renderToWebStream(app)
-  const reader = vueStream.getReader()
-  const encoder = new TextEncoder()
+  ssrContext.modules = ssrContext.modules || new Set()
+  ssrContext.head = head
+  ssrContext.ctx = ctx
 
-  let firstChunk
-  try {
-    const result = await reader.read()
-    if (!result.done) firstChunk = result.value
-  } catch (err) {
-    reader.releaseLock()
-    throw err
-  }
-
-  const shellWithBodyOpen = renderSSRHeadShell(head, HTML_TEMPLATE_SHELL)
-  const htmlStream = new ReadableStream({
-    async start(controller) {
-      try {
-        controller.enqueue(encoder.encode(shellWithBodyOpen))
-
-        if (firstChunk) {
-          controller.enqueue(firstChunk)
-          const headChunk = renderSSRHeadSuspenseChunk(head)
-          if (headChunk) {
-            controller.enqueue(encoder.encode(\`<script>\${headChunk};document.currentScript.remove()</script>\`))
-          }
-        }
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          controller.enqueue(value)
-          const headChunk = renderSSRHeadSuspenseChunk(head)
-          if (headChunk) {
-            controller.enqueue(encoder.encode(\`<script>\${headChunk};document.currentScript.remove()</script>\`))
-          }
-        }
-
-        await ctx.awaitAll()
-        if (Object.keys(ctx.payload).length > 0) {
-          const payloadJson = JSON.stringify({data: ctx.payload }).replace(/</g, '\\u003c')
-          controller.enqueue(encoder.encode(\`<script>window.__NUXE__=\${payloadJson};</script>\`))
-        }
-
-        controller.enqueue(encoder.encode(HTML_CLOSE))
-        controller.close()
-      } catch (error) {
-        controller.error(error)
-      } finally {
-        reader.releaseLock()
-      }
-    },
-    cancel(reason) {
-      reader.cancel(reason).catch(() => {})
-    }
-  })
-
-  return new Response(htmlStream, {
-    headers: {
-      'Content-Type': 'text/html',
-      'Transfer-Encoding': 'chunked',
-    },
-  })
+  return app
 }
 
-export default {
-  fetch: handler,
-}
+export default createApp
 `
 
 export const NUXE_ENTRY_SERVER: string = ENTRY_SERVER_SOURCE
