@@ -70,7 +70,7 @@ import { createStreamableHead } from '@unhead/vue/stream/server'
 import { renderSSRHeadShell, renderSSRHeadSuspenseChunk } from '@unhead/vue/stream/server'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'vue-router/auto-routes'
-import { createRequestContext, runWithContext } from '@dvlkit/nuxe/runtime' 
+import { createRequestContext, provideRequestContext } from '@dvlkit/nuxe/runtime' 
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
 ${MIDDLEWARE_CHAIN_LOGIC}
@@ -80,101 +80,100 @@ const HTML_CLOSE = '<script type="module" src="/.nuxe/entry-client.ts"></script>
 
 async function handler(request) {
   const ctx = createRequestContext()
-  return await runWithContext(ctx, async () => {
-    const app = createSSRApp(NuxeRoot, { app: App })
-    const { head } = createStreamableHead()
-    app.use(head)
-    const router = createRouter({
-      history: createMemoryHistory(),
-      routes,
-    })
-    app.use(router)
-  
-    let navigationError = null
-    router.onError((err) => { navigationError = err })
-    router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
-  
-    const url = new URL(request.url)
-    const href = url.href.slice(url.origin.length)
-  
-    try {
-      await router.push(href)
-    } catch (err) {
-      if (err && typeof err == 'object' && 'type' in err) {
-        navigationError = err
-      } else {
-        throw err
-      }
-    }
-  
-    await router.isReady()
-  
-    if (navigationError) {
-      return new Response('Redirecting', { status: 302, headers: { Location: '/' } })
-    }
-  
-    const vueStream = renderToWebStream(app)
-    const reader = vueStream.getReader()
-    const encoder = new TextEncoder()
-  
-    let firstChunk
-    try {
-      const result = await reader.read()
-      if (!result.done) firstChunk = result.value
-    } catch (err) {
-      reader.releaseLock()
+  const app = createSSRApp(NuxeRoot, { app: App })
+  provideRequestContext(app, ctx)
+  const { head } = createStreamableHead()
+  app.use(head)
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes,
+  })
+  app.use(router)
+
+  let navigationError = null
+  router.onError((err) => { navigationError = err })
+  router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
+
+  const url = new URL(request.url)
+  const href = url.href.slice(url.origin.length)
+
+  try {
+    await router.push(href)
+  } catch (err) {
+    if (err && typeof err == 'object' && 'type' in err) {
+      navigationError = err
+    } else {
       throw err
     }
-  
-    const shellWithBodyOpen = renderSSRHeadShell(head, HTML_TEMPLATE_SHELL)
-    const htmlStream = new ReadableStream({
-      async start(controller) {
-        try {
-          controller.enqueue(encoder.encode(shellWithBodyOpen))
-  
-          if (firstChunk) {
-            controller.enqueue(firstChunk)
-            const headChunk = renderSSRHeadSuspenseChunk(head)
-            if (headChunk) {
-              controller.enqueue(encoder.encode(\`<script>\${headChunk};document.currentScript.remove()</script>\`))
-            }
+  }
+
+  await router.isReady()
+
+  if (navigationError) {
+    return new Response('Redirecting', { status: 302, headers: { Location: '/' } })
+  }
+
+  const vueStream = renderToWebStream(app)
+  const reader = vueStream.getReader()
+  const encoder = new TextEncoder()
+
+  let firstChunk
+  try {
+    const result = await reader.read()
+    if (!result.done) firstChunk = result.value
+  } catch (err) {
+    reader.releaseLock()
+    throw err
+  }
+
+  const shellWithBodyOpen = renderSSRHeadShell(head, HTML_TEMPLATE_SHELL)
+  const htmlStream = new ReadableStream({
+    async start(controller) {
+      try {
+        controller.enqueue(encoder.encode(shellWithBodyOpen))
+
+        if (firstChunk) {
+          controller.enqueue(firstChunk)
+          const headChunk = renderSSRHeadSuspenseChunk(head)
+          if (headChunk) {
+            controller.enqueue(encoder.encode(\`<script>\${headChunk};document.currentScript.remove()</script>\`))
           }
-  
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            controller.enqueue(value)
-            const headChunk = renderSSRHeadSuspenseChunk(head)
-            if (headChunk) {
-              controller.enqueue(encoder.encode(\`<script>\${headChunk};document.currentScript.remove()</script>\`))
-            }
-          }
-          
-          await ctx.awaitAll()
-          if (Object.keys(ctx.payload).length > 0) {
-            const payloadJson = JSON.stringify({data: ctx.payload }).replace(/</g, '\\u003c')
-            controller.enqueue(encoder.encode(\`<script>window.__NUXE__=\${payloadJson};</script>\`))
-          }
-  
-          controller.enqueue(encoder.encode(HTML_CLOSE))
-          controller.close()
-        } catch (error) {
-          controller.error(error)
-        } finally {
-          reader.releaseLock()
         }
-      },
-      cancel(reason) {
-        reader.cancel(reason).catch(() => {})
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          controller.enqueue(value)
+          const headChunk = renderSSRHeadSuspenseChunk(head)
+          if (headChunk) {
+            controller.enqueue(encoder.encode(\`<script>\${headChunk};document.currentScript.remove()</script>\`))
+          }
+        }
+
+        await ctx.awaitAll()
+        if (Object.keys(ctx.payload).length > 0) {
+          const payloadJson = JSON.stringify({data: ctx.payload }).replace(/</g, '\\u003c')
+          controller.enqueue(encoder.encode(\`<script>window.__NUXE__=\${payloadJson};</script>\`))
+        }
+
+        controller.enqueue(encoder.encode(HTML_CLOSE))
+        controller.close()
+      } catch (error) {
+        controller.error(error)
+      } finally {
+        reader.releaseLock()
       }
-    })
-  
-    return new Response(htmlStream, {
-      headers: {
-        'Content-Type': 'text/html',
-        'Transfer-Encoding': 'chunked',
-      },
-    })
+    },
+    cancel(reason) {
+      reader.cancel(reason).catch(() => {})
+    }
+  })
+
+  return new Response(htmlStream, {
+    headers: {
+      'Content-Type': 'text/html',
+      'Transfer-Encoding': 'chunked',
+    },
   })
 }
 

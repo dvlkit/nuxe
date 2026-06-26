@@ -1,7 +1,8 @@
 import type { Plugin, ViteDevServer } from 'vite'
 import { createServer as createNetServer, type Server as NetServer, type Socket } from 'node:net'
 import { ViteNodeServer as ViteNodeServerImpl } from 'vite-node/server'
-import { chmodSync } from 'node:fs'
+import { chmodSync, writeFileSync, mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
 import {
   type ViteNodeMessage,
   type ViteNodeRequest,
@@ -87,6 +88,11 @@ export function NuxeViteNodePlugin(opts: { root: string, entryPath: string }): P
       }
 
       process.env.NUXE_VITE_NODE_OPTIONS = JSON.stringify(serverOptions)
+
+      const cwd = server.config.root
+      const stateFile = `${cwd}/.nuxe/vite-node-socket-path`
+      mkdirSync(dirname(stateFile), { recursive: true })
+      writeFileSync(stateFile, JSON.stringify(serverOptions), 'utf-8')
 
       server.httpServer?.on('close', close)
       process.once('beforeExit', close)

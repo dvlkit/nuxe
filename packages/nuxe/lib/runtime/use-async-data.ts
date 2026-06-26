@@ -29,8 +29,7 @@ export function readHydratedKey<T = unknown>(key: string): T | undefined {
 }
 
 function readHydrated<T>(key: string): T | undefined {
-  if (!hydratedPayload || !(key in hydratedPayload)) return undefined
-  return hydratedPayload[key] as T
+  return !hydratedPayload || !(key in hydratedPayload) ? undefined : hydratedPayload[key] as T
 }
 
 export function useAsyncData<T>(key: string, handler: () => Promise<T>, options: UseAsyncDataOptions<T> = {}): UseAsyncDataReturn<T> {

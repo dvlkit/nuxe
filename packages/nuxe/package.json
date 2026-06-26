@@ -26,6 +26,14 @@
       "types": "./dist/server/index.d.ts",
       "default": "./dist/server/index.js"
     },
+    "./server/handler": {
+      "types": "./dist/server/handler.d.ts",
+      "default": "./dist/server/handler.js"
+    },
+    "./runtime/server/handler": {
+      "types": "./dist/server/handler.d.ts",
+      "default": "./dist/server/handler.js"
+    },
     "./setup": {
       "types": "./dist/nuxe-setup.d.ts",
       "default": "./dist/nuxe-setup.js"
@@ -68,6 +76,7 @@
     "vite": "8.0.16",
     "vite-node": "6.0.0",
     "vue": "3.5.38",
+    "vue-bundle-renderer": "2.3.1",
     "vue-router": "5.1.0"
   },
   "peerDependencies": {

@@ -2,6 +2,7 @@ import VueRouter from 'vue-router/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { resolve, join } from 'node:path'
 import { mergeConfig } from 'vite'
 import type { PluginOption, UserConfig } from 'vite'
@@ -76,7 +77,15 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       directoryAsNamespace: true,
     }),
     nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares}),
-    nitro({preset: 'node-server', serverDir: 'server'}),
+    nitro({
+      preset: 'node-server',
+      serverDir: 'server',
+      renderer: {
+        handler: createRequire(join(cwd, 'package.json')).resolve(
+          '@dvlkit/nuxe/server/handler',
+        ),
+      },
+    } as Parameters<typeof nitro>[0]),
   ]
 
   const baseConfig = mergeConfig({
@@ -88,6 +97,21 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
     },
     optimizeDeps: {
       force: true,
+      exclude: [
+        '@dvlkit/nuxe',
+        '@dvlkit/nuxe/runtime',
+        '@dvlkit/nuxe/server',
+        '@dvlkit/nuxe/server/handler',
+        '@dvlkit/nuxe/runtime/server/handler',
+        'vue',
+        '@vue/runtime-core',
+        '@vue/runtime-dom',
+        '@vue/shared',
+        '@vue/server-renderer',
+        'vue-router',
+        '@unhead/vue',
+        'unhead',
+      ],
     },
     plugins: frameworkPlugins,
     environments: {

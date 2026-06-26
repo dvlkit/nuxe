@@ -104,6 +104,8 @@ export function useFetch<T = unknown>(
 
   const _options = reactive(options as UseFetchOptions<T>)
 
+  const ssrCtx = getCurrentContext()
+
   const handler = async (): Promise<T> => {
     const resolvedUrl = typeof url === 'string' ? url : url()
 
@@ -123,19 +125,16 @@ export function useFetch<T = unknown>(
       baseURL: resolveServerBaseURL(callOptions.baseURL),
       onResponse: async (ctx: FetchContext & { response: FetchResponse<T> }) => {
         statusCode.value = ctx.response.status
-        const ssrCtx = getCurrentContext()
         if (ssrCtx) ssrCtx.payload[`${key}::__statusCode`] = ctx.response.status
         await runHook(userOnResponse, ctx as never)
       },
       onRequestError: async (ctx: FetchContext & { error: Error }) => {
         statusCode.value = null
-        const ssrCtx = getCurrentContext()
         if (ssrCtx) ssrCtx.payload[`${key}::__statusCode`] = null
         if (userOnError) await userOnError({ error: ctx.error as UseFetchError })
       },
       onResponseError: async (ctx: FetchContext & { response: FetchResponse<T> }) => {
         statusCode.value = ctx.response.status
-        const ssrCtx = getCurrentContext()
         if (ssrCtx) ssrCtx.payload[`${key}::__statusCode`] = ctx.response.status
         if (userOnError) {
           const err = new Error(`${ctx.response.status} ${ctx.response.statusText}`) as UseFetchError

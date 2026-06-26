@@ -11,3 +11,5 @@ export {
   sendRedirect,
   createError,
 } from 'h3'
+
+export { default as handler } from './handler'
