@@ -50,6 +50,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@nijil71/lumi-cli": "1.0.11",
     "@unhead/vue": "3.1.4",
     "@vue/compiler-sfc": "3.5.38",
     "acorn": "8.17.0",
@@ -65,6 +66,7 @@
     "unplugin-vue-components": "32.1.0",
     "valibot": "1.4.1",
     "vite": "8.0.16",
+    "vite-node": "6.0.0",
     "vue": "3.5.38",
     "vue-router": "5.1.0"
   },

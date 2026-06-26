@@ -10,6 +10,7 @@ import { NuxeConfig } from './config'
 import { scanMiddlewares } from './middleware/scanner'
 import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
 import vue from '@vitejs/plugin-vue'
+import { NuxeViteNodePlugin } from './vite/vite-node-server'
 
 export interface NuxeProjectSetup {
   layoutFiles: string[]
@@ -55,6 +56,10 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
   const frameworkPlugins: PluginOption[] = [
     patchVueExclude(vue() as VuePlugin, /\?assets/),
     VueRouter({routesFolder: 'app/pages', dts: '.nuxe/typed-router.d.ts'}),
+    NuxeViteNodePlugin({
+      root: cwd,
+      entryPath: join(cwd, '.nuxe', 'entry-server.ts'),
+    }),
     AutoImport({
       imports: [
         'vue',

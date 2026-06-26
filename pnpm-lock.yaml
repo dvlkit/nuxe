@@ -23,6 +23,9 @@ importers:
 
   packages/nuxe:
     dependencies:
+      '@nijil71/lumi-cli':
+        specifier: 1.0.11
+        version: 1.0.11
       '@unhead/vue':
         specifier: 3.1.4
         version: 3.1.4(crossws@0.4.6(srvx@0.11.17))(esbuild@0.27.7)(lightningcss@1.32.0)(rolldown@1.1.2)(typescript@6.0.3)(vite@8.0.16(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
@@ -68,6 +71,9 @@ importers:
       vite:
         specifier: 8.0.16
         version: 8.0.16(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0)
+      vite-node:
+        specifier: 6.0.0
+        version: 6.0.0(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0)
       vue:
         specifier: 3.5.38
         version: 3.5.38(typescript@6.0.3)
@@ -437,6 +443,11 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@nijil71/lumi-cli@1.0.11':
+    resolution: {integrity: sha512-k0W/OPEoWprFKSiBwHA44RoPx8SezUIb7nIDCAkMolL9btdC/wouNb36658+yBnxmQ7/4bYjtYGffy3UzJJAsg==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -3313,6 +3324,11 @@ packages:
   validate-npm-package-license@3.0.4:
     resolution: {integrity: sha512-DpKm2Ui/xN7/HQKCtpZxoRWBhZ9Z0kqtygG8XCgNQ8ZlDnxuQmWhj566j8fN4Cu3/JmbhsDo7fcAJq4s9h27Ew==}
 
+  vite-node@6.0.0:
+    resolution: {integrity: sha512-oj4PVrT+pDh6GYf5wfUXkcZyekYS8kKPfLPXVl8qe324Ec6l4K2DUKNadRbZ3LQl0qGcDz+PyOo7ZAh00Y+JjQ==}
+    engines: {node: ^20.19.0 || >=22.12.0}
+    hasBin: true
+
   vite@8.0.16:
     resolution: {integrity: sha512-h9bXPmJichP5fLmVQo3PyaGSDE2n3aPuomeAlVRm0JLmt4rY6zmPKd59HYI4LNW8oTK7tlTsuC7l/m7awx9Jcw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -3889,6 +3905,8 @@ snapshots:
       '@emnapi/runtime': 1.11.1
       '@tybys/wasm-util': 0.10.2
     optional: true
+
+  '@nijil71/lumi-cli@1.0.11': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -6569,6 +6587,27 @@ snapshots:
     dependencies:
       spdx-correct: 3.2.0
       spdx-expression-parse: 3.0.1
+
+  vite-node@6.0.0(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0):
+    dependencies:
+      cac: 7.0.0
+      es-module-lexer: 2.1.0
+      obug: 2.1.3
+      pathe: 2.0.3
+      vite: 8.0.16(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0)
+    transitivePeerDependencies:
+      - '@types/node'
+      - '@vitejs/devtools'
+      - esbuild
+      - jiti
+      - less
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - terser
+      - tsx
+      - yaml
 
   vite@8.0.16(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0):
     dependencies:
