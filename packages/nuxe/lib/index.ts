@@ -55,3 +55,6 @@ export {
 } from './plugins/runtime'
 export { useLoadingIndicator, type LoadingIndicator } from './runtime/use-loading-indicator'
 export { default as NuxtLoadingIndicator } from './components/nuxt-loading-indicator'
+export { useState, createNuxtState, provideNuxtState, type NuxtState } from './runtime/state'
+export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './runtime/cookie'
+export { useRequestEvent, useRequestHeaders } from './runtime/request'

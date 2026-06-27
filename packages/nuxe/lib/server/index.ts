@@ -10,6 +10,10 @@ export {
   setHeader,
   sendRedirect,
   createError,
+  getCookie,
+  setCookie,
+  deleteCookie,
+  parseCookies,
 } from 'h3'
 
 export { default as handler } from './handler'

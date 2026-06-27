@@ -113,7 +113,7 @@ import { ErrorComponent } from 'virtual:nuxe/error'
 import { routes } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
-import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxtApp, runPlugins } from '@dvlkit/nuxe/runtime'
+import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxtApp, runPlugins, createNuxtState } from '@dvlkit/nuxe/runtime'
 import publicRuntimeConfig from '/.nuxe/runtime-config-public.json'
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
@@ -127,6 +127,9 @@ async function main() {
     error.value = createError(err)
   }
   let runtimeConfig: RuntimeConfig = publicRuntimeConfig
+  const initialState = typeof window !== 'undefined' && window.__NUXE__?.state
+    ? window.__NUXE__.state
+    : {}
   if (typeof window !== 'undefined' && window.__NUXE__) {
     setHydratedPayload(window.__NUXE__.data || null)
     if (window.__NUXE__.runtimeConfig) {
@@ -146,7 +149,8 @@ async function main() {
     history: createWebHistory(),
     routes,
   })
-  const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig })
+  const state = createNuxtState(initialState)
+  const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig, state })
   await runPlugins(plugins, nuxtApp)
   await nuxtApp.callHook('app:created')
   router.beforeEach(() => nuxtApp.callHook('page:start'))
@@ -180,7 +184,7 @@ import { createStreamableHead } from '@unhead/vue/stream/server'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'virtual:nuxe/routes'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, createNuxtApp, runPlugins } from '@dvlkit/nuxe/runtime'
+import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, createNuxtApp, runPlugins, createNuxtState } from '@dvlkit/nuxe/runtime'
 import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
@@ -204,7 +208,9 @@ async function createApp(ssrContext) {
       console.warn(msg)
     },
   })
-  const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig, ssrContext })
+  const state = createNuxtState()
+  const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig, ssrContext, state })
+  ssrContext.nuxtApp = nuxtApp
   await runPlugins(plugins, nuxtApp)
   await nuxtApp.callHook('app:created')
   app.use(router)

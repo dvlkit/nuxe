@@ -33,10 +33,12 @@ interface NuxeViteNodeOptions {
 interface NuxeSSRContext extends VueSSRContext {
   url: string
   modules: Set<string>
+  request: Request
   _renderResponse?: Response
   _spa?: boolean
   error?: import('../runtime/error').NuxtError | null
   head?: ReturnType<typeof createStreamableHead>['head']
+  nuxtApp?: import('../plugins/runtime').NuxtApp
   ctx?: {
     payload: Record<string, unknown>
     pending: Map<string, Promise<unknown>>
@@ -300,6 +302,11 @@ async function renderApp(
               nuxePayload.error = serializedError
             }
           }
+          if (ssrContext.nuxtApp?.state && Object.keys(ssrContext.nuxtApp.state).length > 0) {
+            nuxePayload.state = Object.fromEntries(
+              Object.entries(ssrContext.nuxtApp.state).map(([k, ref]) => [k, ref.value]),
+            )
+          }
           const serialized = serializePayload(nuxePayload)
           controller.enqueue(encoder.encode(`<script>window.__NUXE__=${serialized};</script>`))
 
@@ -355,6 +362,7 @@ export default async function handler(request: Request): Promise<Response> {
 
   const ssrContext: NuxeSSRContext = {
     url: request.url,
+    request,
     modules: new Set<string>(),
   } as unknown as NuxeSSRContext
 

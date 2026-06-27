@@ -41,3 +41,6 @@ export {
   type NuxtAppHooks,
 } from '../plugins/runtime'
 export { useLoadingIndicator, type LoadingIndicator } from './use-loading-indicator'
+export { useState, createNuxtState, provideNuxtState, type NuxtState } from './state'
+export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './cookie'
+export { useRequestEvent, useRequestHeaders } from './request'

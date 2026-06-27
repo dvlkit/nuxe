@@ -14,6 +14,7 @@ const links = [
   { to: '/admin', label: 'Admin' },
   { to: '/streaming', label: 'Streaming Demo' },
   { to: '/fetch-demo', label: 'Fetch Demo' },
+  { to: '/state', label: 'State' },
 ]
 </script>
 

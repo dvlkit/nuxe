@@ -1,12 +1,14 @@
-import { inject, type App, type InjectionKey } from 'vue'
+import { inject, type App, type InjectionKey, type Ref } from 'vue'
 import type { Router } from 'vue-router'
-import type { RuntimeConfig } from '../runtime'
+import type { RuntimeConfig } from '../runtime/config'
+import { provideNuxtState, type NuxtState } from '../runtime/state'
 
 export interface NuxtApp {
   vueApp: App
   router: Router
   ssrContext?: Record<string, unknown>
   config: RuntimeConfig
+  state: NuxtState
   hook: <N extends keyof NuxtAppHooks>(name: N, fn: NuxtAppHooks[N]) => void
   callHook: <N extends keyof NuxtAppHooks>(name: N, ...args: Parameters<NuxtAppHooks[N]>) => Promise<void>
 }
@@ -56,6 +58,7 @@ export function createNuxtApp(options: {
   router: Router
   ssrContext?: Record<string, unknown>
   config: RuntimeConfig
+  state: NuxtState
 }): NuxtApp {
   const hooks = new Hookable()
   const nuxtApp: NuxtApp = {
@@ -64,6 +67,7 @@ export function createNuxtApp(options: {
     callHook: (name, ...args) => hooks.call(name, ...args),
   }
   options.vueApp.provide(NUXT_APP_KEY, nuxtApp)
+  provideNuxtState(options.vueApp, options.state)
   return nuxtApp
 }
 
