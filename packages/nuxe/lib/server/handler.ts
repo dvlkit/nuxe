@@ -20,6 +20,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import { createViteNodeClient } from '../vite/vite-node-client.js'
+import { serializePayload } from './payload.js'
 
 interface NuxeViteNodeOptions {
   socketPath: string
@@ -245,8 +246,8 @@ async function renderApp(
           const ctx = ssrContext.ctx!
           await ctx.awaitAll()
           if (Object.keys(ctx.payload).length > 0) {
-            const json = JSON.stringify({ data: ctx.payload }).replace(/</g, '\\u003c')
-            controller.enqueue(encoder.encode(`<script>window.__NUXE__=${json};</script>`))
+            const serialized = serializePayload(ctx.payload)
+            controller.enqueue(encoder.encode(`<script>window.__NUXE__=${serialized};</script>`))
           }
 
           controller.enqueue(encoder.encode(`${entryScript}${HTML_CLOSE}`))
