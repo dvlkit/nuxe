@@ -1,6 +1,6 @@
 import { defineComponent, h } from 'vue'
 import { useNuxtApp } from '../plugins/runtime'
-import { useLoadingIndicator } from '../runtime/use-loading-indicator'
+import { useLoadingIndicator } from '../runtime'
 
 export default defineComponent({
   name: 'NuxtLoadingIndicator',

@@ -4,7 +4,6 @@ import { createSSRApp, defineComponent } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { createNuxtApp, defineNuxtPlugin, defineNuxePlugin, runPlugins, useNuxtApp } from '../../lib'
 import type { NuxtPlugin } from '../../lib'
-import { h } from 'vue'
 
 function createTestApp(): { app: App; router: Router } {
   const app = createSSRApp(defineComponent({ render: () => null }))
