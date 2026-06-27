@@ -5,6 +5,8 @@ export interface UseAsyncDataOptions<T> {
   default?: () => T | Ref<T>
   server?: boolean
   lazy?: boolean
+  retryCount?: number
+  retryDelayMs?: number
 }
 
 export interface UseAsyncDataReturn<T> {
@@ -32,6 +34,25 @@ function readHydrated<T>(key: string): T | undefined {
   return !hydratedPayload || !(key in hydratedPayload) ? undefined : hydratedPayload[key] as T
 }
 
+async function runWithRetries<T>(
+  handler: () => Promise<T>,
+  retries: number,
+  delay: number,
+): Promise<T> {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await handler()
+    } catch (err) {
+      lastError = err
+      if (attempt < retries && delay > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      }
+    }
+  }
+  throw lastError
+}
+
 export function useAsyncData<T>(key: string, handler: () => Promise<T>, options: UseAsyncDataOptions<T> = {}): UseAsyncDataReturn<T> {
   if (!key) throw new Error('[nuxe] useAsyncData: `key` is required')
 
@@ -45,9 +66,12 @@ export function useAsyncData<T>(key: string, handler: () => Promise<T>, options:
   const error = shallowRef<Error | null>(null)
   const status = ref<Status>('idle')
 
+  const retries = Math.max(0, options.retryCount ?? 0)
+  const retryDelay = Math.max(0, options.retryDelayMs ?? 0)
+
   const runHandler = async (): Promise<void> => {
     try {
-      const result = await handler()
+      const result = await runWithRetries(handler, retries, retryDelay)
       data.value = result
       status.value = 'success'
       if (ctx) ctx.payload[key] = result
@@ -127,7 +151,7 @@ export function useAsyncData<T>(key: string, handler: () => Promise<T>, options:
     pending.value = true
     status.value = 'pending'
     try {
-      data.value = await handler()
+      data.value = await runWithRetries(handler, retries, retryDelay)
       status.value = 'success'
       error.value = null
     } catch (err) {

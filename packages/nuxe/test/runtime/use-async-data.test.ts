@@ -130,6 +130,59 @@ describe('useAsyncData (server)', () => {
       expect(handler).toHaveBeenCalledTimes(2)
     })
   })
+
+  it('retries a failing handler up to retry times and then succeeds', async () => {
+    const ctx = createRequestContext()
+    let attempts = 0
+    const handler = vi.fn(async () => {
+      attempts += 1
+      if (attempts < 3) throw new Error(`attempt ${attempts}`)
+      return 'finally'
+    })
+
+    await runWithContext(ctx, async () => {
+      const { data, status, error } = useAsyncData<string>('retried', handler, { retryCount: 2 })
+      await ctx.awaitAll()
+      await nextTick()
+
+      expect(handler).toHaveBeenCalledTimes(3)
+      expect(data.value).toBe('finally')
+      expect(status.value).toBe('success')
+      expect(error.value).toBeNull()
+    })
+  })
+
+  it('retries respect retryDelay', async () => {
+    const ctx = createRequestContext()
+    vi.useFakeTimers()
+    let attempts = 0
+    const handler = vi.fn(async () => {
+      attempts += 1
+      if (attempts < 2) throw new Error('fail')
+      return 'ok'
+    })
+
+    await runWithContext(ctx, async () => {
+      const promise = (async () => {
+        const { data, status } = useAsyncData<string>('delayed', handler, { retryCount: 1, retryDelayMs: 100 })
+        await ctx.awaitAll()
+        await nextTick()
+        return { data, status }
+      })()
+
+      await vi.advanceTimersByTimeAsync(50)
+      expect(handler).toHaveBeenCalledTimes(1)
+
+      await vi.advanceTimersByTimeAsync(100)
+      const { data, status } = await promise
+
+      expect(handler).toHaveBeenCalledTimes(2)
+      expect(data.value).toBe('ok')
+      expect(status.value).toBe('success')
+    })
+
+    vi.useRealTimers()
+  })
 })
 
 describe('useAsyncData (client)', () => {

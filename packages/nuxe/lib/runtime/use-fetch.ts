@@ -150,6 +150,8 @@ export function useFetch<T = unknown>(
   const asyncResult = useAsyncData<T>(key, handler, {
     default: options.default,
     server: options.server,
+    retryCount: options.retryCount,
+    retryDelayMs: options.retryDelayMs,
   })
 
   if (typeof url === 'function') {

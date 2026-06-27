@@ -1,6 +1,6 @@
-import { defineComponent, h, Suspense, type Component, type PropType } from 'vue'
+import { defineComponent, h, onErrorCaptured, Suspense, type Component, type PropType } from 'vue'
 import { useHead } from '@unhead/vue'
-import { useError } from '../runtime'
+import { createError, useError } from '../runtime'
 
 export const NuxeRoot = defineComponent({
   name: 'NuxeRoot',
@@ -24,6 +24,11 @@ export const NuxeRoot = defineComponent({
     })
 
     const error = useError()
+
+    onErrorCaptured((err) => {
+      error.value = createError(err instanceof Error ? err : String(err))
+      return false
+    })
 
     return () => {
       if (error.value) {
