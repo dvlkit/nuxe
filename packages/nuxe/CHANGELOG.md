@@ -1,5 +1,13 @@
 # nuxe
 
+## 0.7.0
+
+### Minor Changes
+
+- dc0b4da: create nuxe
+- cd3b40e: consola and create nuxe
+- d70df26: update changeset
+
 ## 0.6.3
 
 ### Patch Changes
