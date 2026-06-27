@@ -24,7 +24,7 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - name: Check for pending changesets
@@ -75,8 +75,10 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.check.outputs.pending == 'true'
         with:
-          node-version: 22
+          node-version: 24
           registry-url: 'https://registry.npmjs.org'
+      - run: npm install -g npm@latest
+        if: steps.check.outputs.pending == 'true'
       - run: pnpm install --frozen-lockfile
         if: steps.check.outputs.pending == 'true'
       - name: Build
@@ -85,8 +87,6 @@ jobs:
       - name: Publish to npm
         if: steps.check.outputs.pending == 'true'
         run: pnpm changeset publish --provenance
-        env:
-          NODE_AUTH_TOKEN: 'oidc'
       - name: Create GitHub Release
         if: steps.check.outputs.pending == 'true'
         uses: softprops/action-gh-release@v2
