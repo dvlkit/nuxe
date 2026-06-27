@@ -30,3 +30,12 @@ export {
   type UseFetchError,
 } from './use-fetch'
 export { useRuntimeConfig, provideRuntimeConfig, type RuntimeConfig } from './config'
+export {
+  defineNuxtPlugin,
+  defineNuxePlugin,
+  createNuxtApp,
+  runPlugins,
+  type NuxtApp,
+  type NuxtPlugin,
+  type NuxtAppHooks,
+} from '../plugins/runtime'

@@ -1,6 +1,8 @@
 import type { Plugin } from 'vite'
 import { generateClientMiddlewaresModule, generateServerMiddlewaresModule } from './middleware/codegen'
 import type { ScannedMiddleware } from './middleware/scanner'
+import { generateClientPluginsModule, generateServerPluginsModule } from './plugins/codegen'
+import type { ScannedPlugin } from './plugins/scanner'
 import { generateRoutesModule } from './pages/codegen'
 import type { ScannedPage } from './pages/scanner'
 
@@ -110,7 +112,8 @@ import App from '/app/app.vue'
 import { ErrorComponent } from 'virtual:nuxe/error'
 import { routes } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
-import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig } from '@dvlkit/nuxe/runtime'
+import { plugins } from 'virtual:nuxe/plugins-client'
+import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxtApp, runPlugins } from '@dvlkit/nuxe/runtime'
 import publicRuntimeConfig from '/.nuxe/runtime-config-public.json'
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
@@ -143,6 +146,9 @@ async function main() {
     history: createWebHistory(),
     routes,
   })
+  const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig })
+  await runPlugins(plugins, nuxtApp)
+  await nuxtApp.callHook('app:created')
   let isFirstNavigation = true
   router.beforeEach((to, from) => {
     if (isFirstNavigation) {
@@ -160,6 +166,7 @@ async function main() {
   await router.isReady()
   console.warn = originalWarn
   app.mount('#app')
+  await nuxtApp.callHook('app:mounted')
 }
 
 void main()
@@ -171,10 +178,11 @@ import { createStreamableHead } from '@unhead/vue/stream/server'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'virtual:nuxe/routes'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig } from '@dvlkit/nuxe/runtime'
+import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, createNuxtApp, runPlugins } from '@dvlkit/nuxe/runtime'
 import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
+import { plugins } from 'virtual:nuxe/plugins-server'
 ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 
 async function createApp(ssrContext) {
@@ -194,6 +202,9 @@ async function createApp(ssrContext) {
       console.warn(msg)
     },
   })
+  const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig, ssrContext })
+  await runPlugins(plugins, nuxtApp)
+  await nuxtApp.callHook('app:created')
   app.use(router)
 
   const url = new URL(ssrContext.url, 'http://localhost')
@@ -265,6 +276,7 @@ async function createApp(ssrContext) {
   }
 
   await router.isReady()
+  await nuxtApp.callHook('page:finish')
 
   ssrContext.modules = ssrContext.modules || new Set()
   ssrContext.head = head
@@ -283,6 +295,7 @@ export interface NuxeOptions {
   layouts: string[]
   middlewares?: ScannedMiddleware[]
   pages?: ScannedPage[]
+  plugins?: ScannedPlugin[]
   errorComponent?: boolean
 }
 
@@ -325,6 +338,8 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
   const layoutsModule = buildLayoutsModule(options.layouts)
   const clientMiddlewaresModule = generateClientMiddlewaresModule(options.middlewares ?? [])
   const serverMiddlewaresModule = generateServerMiddlewaresModule(options.middlewares ?? [])
+  const clientPluginsModule = generateClientPluginsModule(options.plugins ?? [])
+  const serverPluginsModule = generateServerPluginsModule(options.plugins ?? [])
   const routesModule = generateRoutesModule(options.pages ?? [])
   const errorModule = buildErrorModule(options.errorComponent ?? false)
 
@@ -347,6 +362,12 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
       if (id === 'virtual:nuxe/error' || id === '\0virtual:nuxe/error') {
         return '\0virtual:nuxe/error'
       }
+      if (id === 'virtual:nuxe/plugins-client' || id === '\0virtual:nuxe/plugins-client') {
+        return '\0virtual:nuxe/plugins-client'
+      }
+      if (id === 'virtual:nuxe/plugins-server' || id === '\0virtual:nuxe/plugins-server') {
+        return '\0virtual:nuxe/plugins-server'
+      }
     },
 
     load(id) {
@@ -355,6 +376,8 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
       if (id === '\0virtual:nuxe/middlewares-server') return serverMiddlewaresModule
       if (id === '\0virtual:nuxe/routes') return routesModule
       if (id === '\0virtual:nuxe/error') return errorModule
+      if (id === '\0virtual:nuxe/plugins-client') return clientPluginsModule
+      if (id === '\0virtual:nuxe/plugins-server') return serverPluginsModule
     },
   }
 }

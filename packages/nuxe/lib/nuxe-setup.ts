@@ -9,6 +9,7 @@ import { nitro } from 'nitro/vite'
 import type { ResolvedNuxeConfig } from './config'
 import { scanMiddlewares } from './middleware/scanner'
 import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
+import { scanPlugins } from './plugins/scanner'
 import { scanPages } from './pages/scanner'
 import { generateTypedRouter } from './pages/typed-router'
 import { generateNavigateTo, generateUseRoute } from './pages/generated-composables'
@@ -60,6 +61,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
     : []
   const scannedMiddlewares = scanMiddlewares(cwd)
   const scannedPages = scanPages(cwd)
+  const scannedPlugins = scanPlugins(cwd)
   const hasErrorComponent = existsSync(join(cwd, 'app', 'error.vue'))
 
   writeFileSync(join(cwd, '.nuxe', 'typed-router.d.ts'), generateTypedRouter(scannedPages))
@@ -101,7 +103,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
           ],
         },
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig']},
+        {'@dvlkit/nuxe': ['definePage', 'defineNuxtPlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig']},
       ],
       dirs: ['app/composables', '.nuxe/composables'],
       dts: '.nuxe/auto-imports.d.ts',
@@ -111,7 +113,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
       dts: '.nuxe/components.d.ts',
       directoryAsNamespace: true,
     }),
-    nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares, pages: scannedPages, errorComponent: hasErrorComponent}),
+    nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares, pages: scannedPages, plugins: scannedPlugins, errorComponent: hasErrorComponent}),
     nitro({
       preset: 'node-server',
       serverDir: 'server',

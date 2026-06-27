@@ -1,0 +1,71 @@
+import type { App } from 'vue'
+import type { Router } from 'vue-router'
+import type { RuntimeConfig } from '../runtime/config'
+
+export interface NuxtApp {
+  vueApp: App
+  router: Router
+  ssrContext?: Record<string, unknown>
+  config: RuntimeConfig
+  hook: <N extends keyof NuxtAppHooks>(name: N, fn: NuxtAppHooks[N]) => void
+  callHook: <N extends keyof NuxtAppHooks>(name: N, ...args: Parameters<NuxtAppHooks[N]>) => Promise<void>
+}
+
+export interface NuxtAppHooks {
+  'app:created': () => void | Promise<void>
+  'app:mounted': () => void | Promise<void>
+  'page:start': () => void | Promise<void>
+  'page:finish': () => void | Promise<void>
+}
+
+export interface NuxtPluginObject {
+  setup: (nuxtApp: NuxtApp) => void | Promise<void>
+  parallel?: boolean
+}
+
+export type NuxtPlugin = NuxtPluginObject | ((nuxtApp: NuxtApp) => void | Promise<void>)
+
+export function defineNuxtPlugin(plugin: NuxtPlugin): NuxtPlugin {
+  return plugin
+}
+
+export const defineNuxePlugin = defineNuxtPlugin
+
+class Hookable {
+  private hooks: { [K in keyof NuxtAppHooks]?: Array<NuxtAppHooks[K]> } = {}
+
+  add<N extends keyof NuxtAppHooks>(name: N, fn: NuxtAppHooks[N]): void {
+    if (!this.hooks[name]) {
+      this.hooks[name] = []
+    }
+    this.hooks[name]!.push(fn)
+  }
+
+  async call<N extends keyof NuxtAppHooks>(name: N, ...args: Parameters<NuxtAppHooks[N]>): Promise<void> {
+    const fns = this.hooks[name] ?? []
+    for (const fn of fns) {
+      await (fn as (...a: unknown[]) => void | Promise<void>)(...args)
+    }
+  }
+}
+
+export function createNuxtApp(options: {
+  vueApp: App
+  router: Router
+  ssrContext?: Record<string, unknown>
+  config: RuntimeConfig
+}): NuxtApp {
+  const hooks = new Hookable()
+  return {
+    ...options,
+    hook: (name, fn) => hooks.add(name, fn),
+    callHook: (name, ...args) => hooks.call(name, ...args),
+  }
+}
+
+export async function runPlugins(plugins: NuxtPlugin[], nuxtApp: NuxtApp): Promise<void> {
+  for (const plugin of plugins) {
+    const setup = typeof plugin === 'function' ? plugin : plugin.setup
+    await setup(nuxtApp)
+  }
+}
