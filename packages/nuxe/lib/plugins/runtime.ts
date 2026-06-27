@@ -1,4 +1,4 @@
-import type { App } from 'vue'
+import { inject, type App, type InjectionKey } from 'vue'
 import type { Router } from 'vue-router'
 import type { RuntimeConfig } from '../runtime'
 
@@ -10,6 +10,8 @@ export interface NuxtApp {
   hook: <N extends keyof NuxtAppHooks>(name: N, fn: NuxtAppHooks[N]) => void
   callHook: <N extends keyof NuxtAppHooks>(name: N, ...args: Parameters<NuxtAppHooks[N]>) => Promise<void>
 }
+
+const NUXT_APP_KEY: InjectionKey<NuxtApp> = Symbol('@dvlkit/nuxt-app')
 
 export interface NuxtAppHooks {
   'app:created': () => void | Promise<void>
@@ -56,11 +58,21 @@ export function createNuxtApp(options: {
   config: RuntimeConfig
 }): NuxtApp {
   const hooks = new Hookable()
-  return {
+  const nuxtApp: NuxtApp = {
     ...options,
     hook: (name, fn) => hooks.add(name, fn),
     callHook: (name, ...args) => hooks.call(name, ...args),
   }
+  options.vueApp.provide(NUXT_APP_KEY, nuxtApp)
+  return nuxtApp
+}
+
+export function useNuxtApp(): NuxtApp {
+  const nuxtApp = inject(NUXT_APP_KEY)
+  if (!nuxtApp) {
+    throw new Error('[nuxt] useNuxtApp() must be called inside a Nuxt plugin or setup function.')
+  }
+  return nuxtApp
 }
 
 export async function runPlugins(plugins: NuxtPlugin[], nuxtApp: NuxtApp): Promise<void> {

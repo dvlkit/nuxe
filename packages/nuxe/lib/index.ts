@@ -48,7 +48,10 @@ export {
   defineNuxePlugin,
   createNuxtApp,
   runPlugins,
+  useNuxtApp,
   type NuxtApp,
   type NuxtPlugin,
   type NuxtAppHooks,
 } from './plugins/runtime'
+export { useLoadingIndicator, type LoadingIndicator } from './runtime/use-loading-indicator'
+export { default as NuxtLoadingIndicator } from './components/nuxt-loading-indicator'

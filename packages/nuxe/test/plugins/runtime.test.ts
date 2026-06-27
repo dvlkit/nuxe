@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import type { App, Router } from 'vue'
 import { createSSRApp, defineComponent } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import { createNuxtApp, defineNuxtPlugin, defineNuxePlugin, runPlugins } from '../../lib'
+import { createNuxtApp, defineNuxtPlugin, defineNuxePlugin, runPlugins, useNuxtApp } from '../../lib'
 import type { NuxtPlugin } from '../../lib'
+import { h } from 'vue'
 
 function createTestApp(): { app: App; router: Router } {
   const app = createSSRApp(defineComponent({ render: () => null }))
@@ -30,6 +31,16 @@ describe('createNuxtApp', () => {
     nuxtApp.hook('app:created', fn)
     await nuxtApp.callHook('app:created')
     expect(fn).toHaveBeenCalledOnce()
+  })
+
+  it('provides nuxtApp for useNuxtApp', () => {
+    const { app, router } = createTestApp()
+    const nuxtApp = createNuxtApp({ vueApp: app, router, config: { public: {} } })
+    let injected = null as typeof nuxtApp | null
+    app.runWithContext(() => {
+      injected = useNuxtApp()
+    })
+    expect(injected).toBe(nuxtApp)
   })
 })
 

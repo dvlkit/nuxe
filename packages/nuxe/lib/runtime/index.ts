@@ -35,7 +35,9 @@ export {
   defineNuxePlugin,
   createNuxtApp,
   runPlugins,
+  useNuxtApp,
   type NuxtApp,
   type NuxtPlugin,
   type NuxtAppHooks,
 } from '../plugins/runtime'
+export { useLoadingIndicator, type LoadingIndicator } from './use-loading-indicator'

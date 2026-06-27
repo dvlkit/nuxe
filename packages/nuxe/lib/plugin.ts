@@ -149,6 +149,7 @@ async function main() {
   const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig })
   await runPlugins(plugins, nuxtApp)
   await nuxtApp.callHook('app:created')
+  router.beforeEach(() => nuxtApp.callHook('page:start'))
   let isFirstNavigation = true
   router.beforeEach((to, from) => {
     if (isFirstNavigation) {
@@ -162,6 +163,7 @@ async function main() {
     }
     return __nuxe_runMiddlewareChain(to, from)
   })
+  router.afterEach(() => nuxtApp.callHook('page:finish'))
   app.use(router)
   await router.isReady()
   console.warn = originalWarn
@@ -264,6 +266,7 @@ async function createApp(ssrContext) {
 
   router.beforeEach((to, from) => __nuxe_runNamedMiddlewares(to, from, ssrContext))
 
+  await nuxtApp.callHook('page:start')
   try {
     await router.push(href)
   } catch (err) {
