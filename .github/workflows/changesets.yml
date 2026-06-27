@@ -81,7 +81,7 @@ jobs:
         if: steps.check.outputs.pending == 'true'
       - name: Build
         if: steps.check.outputs.pending == 'true'
-        run: pnpm build --filter nuxe
+        run: pnpm --filter @dvlkit/nuxe build
       - name: Publish to npm
         if: steps.check.outputs.pending == 'true'
         run: pnpm changeset publish --provenance
