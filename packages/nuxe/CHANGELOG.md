@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.6.3
+
+### Patch Changes
+
+- cb8da87: add git repo
+
 ## 0.6.2
 
 ### Patch Changes
