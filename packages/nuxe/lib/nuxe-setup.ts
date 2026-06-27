@@ -65,7 +65,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
     }),
     NuxeClientManifestPlugin({
       clientEntry: join(cwd, '.nuxe', 'entry-client.ts'),
-      serverOutDir: join(cwd, '.nuxe'),
+      serverOutDir: join(cwd, '.output', 'server'),
     }),
     NuxeDevStyleSSRPlugin({ root: cwd }),
     AutoImport({
@@ -126,6 +126,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
         consumer: 'client',
         keepProcessEnv: false,
         build: {
+          manifest: true,
           rollupOptions: {
             input: join(cwd, '.nuxe', 'entry-client.ts'),
           }
@@ -147,6 +148,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
           'XMLHttpRequest': 'undefined',
         },
         build: {
+          outDir: join(cwd, '.output', 'server', 'ssr'),
           rollupOptions: {
             input: join(cwd, '.nuxe', 'entry-server.ts'),
           }

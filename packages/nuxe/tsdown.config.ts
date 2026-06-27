@@ -33,6 +33,8 @@ export default defineConfig([
         'valibot',
         'citty',
         '#nuxe/layouts.mjs',
+        './ssr/index.js',
+        './client.manifest.mjs',
       ],
     },
     hooks: {

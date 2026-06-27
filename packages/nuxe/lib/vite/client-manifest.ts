@@ -101,7 +101,7 @@ export function NuxeClientManifestPlugin(opts: NuxeClientManifestPluginOptions):
     async closeBundle(_options) {
       if (this.environment?.name !== 'client') return
       try {
-        const manifestFile = resolve(viteRoot, 'dist/client/.vite/manifest.json')
+        const manifestFile = resolve(viteRoot, '.output/public/.vite/manifest.json')
         const raw = await readFile(manifestFile, 'utf-8')
         const clientManifest = JSON.parse(raw) as ViteClientManifest
         const normalized = normalizeViteManifest(clientManifest)
