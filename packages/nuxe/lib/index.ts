@@ -12,6 +12,7 @@ export {
   type NavigateToOptions,
   type AbortNavigationOptions
 } from './middleware/runtime'
+export { definePage, type PageMeta } from './pages/runtime'
 export { useAsyncData, setHydratedPayload, type UseAsyncDataOptions, type UseAsyncDataReturn } from './runtime'
 export {
   $fetch,

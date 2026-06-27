@@ -1,6 +1,8 @@
 import type { Plugin } from 'vite'
 import { generateClientMiddlewaresModule, generateServerMiddlewaresModule } from './middleware/codegen'
 import type { ScannedMiddleware } from './middleware/scanner'
+import { generateRoutesModule } from './pages/codegen'
+import type { ScannedPage } from './pages/scanner'
 
 const CLIENT_MIDDLEWARE_CHAIN_LOGIC = `
 function __nuxe_runMiddlewareChain(to, from) {
@@ -102,7 +104,7 @@ async function __nuxe_runNamedMiddlewares(to, from, ssrContext) {
 
 const ENTRY_CLIENT_SOURCE = `import { createSSRApp } from 'vue'
 import { RouterView, createRouter, createWebHistory } from 'vue-router'
-import { routes } from 'vue-router/auto-routes'
+import { routes } from 'virtual:nuxe/routes'
 import { createHead } from '@unhead/vue/client'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import App from '/app/app.vue'
@@ -134,7 +136,7 @@ const ENTRY_SERVER_SOURCE = `import { createSSRApp } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createStreamableHead } from '@unhead/vue/stream/server'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
-import { routes } from 'vue-router/auto-routes'
+import { routes } from 'virtual:nuxe/routes'
 import { createRequestContext, provideRequestContext } from '@dvlkit/nuxe/runtime'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
@@ -202,6 +204,7 @@ export const NUXE_ENTRY_CLIENT: string = ENTRY_CLIENT_SOURCE
 export interface NuxeOptions {
   layouts: string[]
   middlewares?: ScannedMiddleware[]
+  pages?: ScannedPage[]
 }
 
 function buildLayoutsModule(layouts: string[]): string {
@@ -224,6 +227,7 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
   const layoutsModule = buildLayoutsModule(options.layouts)
   const clientMiddlewaresModule = generateClientMiddlewaresModule(options.middlewares ?? [])
   const serverMiddlewaresModule = generateServerMiddlewaresModule(options.middlewares ?? [])
+  const routesModule = generateRoutesModule(options.pages ?? [])
 
   return {
     name: 'nuxe:framework',
@@ -238,12 +242,16 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
       if (id === 'virtual:nuxe/middlewares-server' || id === '\0virtual:nuxe/middlewares-server') {
         return '\0virtual:nuxe/middlewares-server'
       }
+      if (id === 'virtual:nuxe/routes' || id === '\0virtual:nuxe/routes') {
+        return '\0virtual:nuxe/routes'
+      }
     },
 
     load(id) {
       if (id === '\0virtual:nuxe/layouts') return layoutsModule
       if (id === '\0virtual:nuxe/middlewares-client') return clientMiddlewaresModule
       if (id === '\0virtual:nuxe/middlewares-server') return serverMiddlewaresModule
+      if (id === '\0virtual:nuxe/routes') return routesModule
     },
   }
 }

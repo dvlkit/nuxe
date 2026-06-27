@@ -1,4 +1,3 @@
-import VueRouter from 'vue-router/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
@@ -10,6 +9,8 @@ import { nitro } from 'nitro/vite'
 import { NuxeConfig } from './config'
 import { scanMiddlewares } from './middleware/scanner'
 import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
+import { scanPages } from './pages/scanner'
+import nuxePageMetaPlugin from './pages/page-meta-plugin'
 import vue from '@vitejs/plugin-vue'
 import { NuxeViteNodePlugin } from './vite/vite-node-server'
 import { NuxeClientManifestPlugin } from './vite/client-manifest'
@@ -55,10 +56,11 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
     ? readdirSync(layoutsDir).filter(f => f.endsWith('.vue'))
     : []
   const scannedMiddlewares = scanMiddlewares(cwd)
+  const scannedPages = scanPages(cwd)
 
   const frameworkPlugins: PluginOption[] = [
     patchVueExclude(vue() as VuePlugin, /\?assets/),
-    VueRouter({routesFolder: 'app/pages', dts: '.nuxe/typed-router.d.ts'}),
+    nuxePageMetaPlugin(),
     NuxeViteNodePlugin({
       root: cwd,
       entryPath: join(cwd, '.nuxe', 'entry-server.ts'),
@@ -73,7 +75,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
         'vue',
         'vue-router',
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation']},
+        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation']},
       ],
       dirs: ['app/composables'],
       dts: '.nuxe/auto-imports.d.ts',
@@ -83,7 +85,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       dts: '.nuxe/components.d.ts',
       directoryAsNamespace: true,
     }),
-    nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares}),
+    nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares, pages: scannedPages}),
     nitro({
       preset: 'node-server',
       serverDir: 'server',
