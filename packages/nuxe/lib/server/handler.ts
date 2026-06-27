@@ -67,6 +67,9 @@ function loadRuntimeConfig(): RuntimeConfig {
 
 const HTML_CLOSE = '</div></body></html>'
 
+// noinspection JSUnresolvedLibraryURL
+const DEV_CLIENT_SCRIPTS = '<script type="module" src="/.nuxe/entry-client.ts"></script><script type="module" src="/@vite/client"></script>'
+
 function renderErrorResponse(status: number, message: string): Response {
   const title = status === 404 ? 'Not Found' : 'Internal Server Error'
   return new Response(
@@ -127,6 +130,8 @@ async function loadAppAndManifestDev(
   ssrContext: NuxeSSRContext,
 ): Promise<{ app: App, manifest: RendererManifest, createApp: (ctx: NuxeSSRContext) => Promise<App>, client: ReturnType<typeof createViteNodeClient> }> {
   const client = createViteNodeClient(options.socketPath)
+  let manifest: RendererManifest
+  let entry: { default?: (ssrContext: NuxeSSRContext) => Promise<App> | App }
   try {
     const runner = new ViteNodeRunner({
       root: options.root,
@@ -137,20 +142,19 @@ async function loadAppAndManifestDev(
         client.module(id) as Promise<{ code?: string, externalize?: string }>,
     })
 
-    const manifest = (await client.manifest() as RendererManifest | null) ?? {}
-    const entry = await runner.executeFile(options.entryPath) as {
-      default?: (ssrContext: NuxeSSRContext) => Promise<App> | App
-    }
-    if (typeof entry.default !== 'function') {
-      throw new Error(`[nuxe] entry-server (${options.entryPath}) has no default export function.`)
-    }
-    const createApp = (ctx: NuxeSSRContext) => Promise.resolve(entry.default!(ctx))
-    const app = await createApp(ssrContext)
-    return { app, manifest, createApp, client }
+    manifest = (await client.manifest() as RendererManifest | null) ?? {}
+    entry = await runner.executeFile(options.entryPath) as typeof entry
   } catch (error) {
     await client.close()
     throw error
   }
+  if (typeof entry.default !== 'function') {
+    await client.close()
+    throw new Error(`[nuxe] entry-server (${options.entryPath}) has no default export function.`)
+  }
+  const createApp = (ctx: NuxeSSRContext) => Promise.resolve(entry.default!(ctx))
+  const app = await createApp(ssrContext)
+  return { app, manifest, createApp, client }
 }
 
 async function loadAppAndManifestProd(
@@ -209,7 +213,7 @@ async function renderApp(
       const entryUrl = getEntryClientUrl(rendererContext)
       const entryStyles = isDev ? '' : getEntryClientStyles(rendererContext)
       const entryScript = isDev
-        ? '<script type="module" src="/.nuxe/entry-client.ts"></script><script type="module" src="/@vite/client"></script>'
+        ? DEV_CLIENT_SCRIPTS
         : `<script type="module" src="${entryUrl}"></script>`
       const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />${entryStyles}</head><body><div id="app"></div>${entryScript}</body></html>`
       return new Response(html, { headers: { 'Content-Type': 'text/html' } })
@@ -224,13 +228,11 @@ async function renderApp(
     const reader = vueStream.getReader()
 
     let firstChunk: Uint8Array | undefined
-    try {
-      const result = await reader.read()
-      if (!result.done) firstChunk = result.value
-    } catch (error) {
+    const firstResult = await reader.read().catch((error: unknown) => {
       reader.releaseLock()
-      throw error
-    }
+      return Promise.reject(error)
+    })
+    if (!firstResult.done) firstChunk = firstResult.value
 
     if (ssrContext._renderResponse) {
       reader.cancel().catch(() => {})
@@ -254,7 +256,7 @@ async function renderApp(
 
     const entryUrl = getEntryClientUrl(rendererContext)
     const entryScript = isDev
-      ? '<script type="module" src="/.nuxe/entry-client.ts"></script><script type="module" src="/@vite/client"></script>'
+      ? DEV_CLIENT_SCRIPTS
       : `<script type="module" src="${entryUrl}"></script>`
 
     const htmlStream = new ReadableStream<Uint8Array>({
