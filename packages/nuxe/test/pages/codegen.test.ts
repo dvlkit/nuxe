@@ -28,4 +28,18 @@ describe('generateRoutesModule', () => {
     expect(code).toContain('meta: {"layout":"default"}')
     expect(code).toContain('meta: {}')
   })
+
+  it('includes routeRules inside meta', () => {
+    const pages: ScannedPage[] = [
+      {
+        filePath: '/project/app/pages/spa.vue',
+        path: '/spa',
+        name: 'spa',
+        routeRules: { ssr: false },
+      },
+    ]
+
+    const code = generateRoutesModule(pages)
+    expect(code).toContain('meta: {"routeRules":{"ssr":false}}')
+  })
 })

@@ -73,9 +73,16 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
     AutoImport({
       imports: [
         'vue',
-        'vue-router',
+        {
+          'vue-router': [
+            'useRoute',
+            'useRouter',
+            'onBeforeRouteLeave',
+            'onBeforeRouteUpdate',
+          ],
+        },
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation']},
+        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation', 'useHead']},
       ],
       dirs: ['app/composables'],
       dts: '.nuxe/auto-imports.d.ts',

@@ -10,7 +10,8 @@ onMounted(() => {
 
 <template>
   <h1>Hello from pages/index.vue</h1>
-  <p>Current time: {{ now.toLocaleString() }}</p>
+  <p v-if="mounted">Current time: {{ now.toLocaleString() }}</p>
+  <p v-else>Current time: --</p>
   <Hello name="nuxe" />
   <FormsInput label="Test" />
 </template>

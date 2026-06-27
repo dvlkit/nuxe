@@ -7,9 +7,13 @@ function slugify(filePath: string): string {
     .replace(/^_|_$/g, '')
 }
 
-function serializeMeta(meta: Record<string, unknown> | undefined): string {
-  if (!meta || Object.keys(meta).length === 0) return '{}'
-  return JSON.stringify(meta)
+function serializeMeta(meta: Record<string, unknown> | undefined, routeRules?: import('./scanner').RouteRules): string {
+  const combined: Record<string, unknown> = { ...meta }
+  if (routeRules && Object.keys(routeRules).length > 0) {
+    combined.routeRules = routeRules
+  }
+  if (Object.keys(combined).length === 0) return '{}'
+  return JSON.stringify(combined)
 }
 
 function routeComponentPath(filePath: string): string {
@@ -25,7 +29,7 @@ export function generateRoutesModule(pages: ScannedPage[]): string {
 
   const routes = pages
     .map((page) => {
-      const meta = serializeMeta(page.meta)
+      const meta = serializeMeta(page.meta, page.routeRules)
       return `  {\n    path: ${JSON.stringify(page.path)},\n    name: ${JSON.stringify(page.name)},\n    component: () => import('${routeComponentPath(page.filePath)}'),\n    meta: ${meta},\n  }`
     })
     .join(',\n')

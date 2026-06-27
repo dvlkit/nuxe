@@ -32,11 +32,13 @@ interface NuxeSSRContext extends VueSSRContext {
   url: string
   modules: Set<string>
   _renderResponse?: Response
+  _spa?: boolean
   head?: ReturnType<typeof createStreamableHead>['head']
   ctx?: {
     payload: Record<string, unknown>
     pending: Map<string, Promise<unknown>>
     awaitAll: () => Promise<void>
+    routeRules?: import('../pages/scanner').RouteRules
   }
 }
 
@@ -93,6 +95,19 @@ function getEntryClientUrl(rendererContext: RendererContext): string {
     }
   }
   return '/.nuxe/entry-client.ts'
+}
+
+function getEntryClientStyles(rendererContext: RendererContext): string {
+  const manifest = rendererContext.manifest
+  if (!manifest) return ''
+  for (const meta of Object.values(manifest)) {
+    if (meta?.isEntry && meta?.css?.length) {
+      return meta.css
+        .map((file) => `<link rel="stylesheet" crossorigin href="${rendererContext.buildAssetsURL(file)}">`)
+        .join('')
+    }
+  }
+  return ''
 }
 
 async function loadAppAndManifestDev(
@@ -169,14 +184,25 @@ async function renderApp(
   const isDev = process.env.NODE_ENV !== 'production'
 
   try {
-    const { renderToWebStream, renderSSRHeadShell, renderSSRHeadSuspenseChunk } = isDev
-      ? await loadRenderDependenciesDev()
-      : loadRenderDependenciesProd()
     const rendererContext = createRendererContext({ manifest })
 
     if (ssrContext._renderResponse) {
       return ssrContext._renderResponse
     }
+
+    if (ssrContext._spa) {
+      const entryUrl = getEntryClientUrl(rendererContext)
+      const entryStyles = isDev ? '' : getEntryClientStyles(rendererContext)
+      const entryScript = isDev
+        ? '<script type="module" src="/.nuxe/entry-client.ts"></script><script type="module" src="/@vite/client"></script>'
+        : `<script type="module" src="${entryUrl}"></script>`
+      const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />${entryStyles}</head><body><div id="app"></div>${entryScript}</body></html>`
+      return new Response(html, { headers: { 'Content-Type': 'text/html' } })
+    }
+
+    const { renderToWebStream, renderSSRHeadShell, renderSSRHeadSuspenseChunk } = isDev
+      ? await loadRenderDependenciesDev()
+      : loadRenderDependenciesProd()
 
     const encoder = new TextEncoder()
     const vueStream = renderToWebStream(app, ssrContext as VueSSRContext)

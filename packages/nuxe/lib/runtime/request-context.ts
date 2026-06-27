@@ -1,9 +1,11 @@
 import { getCurrentInstance, inject, type App, type InjectionKey } from 'vue'
+import type { RouteRules } from '../pages/scanner'
 
 export interface NuxeRequestContext {
   payload: Record<string, unknown>
   pending: Map<string, Promise<unknown>>
   awaitAll(): Promise<void>
+  routeRules?: RouteRules
 }
 
 export function createRequestContext(): NuxeRequestContext {

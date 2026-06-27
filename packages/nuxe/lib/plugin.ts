@@ -157,6 +157,27 @@ async function createApp(ssrContext) {
   const url = new URL(ssrContext.url, 'http://localhost')
   const href = url.pathname + url.search
   const resolved = router.resolve(href)
+  const routeRules = resolved.meta?.routeRules
+
+  if (routeRules?.redirect) {
+    ssrContext._renderResponse = new Response(null, {
+      status: 302,
+      headers: { Location: routeRules.redirect },
+    })
+    ssrContext.modules = ssrContext.modules || new Set()
+    ssrContext.head = head
+    ssrContext.ctx = ctx
+    return app
+  }
+
+  if (routeRules?.ssr === false) {
+    ctx.routeRules = { ssr: false }
+    ssrContext.modules = ssrContext.modules || new Set()
+    ssrContext.head = head
+    ssrContext.ctx = ctx
+    ssrContext._spa = true
+    return app
+  }
 
   await __nuxe_runGlobalMiddlewares(resolved, router.currentRoute.value, ssrContext)
   if (ssrContext._renderResponse) {

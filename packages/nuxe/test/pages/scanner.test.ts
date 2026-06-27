@@ -88,4 +88,20 @@ definePage({ meta: { layout: 'admin', middleware: 'auth' } })
     expect(pages).toHaveLength(1)
     expect(pages[0].meta).toEqual({ layout: 'admin', middleware: 'auth' })
   })
+
+  it('extracts routeRules from definePage', () => {
+    const cwd = createFixture({
+      'app/pages/spa.vue': `<script setup>
+definePage({ routeRules: { ssr: false } })
+</script>`,
+      'app/pages/redirect.vue': `<script setup>
+definePage({ routeRules: { redirect: '/new' } })
+</script>`,
+    })
+
+    const pages = scanPages(cwd)
+    expect(pages).toHaveLength(2)
+    expect(pages.find((p) => p.path === '/spa')?.routeRules).toEqual({ ssr: false })
+    expect(pages.find((p) => p.path === '/redirect')?.routeRules).toEqual({ redirect: '/new' })
+  })
 })

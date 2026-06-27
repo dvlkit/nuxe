@@ -37,7 +37,8 @@ export function useAsyncData<T>(key: string, handler: () => Promise<T>, options:
 
   const isClient = typeof window !== 'undefined'
   const ctx = getCurrentContext()
-  const runOnServer = !isClient && ctx !== undefined && options.server !== false
+  const ssrDisabled = ctx?.routeRules?.ssr === false
+  const runOnServer = !isClient && ctx !== undefined && options.server !== false && !ssrDisabled
 
   const data = shallowRef<T | null>(null) as Ref<T | null>
   const pending = ref(!!options.lazy)

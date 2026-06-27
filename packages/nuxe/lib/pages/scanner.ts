@@ -2,11 +2,18 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, relative, sep } from 'node:path'
 import { parse as parseSFC } from '@vue/compiler-sfc'
 
+export interface RouteRules {
+  ssr?: boolean
+  prerender?: boolean | string
+  redirect?: string
+}
+
 export interface ScannedPage {
   filePath: string
   path: string
   name: string
   meta?: Record<string, unknown>
+  routeRules?: RouteRules
 }
 
 const PARAM_RE = /^\[(\.\.\.)?([^\]]+)\]$/
@@ -65,7 +72,12 @@ function safeEvalObjectLiteral(arg: string): Record<string, unknown> | undefined
   }
 }
 
-function extractPageMeta(filePath: string): Record<string, unknown> | undefined {
+interface ExtractedPageConfig {
+  meta?: Record<string, unknown>
+  routeRules?: RouteRules
+}
+
+function extractPageConfig(filePath: string): ExtractedPageConfig | undefined {
   const content = readFileSync(filePath, 'utf-8')
   if (!DEFINE_PAGE_RE.test(content)) return undefined
 
@@ -77,10 +89,12 @@ function extractPageMeta(filePath: string): Record<string, unknown> | undefined 
     const extracted = extractDefinePageArg(script.content)
     if (!extracted) continue
     const value = safeEvalObjectLiteral(extracted.arg)
-    if (value && typeof value === 'object' && 'meta' in value) {
-      return value.meta as Record<string, unknown>
-    }
-    return undefined
+    if (!value || typeof value !== 'object') return undefined
+
+    const config: ExtractedPageConfig = {}
+    if ('meta' in value) config.meta = value.meta as Record<string, unknown>
+    if ('routeRules' in value) config.routeRules = value.routeRules as RouteRules
+    return config
   }
 
   return undefined
@@ -145,11 +159,13 @@ function scanDir(dir: string, baseRoute: string, pages: ScannedPage[]): void {
 
     if (routePath === '') routePath = '/'
 
+    const config = extractPageConfig(filePath)
     pages.push({
       filePath,
       path: routePath,
       name: routeNameParts.join('-').replace(/^-|-$/g, '') || 'index',
-      meta: extractPageMeta(filePath),
+      meta: config?.meta,
+      routeRules: config?.routeRules,
     })
   }
 

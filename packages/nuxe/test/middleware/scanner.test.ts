@@ -137,5 +137,23 @@ describe('scanMiddlewares', () => {
       const result = scanMiddlewares(cwd)
       expect(result[0].path).toBe(join(cwd, 'app/middleware/admin.ts'))
     })
+
+    it('orders global middlewares by numeric prefix and strips it from name', () => {
+      write('20-analytics.global.ts')
+      write('01-auth.global.ts')
+      write('no-prefix.global.ts')
+
+      const result = scanMiddlewares(cwd)
+      expect(result.map(r => r.name)).toEqual(['auth', 'analytics', 'no-prefix'])
+    })
+
+    it('orders named middlewares by numeric prefix', () => {
+      write('02-b.ts')
+      write('01-a.ts')
+      write('z.ts')
+
+      const result = scanMiddlewares(cwd)
+      expect(result.map(r => r.name)).toEqual(['a', 'b', 'z'])
+    })
   })
 })
