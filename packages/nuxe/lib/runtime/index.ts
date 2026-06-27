@@ -1,4 +1,16 @@
 export { createRequestContext, runWithContext, getCurrentContext, provideRequestContext, type NuxeRequestContext } from './request-context'
+export {
+  createError,
+  isNuxtError,
+  serializeError,
+  deserializeError,
+  showError,
+  useError,
+  clearError,
+  provideError,
+  type NuxtError,
+  type NuxtErrorPayload,
+} from './error'
 export { useAsyncData, setHydratedPayload, type UseAsyncDataOptions, type UseAsyncDataReturn } from './use-async-data'
 export {
   $fetch,

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { serializePayload } from '../../lib/server/payload'
 
-function evalSerialized(result: string): { data: Record<string, unknown> } {
+function evalSerialized<T = Record<string, unknown>>(result: string): T {
   // eslint-disable-next-line no-new-func
-  return new Function(`return ${result}`)() as { data: Record<string, unknown> }
+  return new Function(`return ${result}`)() as T
 }
 
 describe('serializePayload', () => {
@@ -11,7 +11,7 @@ describe('serializePayload', () => {
     const payload = { greeting: { hello: 'world' } }
     const result = serializePayload(payload)
     expect(result).toContain('hello')
-    expect(evalSerialized(result).data).toEqual(payload)
+    expect(evalSerialized(result)).toEqual(payload)
   })
 
   it('serializes rich types supported by devalue', () => {
@@ -23,7 +23,7 @@ describe('serializePayload', () => {
       url: new URL('https://example.com'),
     }
     const result = serializePayload(payload)
-    const parsed = evalSerialized(result).data as typeof payload
+    const parsed = evalSerialized<typeof payload>(result)
 
     expect(parsed.date).toBeInstanceOf(Date)
     expect(parsed.date.toISOString()).toBe('2024-01-01T00:00:00.000Z')
@@ -60,7 +60,7 @@ describe('serializePayload', () => {
     map.set('safe', 3)
 
     const result = serializePayload({ map })
-    const parsed = evalSerialized(result).data as { map: Map<string, number> }
+    const parsed = evalSerialized<{ map: Map<string, number> }>(result)
     expect(parsed.map.has('safe')).toBe(true)
     expect(parsed.map.has('__sanitized__')).toBe(true)
   })
@@ -69,7 +69,7 @@ describe('serializePayload', () => {
     const obj: Record<string, unknown> = { name: 'self' }
     obj.self = obj
     const result = serializePayload({ circular: obj })
-    const parsed = evalSerialized(result).data as { circular: Record<string, unknown> }
+    const parsed = evalSerialized<{ circular: Record<string, unknown> }>(result)
     expect(parsed.circular.name).toBe('self')
   })
 })

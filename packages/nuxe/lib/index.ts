@@ -13,7 +13,23 @@ export {
   type AbortNavigationOptions
 } from './middleware/runtime'
 export { definePage, type PageMeta } from './pages/runtime'
-export { useAsyncData, setHydratedPayload, type UseAsyncDataOptions, type UseAsyncDataReturn } from './runtime'
+export {
+  useAsyncData,
+  setHydratedPayload,
+  type UseAsyncDataOptions,
+  type UseAsyncDataReturn,
+} from './runtime'
+export {
+  createError,
+  isNuxtError,
+  serializeError,
+  deserializeError,
+  showError,
+  useError,
+  clearError,
+  type NuxtError,
+  type NuxtErrorPayload,
+} from './runtime/error'
 export {
   $fetch,
   createFetch,

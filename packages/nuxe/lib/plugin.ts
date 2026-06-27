@@ -102,61 +102,108 @@ async function __nuxe_runNamedMiddlewares(to, from, ssrContext) {
 }
 `
 
-const ENTRY_CLIENT_SOURCE = `import { createSSRApp } from 'vue'
+const ENTRY_CLIENT_SOURCE = `import { createSSRApp, ref } from 'vue'
 import { RouterView, createRouter, createWebHistory } from 'vue-router'
-import { routes } from 'virtual:nuxe/routes'
 import { createHead } from '@unhead/vue/client'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import App from '/app/app.vue'
+import { ErrorComponent } from 'virtual:nuxe/error'
+import { routes } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
-import { setHydratedPayload } from '@dvlkit/nuxe/runtime'
+import { setHydratedPayload, createError, provideError, deserializeError } from '@dvlkit/nuxe/runtime'
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
 async function main() {
+  const head = createHead()
+  const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
+  app.use(head)
+  const error = ref(null)
+  provideError(app, error)
+  app.config.errorHandler = (err) => {
+    error.value = createError(err)
+  }
   if (typeof window !== 'undefined' && window.__NUXE__) {
     setHydratedPayload(window.__NUXE__.data || null)
+    if (window.__NUXE__.error) {
+      error.value = deserializeError(window.__NUXE__.error)
+    }
   }
-  const head = createHead()
-  const app = createSSRApp(NuxeRoot, { app: App })
-  app.use(head)
+  const originalWarn = console.warn
+  console.warn = (...args) => {
+    if (typeof args[0] === 'string' && args[0].includes('No match found')) return
+    originalWarn(...args)
+  }
   const router = createRouter({
     history: createWebHistory(),
     routes,
   })
+  let isFirstNavigation = true
+  router.beforeEach((to, from) => {
+    if (isFirstNavigation) {
+      isFirstNavigation = false
+      if (error.value) return
+      return __nuxe_runMiddlewareChain(to, from)
+    }
+    if (error.value) {
+      error.value = null
+      return
+    }
+    return __nuxe_runMiddlewareChain(to, from)
+  })
   app.use(router)
-  router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
   await router.isReady()
+  console.warn = originalWarn
   app.mount('#app')
 }
 
 void main()
 `
 
-const ENTRY_SERVER_SOURCE = `import { createSSRApp } from 'vue'
+const ENTRY_SERVER_SOURCE = `import { createSSRApp, ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createStreamableHead } from '@unhead/vue/stream/server'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'virtual:nuxe/routes'
-import { createRequestContext, provideRequestContext } from '@dvlkit/nuxe/runtime'
+import { ErrorComponent } from 'virtual:nuxe/error'
+import { createRequestContext, provideRequestContext, createError, provideError } from '@dvlkit/nuxe/runtime'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
 ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 
 async function createApp(ssrContext) {
   const ctx = createRequestContext()
-  const app = createSSRApp(NuxeRoot, { app: App })
+  const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
   provideRequestContext(app, ctx)
+  const error = ref(ssrContext.error || null)
+  provideError(app, error)
   const { head } = createStreamableHead()
   app.use(head)
   const router = createRouter({
     history: createMemoryHistory(),
     routes,
+    warnHandler: (msg) => {
+      if (typeof msg === 'string' && msg.includes('No match found')) return
+      console.warn(msg)
+    },
   })
   app.use(router)
 
   const url = new URL(ssrContext.url, 'http://localhost')
   const href = url.pathname + url.search
-  const resolved = router.resolve(href)
+
+  const originalWarn = console.warn
+  console.warn = (...args: unknown[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('No match found')) return
+    originalWarn(...args)
+  }
+
+  let resolved
+  try {
+    resolved = router.resolve(href)
+  } finally {
+    console.warn = originalWarn
+  }
+
   const routeRules = resolved.meta?.routeRules
 
   if (routeRules?.redirect) {
@@ -188,7 +235,8 @@ async function createApp(ssrContext) {
   }
 
   if (resolved.matched.length === 0) {
-    ssrContext._renderResponse = new Response('Not Found', { status: 404 })
+    ssrContext.error = createError({ statusCode: 404, statusMessage: 'Page not found' })
+    error.value = ssrContext.error
     ssrContext.modules = ssrContext.modules || new Set()
     ssrContext.head = head
     ssrContext.ctx = ctx
@@ -203,7 +251,8 @@ async function createApp(ssrContext) {
     if (err && typeof err == 'object' && 'type' in err) {
       // navigation was aborted or redirected; _renderResponse is already set if needed
     } else {
-      throw err
+      ssrContext.error = createError(err)
+      error.value = ssrContext.error
     }
   }
 
@@ -226,6 +275,7 @@ export interface NuxeOptions {
   layouts: string[]
   middlewares?: ScannedMiddleware[]
   pages?: ScannedPage[]
+  errorComponent?: boolean
 }
 
 function buildLayoutsModule(layouts: string[]): string {
@@ -244,11 +294,31 @@ function buildLayoutsModule(layouts: string[]): string {
   return `${imports}\n\nexport default {\n${map}\n}\n`
 }
 
+function buildErrorModule(hasErrorComponent: boolean): string {
+  if (hasErrorComponent) {
+    return `import ErrorComponent from '/app/error.vue'\nexport { ErrorComponent }\n`
+  }
+  return `import { defineComponent, h } from 'vue'\n
+export const ErrorComponent = defineComponent({
+  name: 'NuxeFallbackError',
+  props: {
+    error: { type: Object, required: true },
+  },
+  setup(props) {
+    return () => h('div', { style: 'font-family:sans-serif;padding:2rem' }, [
+      h('h1', null, props.error.statusCode || 'Error'),
+      h('p', null, props.error.statusMessage || props.error.message || 'An error occurred'),
+    ])
+  },
+})\n`
+}
+
 export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
   const layoutsModule = buildLayoutsModule(options.layouts)
   const clientMiddlewaresModule = generateClientMiddlewaresModule(options.middlewares ?? [])
   const serverMiddlewaresModule = generateServerMiddlewaresModule(options.middlewares ?? [])
   const routesModule = generateRoutesModule(options.pages ?? [])
+  const errorModule = buildErrorModule(options.errorComponent ?? false)
 
   return {
     name: 'nuxe:framework',
@@ -266,6 +336,9 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
       if (id === 'virtual:nuxe/routes' || id === '\0virtual:nuxe/routes') {
         return '\0virtual:nuxe/routes'
       }
+      if (id === 'virtual:nuxe/error' || id === '\0virtual:nuxe/error') {
+        return '\0virtual:nuxe/error'
+      }
     },
 
     load(id) {
@@ -273,6 +346,7 @@ export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
       if (id === '\0virtual:nuxe/middlewares-client') return clientMiddlewaresModule
       if (id === '\0virtual:nuxe/middlewares-server') return serverMiddlewaresModule
       if (id === '\0virtual:nuxe/routes') return routesModule
+      if (id === '\0virtual:nuxe/error') return errorModule
     },
   }
 }

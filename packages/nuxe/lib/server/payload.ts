@@ -46,8 +46,6 @@ export function sanitizePayloadValue(value: unknown, seen: WeakSet<object>): unk
 }
 
 export function serializePayload(payload: Record<string, unknown>): string {
-  const sanitized = sanitizePayloadValue({ data: payload }, new WeakSet()) as {
-    data: Record<string, unknown>
-  }
+  const sanitized = sanitizePayloadValue(payload, new WeakSet()) as Record<string, unknown>
   return uneval(sanitized).replace(/</g, '\\u003c')
 }

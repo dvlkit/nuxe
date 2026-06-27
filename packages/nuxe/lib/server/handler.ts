@@ -21,6 +21,7 @@ import { pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import { createViteNodeClient } from '../vite/vite-node-client.js'
 import { serializePayload } from './payload.js'
+import { createError, serializeError } from '../runtime/error.js'
 
 interface NuxeViteNodeOptions {
   socketPath: string
@@ -33,6 +34,7 @@ interface NuxeSSRContext extends VueSSRContext {
   modules: Set<string>
   _renderResponse?: Response
   _spa?: boolean
+  error?: import('../runtime/error').NuxtError | null
   head?: ReturnType<typeof createStreamableHead>['head']
   ctx?: {
     payload: Record<string, unknown>
@@ -113,7 +115,7 @@ function getEntryClientStyles(rendererContext: RendererContext): string {
 async function loadAppAndManifestDev(
   options: NuxeViteNodeOptions,
   ssrContext: NuxeSSRContext,
-): Promise<{ app: App, manifest: RendererManifest, client: ReturnType<typeof createViteNodeClient> }> {
+): Promise<{ app: App, manifest: RendererManifest, createApp: (ctx: NuxeSSRContext) => Promise<App>, client: ReturnType<typeof createViteNodeClient> }> {
   const client = createViteNodeClient(options.socketPath)
   try {
     const runner = new ViteNodeRunner({
@@ -132,8 +134,9 @@ async function loadAppAndManifestDev(
     if (typeof entry.default !== 'function') {
       throw new Error(`[nuxe] entry-server (${options.entryPath}) has no default export function.`)
     }
-    const app = await entry.default(ssrContext)
-    return { app, manifest, client }
+    const createApp = (ctx: NuxeSSRContext) => Promise.resolve(entry.default!(ctx))
+    const app = await createApp(ssrContext)
+    return { app, manifest, createApp, client }
   } catch (error) {
     await client.close()
     throw error
@@ -142,19 +145,20 @@ async function loadAppAndManifestDev(
 
 async function loadAppAndManifestProd(
   ssrContext: NuxeSSRContext,
-): Promise<{ app: App, manifest: RendererManifest }> {
+): Promise<{ app: App, manifest: RendererManifest, createApp: (ctx: NuxeSSRContext) => Promise<App> }> {
   const serverDir = join(process.cwd(), '.output', 'server')
   const ssrUrl = pathToFileURL(join(serverDir, 'ssr', 'index.js')).href
   const manifestUrl = pathToFileURL(join(serverDir, 'client-manifest.mjs')).href
-  const [{ default: createApp }, { default: manifest }] = await Promise.all([
+  const [{ default: rawCreateApp }, { default: manifest }] = await Promise.all([
     import(/* @vite-ignore */ ssrUrl),
     import(/* @vite-ignore */ manifestUrl),
   ]) as [
     { default: (ssrContext: NuxeSSRContext) => Promise<App> | App },
     { default: RendererManifest },
   ]
+  const createApp = (ctx: NuxeSSRContext) => Promise.resolve(rawCreateApp(ctx))
   const app = await createApp(ssrContext)
-  return { app, manifest }
+  return { app, manifest, createApp }
 }
 
 async function loadRenderDependenciesDev() {
@@ -179,10 +183,10 @@ async function renderApp(
   ssrContext: NuxeSSRContext,
   app: App,
   manifest: RendererManifest,
+  createApp: (ctx: NuxeSSRContext) => Promise<App>,
+  isDev: boolean,
   updateManifest?: () => Promise<RendererManifest | null>,
 ): Promise<Response> {
-  const isDev = process.env.NODE_ENV !== 'production'
-
   try {
     const rendererContext = createRendererContext({ manifest })
 
@@ -214,7 +218,7 @@ async function renderApp(
       if (!result.done) firstChunk = result.value
     } catch (error) {
       reader.releaseLock()
-      return renderErrorResponse(500, `[nuxe] Vue renderToWebStream failed on first chunk: ${error instanceof Error ? error.message : String(error)}`)
+      throw error
     }
 
     if (ssrContext._renderResponse) {
@@ -232,7 +236,7 @@ async function renderApp(
     const routeStyles = renderRouteStyles(ssrContext, rendererContext)
     const shellHtml = renderSSRHeadShell(
       head,
-      '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />'
+      '<!DOCTYPE html><html lang="en"><head>'
       + routeStyles
       + '</head><body><div id="app">',
     )
@@ -271,8 +275,18 @@ async function renderApp(
 
           const ctx = ssrContext.ctx!
           await ctx.awaitAll()
+          const nuxePayload: Record<string, unknown> = {}
           if (Object.keys(ctx.payload).length > 0) {
-            const serialized = serializePayload(ctx.payload)
+            nuxePayload.data = ctx.payload
+          }
+          if (ssrContext.error) {
+            const serializedError = serializeError(ssrContext.error)
+            if (serializedError) {
+              nuxePayload.error = serializedError
+            }
+          }
+          if (Object.keys(nuxePayload).length > 0) {
+            const serialized = serializePayload(nuxePayload)
             controller.enqueue(encoder.encode(`<script>window.__NUXE__=${serialized};</script>`))
           }
 
@@ -299,7 +313,10 @@ async function renderApp(
       },
     })
 
+    const statusCode = ssrContext.error?.statusCode || 200
+
     return new Response(htmlStream, {
+      status: statusCode,
       headers: {
         'Content-Type': 'text/html',
         'Transfer-Encoding': 'chunked',
@@ -307,12 +324,20 @@ async function renderApp(
     })
   } catch (error) {
     console.error('[nuxe] render error', error)
-    return renderErrorResponse(500, error instanceof Error ? error.message : String(error))
+    if (ssrContext.error) {
+      return renderErrorResponse(
+        ssrContext.error.statusCode || 500,
+        ssrContext.error.statusMessage || ssrContext.error.message,
+      )
+    }
+    ssrContext.error = createError(error instanceof Error ? error : String(error))
+    const errorApp = await createApp(ssrContext)
+    return renderApp(request, ssrContext, errorApp, manifest, createApp, isDev, updateManifest)
   }
 }
 
 export default async function handler(request: Request): Promise<Response> {
-  const isDev = process.env.NODE_ENV !== 'production'
+  const isDev = process.env.NUXE_DEV === 'true'
 
   const ssrContext: NuxeSSRContext = {
     url: request.url,
@@ -329,9 +354,9 @@ export default async function handler(request: Request): Promise<Response> {
         )
       }
 
-      const { app, manifest, client } = await loadAppAndManifestDev(options, ssrContext)
+      const { app, manifest, createApp, client } = await loadAppAndManifestDev(options, ssrContext)
       try {
-        return await renderApp(request, ssrContext, app, manifest, async () =>
+        return await renderApp(request, ssrContext, app, manifest, createApp, true, async () =>
           (await client.manifest() as RendererManifest | null) ?? null,
         )
       } finally {
@@ -339,8 +364,8 @@ export default async function handler(request: Request): Promise<Response> {
       }
     }
 
-    const { app, manifest } = await loadAppAndManifestProd(ssrContext)
-    return renderApp(request, ssrContext, app, manifest)
+    const { app, manifest, createApp } = await loadAppAndManifestProd(ssrContext)
+    return renderApp(request, ssrContext, app, manifest, createApp, false)
   } catch (error) {
     console.error('[nuxe] handler error', error)
     return renderErrorResponse(500, error instanceof Error ? error.message : String(error))

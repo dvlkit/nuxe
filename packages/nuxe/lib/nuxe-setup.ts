@@ -59,6 +59,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
     : []
   const scannedMiddlewares = scanMiddlewares(cwd)
   const scannedPages = scanPages(cwd)
+  const hasErrorComponent = existsSync(join(cwd, 'app', 'error.vue'))
 
   writeFileSync(join(cwd, '.nuxe', 'typed-router.d.ts'), generateTypedRouter(scannedPages))
 
@@ -93,7 +94,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
           ],
         },
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead']},
+        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError']},
       ],
       dirs: ['app/composables', '.nuxe/composables'],
       dts: '.nuxe/auto-imports.d.ts',
@@ -103,7 +104,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
       dts: '.nuxe/components.d.ts',
       directoryAsNamespace: true,
     }),
-    nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares, pages: scannedPages}),
+    nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares, pages: scannedPages, errorComponent: hasErrorComponent}),
     nitro({
       preset: 'node-server',
       serverDir: 'server',

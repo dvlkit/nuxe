@@ -7,6 +7,9 @@ import { printDevBanner } from './utils/banner'
 import { logInfo } from './utils/logger'
 
 export async function runDev(cwd: string): Promise<void> {
+  process.env.NUXE_DEV = 'true'
+  process.env.NODE_ENV = process.env.NODE_ENV || 'development'
+
   const startedAt = Date.now()
   prepareLayouts(cwd)
   const config = await loadNuxeConfig({ cwd })
@@ -20,6 +23,7 @@ export async function runDev(cwd: string): Promise<void> {
     }
   })
 
+  process.env.NUXE_DEV = 'true'
   logInfo('starting dev server...')
   const listener = await listen((req, res) => {
     vite.middlewares(req, res)

@@ -19,6 +19,7 @@ export async function runStart(cwd: string): Promise<void> {
   logInfo('starting production server...')
   process.env.PORT = String(port)
   process.env.NODE_ENV = 'production'
+  process.env.NUXE_DEV = 'false'
   process.env.NUXE_BASE_URL = process.env.NUXE_BASE_URL ?? `http://localhost:${port}`
 
   printDevBanner(port)
