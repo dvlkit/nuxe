@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.6.1
+
+### Patch Changes
+
+- 8a10604: fix workflow
+
 ## 0.6.0
 
 ### Minor Changes
