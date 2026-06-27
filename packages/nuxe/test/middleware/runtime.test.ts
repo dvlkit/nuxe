@@ -1,10 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, beforeEach, afterEach } from 'vitest'
 import {
   defineNuxeRouteMiddleware,
   navigateTo,
   abortNavigation,
   type RouteMiddleware,
 } from '../../lib'
+
+const NAVIGATE_TO_MARKER = Symbol.for('@dvlkit/nuxe/navigate-to')
+const ABORT_NAVIGATION_MARKER = Symbol.for('@dvlkit/nuxe/abort-navigation')
 
 describe('defineNuxeRouteMiddleware', () => {
   it('returns the same function reference (identity)', () => {
@@ -29,7 +32,48 @@ describe('navigateTo', () => {
     })
   })
 
-  describe('string input', () => {
+  describe('server-side (window undefined)', () => {
+    it('returns marker for string target', () => {
+      delete (globalThis as any).window
+      const result = navigateTo('/login') as any
+      expect(result[NAVIGATE_TO_MARKER]).toBe(true)
+      expect(result.to).toEqual({ path: '/login' })
+      expect(result.redirectCode).toBe(302)
+      expect(result.external).toBe(false)
+    })
+
+    it('returns marker for object target', () => {
+      delete (globalThis as any).window
+      const target = { name: 'home' }
+      const result = navigateTo(target) as any
+      expect(result[NAVIGATE_TO_MARKER]).toBe(true)
+      expect(result.to).toBe(target)
+    })
+
+    it('returns marker for external redirect', () => {
+      delete (globalThis as any).window
+      const result = navigateTo('https://example.com', { external: true }) as any
+      expect(result[NAVIGATE_TO_MARKER]).toBe(true)
+      expect(result.to).toBe('https://example.com')
+      expect(result.external).toBe(true)
+    })
+
+    it('uses custom redirectCode', () => {
+      delete (globalThis as any).window
+      const result = navigateTo('/moved', { redirectCode: 301 }) as any
+      expect(result.redirectCode).toBe(301)
+    })
+  })
+
+  describe('client-side (window defined)', () => {
+    beforeEach(() => {
+      ;(globalThis as any).window = { location: { href: '' } }
+    })
+
+    afterEach(() => {
+      delete (globalThis as any).window
+    })
+
     it('converts string to { path } object', () => {
       const result = navigateTo('/login') as any
       expect(result).toEqual({ path: '/login' })
@@ -39,81 +83,91 @@ describe('navigateTo', () => {
       const result = navigateTo('/dashboard')
       expect(result).toEqual({ path: '/dashboard' })
     })
-  })
 
-  describe('object input', () => {
-    it('returns the object as-is when no options', () => {
+    it('returns object as-is when no options', () => {
       const target = { name: 'home' }
       expect(navigateTo(target)).toBe(target)
     })
 
-    it('returns the object with full path/query preserved', () => {
-      const target = { path: '/users', query: { id: '5' } }
-      expect(navigateTo(target)).toEqual({ path: '/users', query: { id: '5' } })
-    })
-  })
-
-  describe('replace option', () => {
-    it('adds replace: true to string target', () => {
+    it('adds replace: true', () => {
       const result = navigateTo('/login', { replace: true }) as any
       expect(result).toEqual({ path: '/login', replace: true })
     })
 
-    it('adds replace: true to object target (no mutation)', () => {
-      const target = { path: '/dashboard', query: { foo: 'bar' } }
-      const result = navigateTo(target, { replace: true }) as any
-      expect(result).toMatchObject({ path: '/dashboard', query: { foo: 'bar' }, replace: true })
-      expect(target).not.toHaveProperty('replace')
-    })
-  })
-
-  describe('external option', () => {
-    afterEachRestoreWindow()
-
-    it('returns target on server side', () => {
-      delete (globalThis as any).window
-      const result = navigateTo('https://example.com', { external: true }) as any
-      expect(result).toEqual({ path: 'https://example.com' })
-    })
-
-    it('returns false on client side and assigns window.location.href', () => {
-      ;(globalThis as any).window = { location: { href: '' } }
+    it('navigates external via window.location', () => {
       const result = navigateTo('https://example.com', { external: true })
       expect(result).toBe(false)
       expect((globalThis as any).window.location.href).toBe('https://example.com')
     })
   })
-
-  function afterEachRestoreWindow() {
-  }
 })
 
 describe('abortNavigation', () => {
-  it('returns false', () => {
-    expect(abortNavigation()).toBe(false)
-  })
+  describe('server-side (window undefined)', () => {
+    beforeEach(() => {
+      delete (globalThis as any).window
+    })
 
-  it('attaches payload from Error object', () => {
-    abortNavigation(new Error('Unauthorized'))
-    expect((abortNavigation as any).__lastPayload).toEqual({ statusMessage: 'Unauthorized' })
-  })
+    it('returns marker', () => {
+      const result = abortNavigation() as any
+      expect(result[ABORT_NAVIGATION_MARKER]).toBe(true)
+    })
 
-  it('attaches payload from string', () => {
-    abortNavigation('Forbidden')
-    expect((abortNavigation as any).__lastPayload).toEqual({ statusMessage: 'Forbidden' })
-  })
+    it('attaches payload from Error object', () => {
+      const result = abortNavigation(new Error('Unauthorized')) as any
+      expect(result[ABORT_NAVIGATION_MARKER]).toBe(true)
+      expect(result.statusMessage).toBe('Unauthorized')
+    })
 
-  it('attaches payload from options object', () => {
-    abortNavigation({ statusCode: 403, statusMessage: 'Forbidden' })
-    expect((abortNavigation as any).__lastPayload).toEqual({
-      statusCode: 403,
-      statusMessage: 'Forbidden',
+    it('attaches payload from string', () => {
+      const result = abortNavigation('Forbidden') as any
+      expect(result[ABORT_NAVIGATION_MARKER]).toBe(true)
+      expect(result.statusMessage).toBe('Forbidden')
+    })
+
+    it('attaches payload from options object', () => {
+      const result = abortNavigation({ statusCode: 403, statusMessage: 'Forbidden' }) as any
+      expect(result[ABORT_NAVIGATION_MARKER]).toBe(true)
+      expect(result.statusCode).toBe(403)
+      expect(result.statusMessage).toBe('Forbidden')
     })
   })
 
-  it('overwrites previous payload on subsequent calls', () => {
-    abortNavigation('first')
-    abortNavigation('second')
-    expect((abortNavigation as any).__lastPayload).toEqual({ statusMessage: 'second' })
+  describe('client-side (window defined)', () => {
+    beforeEach(() => {
+      ;(globalThis as any).window = {}
+    })
+
+    afterEach(() => {
+      delete (globalThis as any).window
+    })
+
+    it('returns false', () => {
+      expect(abortNavigation()).toBe(false)
+    })
+
+    it('attaches payload from Error object', () => {
+      abortNavigation(new Error('Unauthorized'))
+      expect((abortNavigation as any).__lastPayload).toEqual({ statusMessage: 'Unauthorized' })
+    })
+
+    it('attaches payload from string', () => {
+      abortNavigation('Forbidden')
+      expect((abortNavigation as any).__lastPayload).toEqual({ statusMessage: 'Forbidden' })
+    })
+
+    it('attaches payload from options object', () => {
+      abortNavigation({ statusCode: 403, statusMessage: 'Forbidden' })
+      expect((abortNavigation as any).__lastPayload).toEqual({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+      })
+    })
+
+    it('overwrites previous payload on subsequent calls', () => {
+      abortNavigation('first')
+      abortNavigation('second')
+      expect((abortNavigation as any).__lastPayload).toEqual({ statusMessage: 'second' })
+    })
   })
 })

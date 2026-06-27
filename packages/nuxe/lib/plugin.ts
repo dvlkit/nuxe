@@ -2,7 +2,7 @@ import type { Plugin } from 'vite'
 import { generateClientMiddlewaresModule, generateServerMiddlewaresModule } from './middleware/codegen'
 import type { ScannedMiddleware } from './middleware/scanner'
 
-const MIDDLEWARE_CHAIN_LOGIC = `
+const CLIENT_MIDDLEWARE_CHAIN_LOGIC = `
 function __nuxe_runMiddlewareChain(to, from) {
   return __nuxe_runMiddlewareChainInner(to, from, new Set())
 }
@@ -33,6 +33,73 @@ async function __nuxe_runMiddlewareChainInner(to, from, seen) {
 }
 `
 
+const SERVER_MIDDLEWARE_CHAIN_LOGIC = `
+const NAVIGATE_TO_MARKER = Symbol.for('@dvlkit/nuxe/navigate-to')
+const ABORT_NAVIGATION_MARKER = Symbol.for('@dvlkit/nuxe/abort-navigation')
+
+function __nuxe_setNavigateResponse(ssrContext, navigate) {
+  const location = navigate.external
+    ? navigate.to
+    : (typeof navigate.to === 'string' ? navigate.to : (navigate.to.path || '/'))
+  ssrContext._renderResponse = new Response(null, {
+    status: navigate.redirectCode || 302,
+    headers: { Location: location },
+  })
+}
+
+function __nuxe_setAbortResponse(ssrContext, abort) {
+  ssrContext._renderResponse = new Response(abort.statusMessage || 'Navigation aborted', {
+    status: abort.statusCode || 403,
+  })
+}
+
+async function __nuxe_handleMiddlewareResult(ssrContext, result) {
+  const navigate = result && typeof result === 'object' && NAVIGATE_TO_MARKER in result ? result : null
+  const abort = result && typeof result === 'object' && ABORT_NAVIGATION_MARKER in result ? result : null
+  if (navigate) {
+    __nuxe_setNavigateResponse(ssrContext, navigate)
+    return false
+  }
+  if (abort) {
+    __nuxe_setAbortResponse(ssrContext, abort)
+    return false
+  }
+  if (result === false) {
+    ssrContext._renderResponse = new Response('Forbidden', { status: 403 })
+    return false
+  }
+  if (result && result !== true) return result
+  return true
+}
+
+async function __nuxe_runGlobalMiddlewares(to, from, ssrContext) {
+  for (const mw of globalMiddlewares) {
+    const result = await mw(to, from)
+    const handled = await __nuxe_handleMiddlewareResult(ssrContext, result)
+    if (handled !== true) return handled
+  }
+  return true
+}
+
+async function __nuxe_runNamedMiddlewares(to, from, ssrContext) {
+  const meta = to && to.meta
+  const named = meta && meta.middleware
+  if (!named) return true
+  const names = Array.isArray(named) ? named : [named]
+  const seen = new Set()
+  for (const name of names) {
+    const mw = middlewares[name]
+    if (!mw) continue
+    if (seen.has(mw)) continue
+    seen.add(mw)
+    const result = await mw(to, from)
+    const handled = await __nuxe_handleMiddlewareResult(ssrContext, result)
+    if (handled !== true) return handled
+  }
+  return true
+}
+`
+
 const ENTRY_CLIENT_SOURCE = `import { createSSRApp } from 'vue'
 import { RouterView, createRouter, createWebHistory } from 'vue-router'
 import { routes } from 'vue-router/auto-routes'
@@ -41,7 +108,7 @@ import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { setHydratedPayload } from '@dvlkit/nuxe/runtime'
-${MIDDLEWARE_CHAIN_LOGIC}
+${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
 async function main() {
   if (typeof window !== 'undefined' && window.__NUXE__) {
@@ -71,7 +138,7 @@ import { routes } from 'vue-router/auto-routes'
 import { createRequestContext, provideRequestContext } from '@dvlkit/nuxe/runtime'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
-${MIDDLEWARE_CHAIN_LOGIC}
+${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 
 async function createApp(ssrContext) {
   const ctx = createRequestContext()
@@ -85,28 +152,39 @@ async function createApp(ssrContext) {
   })
   app.use(router)
 
-  let navigationError = null
-  router.onError((err) => { navigationError = err })
-  router.beforeEach((to, from) => __nuxe_runMiddlewareChain(to, from))
-
   const url = new URL(ssrContext.url, 'http://localhost')
   const href = url.pathname + url.search
+  const resolved = router.resolve(href)
+
+  await __nuxe_runGlobalMiddlewares(resolved, router.currentRoute.value, ssrContext)
+  if (ssrContext._renderResponse) {
+    ssrContext.modules = ssrContext.modules || new Set()
+    ssrContext.head = head
+    ssrContext.ctx = ctx
+    return app
+  }
+
+  if (resolved.matched.length === 0) {
+    ssrContext._renderResponse = new Response('Not Found', { status: 404 })
+    ssrContext.modules = ssrContext.modules || new Set()
+    ssrContext.head = head
+    ssrContext.ctx = ctx
+    return app
+  }
+
+  router.beforeEach((to, from) => __nuxe_runNamedMiddlewares(to, from, ssrContext))
 
   try {
     await router.push(href)
   } catch (err) {
     if (err && typeof err == 'object' && 'type' in err) {
-      navigationError = err
+      // navigation was aborted or redirected; _renderResponse is already set if needed
     } else {
       throw err
     }
   }
 
   await router.isReady()
-
-  if (navigationError) {
-    ssrContext._renderResponse = new Response('Redirecting', { status: 302, headers: { Location: '/' } })
-  }
 
   ssrContext.modules = ssrContext.modules || new Set()
   ssrContext.head = head

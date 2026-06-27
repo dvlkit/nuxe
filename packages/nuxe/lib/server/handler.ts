@@ -52,6 +52,19 @@ function loadOptions(): NuxeViteNodeOptions | null {
 
 const HTML_CLOSE = '</div></body></html>'
 
+function renderErrorResponse(status: number, message: string): Response {
+  const title = status === 404 ? 'Not Found' : 'Internal Server Error'
+  return new Response(
+    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><title>${title}</title></head>`
+    + `<body style="font-family:sans-serif;padding:2rem"><h1>${status} — ${title}</h1>`
+    + `<p>${message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p></body></html>`,
+    {
+      status,
+      headers: { 'Content-Type': 'text/html' },
+    },
+  )
+}
+
 function createRouteStylesTracker() {
   const emitted = new Set<string>()
   return (ssrContext: NuxeSSRContext, rendererContext: RendererContext): string => {
@@ -153,106 +166,122 @@ async function renderApp(
   updateManifest?: () => Promise<RendererManifest | null>,
 ): Promise<Response> {
   const isDev = process.env.NODE_ENV !== 'production'
-  const { renderToWebStream, renderSSRHeadShell, renderSSRHeadSuspenseChunk } = isDev
-    ? await loadRenderDependenciesDev()
-    : loadRenderDependenciesProd()
-  const rendererContext = createRendererContext({ manifest })
 
-  if (ssrContext._renderResponse) {
-    return ssrContext._renderResponse
-  }
-
-  const encoder = new TextEncoder()
-  const vueStream = renderToWebStream(app, ssrContext as VueSSRContext)
-  const reader = vueStream.getReader()
-
-  let firstChunk: Uint8Array | undefined
   try {
-    const result = await reader.read()
-    if (!result.done) firstChunk = result.value
-  } catch {
-    reader.releaseLock()
-    throw new Error('[nuxe] Vue renderToWebStream failed on first chunk')
-  }
+    const { renderToWebStream, renderSSRHeadShell, renderSSRHeadSuspenseChunk } = isDev
+      ? await loadRenderDependenciesDev()
+      : loadRenderDependenciesProd()
+    const rendererContext = createRendererContext({ manifest })
 
-  if (ssrContext._renderResponse) {
-    reader.cancel().catch(() => {})
-    return ssrContext._renderResponse
-  }
+    if (ssrContext._renderResponse) {
+      return ssrContext._renderResponse
+    }
 
-  if (updateManifest) {
-    const updatedManifest = await updateManifest()
-    if (updatedManifest) rendererContext.updateManifest(updatedManifest)
-  }
+    const encoder = new TextEncoder()
+    const vueStream = renderToWebStream(app, ssrContext as VueSSRContext)
+    const reader = vueStream.getReader()
 
-  const head = ssrContext.head!
-  const renderRouteStyles = createRouteStylesTracker()
-  const routeStyles = renderRouteStyles(ssrContext, rendererContext)
-  const shellHtml = renderSSRHeadShell(
-    head,
-    '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />'
-    + routeStyles
-    + '</head><body><div id="app">',
-  )
+    let firstChunk: Uint8Array | undefined
+    try {
+      const result = await reader.read()
+      if (!result.done) firstChunk = result.value
+    } catch (error) {
+      reader.releaseLock()
+      return renderErrorResponse(500, `[nuxe] Vue renderToWebStream failed on first chunk: ${error instanceof Error ? error.message : String(error)}`)
+    }
 
-  const entryUrl = getEntryClientUrl(rendererContext)
-  const entryScript = isDev
-    ? '<script type="module" src="/.nuxe/entry-client.ts"></script><script type="module" src="/@vite/client"></script>'
-    : `<script type="module" src="${entryUrl}"></script>`
+    if (ssrContext._renderResponse) {
+      reader.cancel().catch(() => {})
+      return ssrContext._renderResponse
+    }
 
-  const htmlStream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      try {
-        controller.enqueue(encoder.encode(shellHtml))
+    if (updateManifest) {
+      const updatedManifest = await updateManifest()
+      if (updatedManifest) rendererContext.updateManifest(updatedManifest)
+    }
 
-        if (firstChunk) {
-          controller.enqueue(firstChunk)
-          const lateStyles = renderRouteStyles(ssrContext, rendererContext)
-          if (lateStyles) controller.enqueue(encoder.encode(lateStyles))
-          const headChunk = renderSSRHeadSuspenseChunk(head)
-          if (headChunk) {
-            controller.enqueue(encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
+    const head = ssrContext.head!
+    const renderRouteStyles = createRouteStylesTracker()
+    const routeStyles = renderRouteStyles(ssrContext, rendererContext)
+    const shellHtml = renderSSRHeadShell(
+      head,
+      '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />'
+      + routeStyles
+      + '</head><body><div id="app">',
+    )
+
+    const entryUrl = getEntryClientUrl(rendererContext)
+    const entryScript = isDev
+      ? '<script type="module" src="/.nuxe/entry-client.ts"></script><script type="module" src="/@vite/client"></script>'
+      : `<script type="module" src="${entryUrl}"></script>`
+
+    const htmlStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          controller.enqueue(encoder.encode(shellHtml))
+
+          if (firstChunk) {
+            controller.enqueue(firstChunk)
+            const lateStyles = renderRouteStyles(ssrContext, rendererContext)
+            if (lateStyles) controller.enqueue(encoder.encode(lateStyles))
+            const headChunk = renderSSRHeadSuspenseChunk(head)
+            if (headChunk) {
+              controller.enqueue(encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
+            }
           }
-        }
 
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          controller.enqueue(value)
-          const lateStyles = renderRouteStyles(ssrContext, rendererContext)
-          if (lateStyles) controller.enqueue(encoder.encode(lateStyles))
-          const headChunk = renderSSRHeadSuspenseChunk(head)
-          if (headChunk) {
-            controller.enqueue(encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            controller.enqueue(value)
+            const lateStyles = renderRouteStyles(ssrContext, rendererContext)
+            if (lateStyles) controller.enqueue(encoder.encode(lateStyles))
+            const headChunk = renderSSRHeadSuspenseChunk(head)
+            if (headChunk) {
+              controller.enqueue(encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
+            }
           }
+
+          const ctx = ssrContext.ctx!
+          await ctx.awaitAll()
+          if (Object.keys(ctx.payload).length > 0) {
+            const json = JSON.stringify({ data: ctx.payload }).replace(/</g, '\\u003c')
+            controller.enqueue(encoder.encode(`<script>window.__NUXE__=${json};</script>`))
+          }
+
+          controller.enqueue(encoder.encode(`${entryScript}${HTML_CLOSE}`))
+          controller.close()
+        } catch (error) {
+          console.error('[nuxe] stream error', error)
+          try {
+            const message = error instanceof Error ? error.message : String(error)
+            controller.enqueue(encoder.encode(
+              `<script>document.body.innerHTML='<div style="font-family:sans-serif;padding:2rem">'`
+              + `+ '<h1>500 — Error rendering page</h1><p>' + ${JSON.stringify(message)} + '</p></div>'</script>${HTML_CLOSE}`,
+            ))
+            controller.close()
+          } catch {
+            controller.error(error)
+          }
+        } finally {
+          reader.releaseLock()
         }
+      },
+      cancel(reason) {
+        reader.cancel(reason).catch(() => {})
+      },
+    })
 
-        const ctx = ssrContext.ctx!
-        await ctx.awaitAll()
-        if (Object.keys(ctx.payload).length > 0) {
-          const json = JSON.stringify({ data: ctx.payload }).replace(/</g, '\\u003c')
-          controller.enqueue(encoder.encode(`<script>window.__NUXE__=${json};</script>`))
-        }
-
-        controller.enqueue(encoder.encode(`${entryScript}${HTML_CLOSE}`))
-        controller.close()
-      } catch (error) {
-        controller.error(error)
-      } finally {
-        reader.releaseLock()
-      }
-    },
-    cancel(reason) {
-      reader.cancel(reason).catch(() => {})
-    },
-  })
-
-  return new Response(htmlStream, {
-    headers: {
-      'Content-Type': 'text/html',
-      'Transfer-Encoding': 'chunked',
-    },
-  })
+    return new Response(htmlStream, {
+      headers: {
+        'Content-Type': 'text/html',
+        'Transfer-Encoding': 'chunked',
+      },
+    })
+  } catch (error) {
+    console.error('[nuxe] render error', error)
+    return renderErrorResponse(500, error instanceof Error ? error.message : String(error))
+  }
 }
 
 export default async function handler(request: Request): Promise<Response> {
@@ -263,25 +292,30 @@ export default async function handler(request: Request): Promise<Response> {
     modules: new Set<string>(),
   } as unknown as NuxeSSRContext
 
-  if (isDev) {
-    const options = loadOptions()
-    if (!options) {
-      return new Response(
-        `[nuxe] Could not read ${SOCKET_STATE_FILE}; the vite-node plugin is missing or failed to start.`,
-        { status: 500 },
-      )
+  try {
+    if (isDev) {
+      const options = loadOptions()
+      if (!options) {
+        return new Response(
+          `[nuxe] Could not read ${SOCKET_STATE_FILE}; the vite-node plugin is missing or failed to start.`,
+          { status: 500 },
+        )
+      }
+
+      const { app, manifest, client } = await loadAppAndManifestDev(options, ssrContext)
+      try {
+        return await renderApp(request, ssrContext, app, manifest, async () =>
+          (await client.manifest() as RendererManifest | null) ?? null,
+        )
+      } finally {
+        await client.close()
+      }
     }
 
-    const { app, manifest, client } = await loadAppAndManifestDev(options, ssrContext)
-    try {
-      return await renderApp(request, ssrContext, app, manifest, async () =>
-        (await client.manifest() as RendererManifest | null) ?? null,
-      )
-    } finally {
-      await client.close()
-    }
+    const { app, manifest } = await loadAppAndManifestProd(ssrContext)
+    return renderApp(request, ssrContext, app, manifest)
+  } catch (error) {
+    console.error('[nuxe] handler error', error)
+    return renderErrorResponse(500, error instanceof Error ? error.message : String(error))
   }
-
-  const { app, manifest } = await loadAppAndManifestProd(ssrContext)
-  return renderApp(request, ssrContext, app, manifest)
 }

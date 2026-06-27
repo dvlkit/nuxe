@@ -6,6 +6,9 @@ export function defineNuxeRouteMiddleware(middleware: RouteMiddleware): RouteMid
   return middleware
 }
 
+const NAVIGATE_TO_MARKER = Symbol.for('@dvlkit/nuxe/navigate-to')
+const ABORT_NAVIGATION_MARKER = Symbol.for('@dvlkit/nuxe/abort-navigation')
+
 export interface NavigateToOptions {
   replace?: boolean
   redirectCode?: number
@@ -25,8 +28,23 @@ export function navigateTo(
       window.location.href = href
       return false
     }
-    return target
+    return {
+      [NAVIGATE_TO_MARKER]: true,
+      to: href,
+      redirectCode: options.redirectCode || 302,
+      external: true,
+    } as NavigationGuardReturn
   }
+
+  if (typeof window === 'undefined') {
+    return {
+      [NAVIGATE_TO_MARKER]: true,
+      to: target,
+      redirectCode: options.redirectCode || 302,
+      external: false,
+    } as NavigationGuardReturn
+  }
+
   if (options.replace) {
     return {...target, replace: true} as RouteLocationRaw
   }
@@ -38,9 +56,24 @@ export interface AbortNavigationOptions {
   statusMessage?: string
 }
 
-export function abortNavigation(err?: Error | string | AbortNavigationOptions): false {
-  (abortNavigation as any).__lastPayload = err instanceof Error ? {statusMessage: err.message}
-    : typeof err === 'string' ? {statusMessage: err}
-      : err
+export interface AbortNavigationResult extends AbortNavigationOptions {
+  [ABORT_NAVIGATION_MARKER]: true
+}
+
+export function abortNavigation(err?: Error | string | AbortNavigationOptions): false | AbortNavigationResult {
+  const payload = err instanceof Error
+    ? {statusMessage: err.message}
+    : typeof err === 'string'
+      ? {statusMessage: err}
+      : err || {}
+
+  if (typeof window === 'undefined') {
+    return {
+      [ABORT_NAVIGATION_MARKER]: true,
+      ...payload,
+    }
+  }
+
+  (abortNavigation as any).__lastPayload = payload
   return false
 }
