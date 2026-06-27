@@ -2,7 +2,10 @@
   "name": "create-nuxe",
   "version": "0.1.0",
   "description": "Scaffold a new nuxe project",
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "type": "module",
   "bin": {
     "create-nuxe": "./bin/index.js"
@@ -18,5 +21,8 @@
   "devDependencies": {
     "tsup": "8.5.1",
     "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.6.0"
   }
 }

@@ -1,4 +1,4 @@
-name: Changesets
+name: Release
 
 on:
   push:
@@ -8,8 +8,8 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  version:
-    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')
+  release:
+    name: Release
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -19,79 +19,45 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'pnpm'
-      - run: pnpm install --frozen-lockfile
-      - name: Check for pending changesets
-        id: check
-        run: |
-          PENDING=$(ls .changeset/*.md 2>/dev/null | grep -v README.md | wc -l | tr -d ' ')
-          if [ "$PENDING" -gt 0 ]; then
-            echo "pending=true" >> "$GITHUB_OUTPUT"
-            echo "Found $PENDING pending changeset(s)"
-          else
-            echo "pending=false" >> "$GITHUB_OUTPUT"
-            echo "No pending changesets, skipping release"
-          fi
-      - name: Bump version and update CHANGELOG
-        if: steps.check.outputs.pending == 'true'
-        run: pnpm changeset version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Commit bumped versions
-        if: steps.check.outputs.pending == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "chore: release packages" || echo "No changes to commit"
-          git push
-      - name: Create and push tag
-        if: steps.check.outputs.pending == 'true'
-        id: tag
-        run: |
-          VERSION=$(node -p "require('./packages/nuxe/package.json').version")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          TAG="v$VERSION"
-          HEAD_SHA=$(git rev-parse HEAD)
-
-          if CURRENT_TAG_SHA=$(git rev-parse "$TAG" 2>/dev/null); then
-            if [ "$CURRENT_TAG_SHA" = "$HEAD_SHA" ]; then
-              echo "Tag $TAG already points at HEAD, keeping it"
-            else
-              echo "::error::Tag $TAG exists but points to $CURRENT_TAG_SHA, not HEAD ($HEAD_SHA)"
-              echo "::error::Refusing to move a published tag. Bump the version or fix manually."
-              exit 1
-            fi
-          else
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
-          fi
-      - uses: actions/setup-node@v4
-        if: steps.check.outputs.pending == 'true'
-        with:
-          node-version: 24
           registry-url: 'https://registry.npmjs.org'
+
       - run: npm install -g npm@latest
-        if: steps.check.outputs.pending == 'true'
       - run: pnpm install --frozen-lockfile
-        if: steps.check.outputs.pending == 'true'
-      - name: Build
-        if: steps.check.outputs.pending == 'true'
-        run: pnpm --filter @dvlkit/nuxe build
-      - name: Publish to npm
-        if: steps.check.outputs.pending == 'true'
-        run: pnpm changeset publish --provenance
-      - name: Create GitHub Release
-        if: steps.check.outputs.pending == 'true'
-        uses: softprops/action-gh-release@v2
+
+      - name: Build all packages
+        run: pnpm -r --filter '!playground' build
+
+      - name: Create Release PR or Publish
+        id: changesets
+        uses: changesets/action@v1
         with:
-          tag_name: v${{ steps.tag.outputs.version }}
-          generate_release_notes: true
+          publish: pnpm changeset publish --provenance
+          commit: "chore: release packages"
+          title: "chore: release packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Releases
+        if: steps.changesets.outputs.published == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const published = JSON.parse('${{ steps.changesets.outputs.publishedPackages }}');
+            for (const pkg of published) {
+              await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: `${pkg.name}@${pkg.version}`,
+                name: `${pkg.name} v${pkg.version}`,
+                generate_release_notes: true,
+              });
+            }

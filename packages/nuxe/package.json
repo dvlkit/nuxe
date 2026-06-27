@@ -62,8 +62,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@nijil71/lumi-cli": "1.0.11",
     "@unhead/vue": "3.1.4",
+    "consola": "3.4.2",
     "@vue/compiler-sfc": "3.5.38",
     "acorn": "8.17.0",
     "c12": "4.0.0-beta.5",

@@ -1,23 +1,10 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 describe('logger', () => {
-  let originalLog: typeof console.log
   let captured: string[]
 
   beforeEach(() => {
-    originalLog = console.log
     captured = []
-    console.log = (...args: unknown[]) => {
-      captured.push(args.map((a) => (typeof a === 'string' ? a : String(a))).join(' '))
-    }
-    delete process.env.NUXE_SILENT
-    delete process.env.CI
-    delete process.env.VITEST
-    delete process.env.NODE_ENV
-  })
-
-  afterEach(() => {
-    console.log = originalLog
     delete process.env.NUXE_SILENT
     delete process.env.CI
     delete process.env.VITEST
@@ -60,6 +47,19 @@ describe('logger', () => {
   })
 
   describe('logRequest', () => {
+    let originalLog: typeof console.log
+
+    beforeEach(() => {
+      originalLog = console.log
+      console.log = (...args: unknown[]) => {
+        captured.push(args.map((a) => (typeof a === 'string' ? a : String(a))).join(' '))
+      }
+    })
+
+    afterEach(() => {
+      console.log = originalLog
+    })
+
     it('prints a GET 200 line when not silent', async () => {
       const { logRequest } = await import('../../lib/utils/logger')
       logRequest('GET', '/api/ping', 200, 12)
@@ -104,6 +104,10 @@ describe('logger', () => {
   })
 
   describe('log levels', () => {
+    beforeEach(() => {
+      vi.resetModules()
+    })
+
     it('exposes logInfo, logSuccess, logWarn, logError as silent-aware helpers', async () => {
       const { logInfo, logSuccess, logWarn, logError } = await import('../../lib/utils/logger')
       expect(() => logInfo('a')).not.toThrow()

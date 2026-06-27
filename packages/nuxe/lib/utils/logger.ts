@@ -1,4 +1,4 @@
-import { createLogger } from '@nijil71/lumi-cli'
+import consola from 'consola'
 
 const R = '\x1b[0m'
 
@@ -21,7 +21,7 @@ function isSilent(): boolean {
   )
 }
 
-const logger = createLogger({ prefix: 'nuxe' })
+const logger = consola.withTag('nuxe')
 
 export function logInfo(message: string): void {
   if (isSilent()) return
