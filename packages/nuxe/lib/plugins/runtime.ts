@@ -1,7 +1,6 @@
-import { inject, type App, type InjectionKey, type Ref } from 'vue'
+import { inject, type App, type InjectionKey } from 'vue'
 import type { Router } from 'vue-router'
-import type { RuntimeConfig } from '../runtime/config'
-import { provideNuxtState, type NuxtState } from '../runtime/state'
+import { provideNuxtState, type NuxtState, type RuntimeConfig } from '../runtime'
 
 export interface NuxtApp {
   vueApp: App

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSSRApp, defineComponent } from 'vue'
-import { createNuxtApp } from '../../lib/plugins/runtime'
-import { createNuxtState } from '../../lib/runtime/state'
-import { useRequestEvent, useRequestHeaders } from '../../lib/runtime/request'
+import { createNuxtApp, createNuxtState, useRequestEvent, useRequestHeaders } from '../../lib'
 
 describe('useRequestEvent', () => {
   it('returns the raw request from ssrContext', () => {
