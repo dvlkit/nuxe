@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { App, Router } from 'vue'
 import { createSSRApp, defineComponent } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import { createNuxtApp, defineNuxtPlugin, defineNuxePlugin, runPlugins } from '../../lib/plugins/runtime'
-import type { NuxtPlugin } from '../../lib/plugins/runtime'
+import { createNuxtApp, defineNuxtPlugin, defineNuxePlugin, runPlugins } from '../../lib'
+import type { NuxtPlugin } from '../../lib'
 
 function createTestApp(): { app: App; router: Router } {
   const app = createSSRApp(defineComponent({ render: () => null }))

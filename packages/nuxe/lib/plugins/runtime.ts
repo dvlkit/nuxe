@@ -1,6 +1,6 @@
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
-import type { RuntimeConfig } from '../runtime/config'
+import type { RuntimeConfig } from '../runtime'
 
 export interface NuxtApp {
   vueApp: App
