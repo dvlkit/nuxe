@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSSRApp, defineComponent } from 'vue'
-import { createNuxtApp } from '../../lib/plugins/runtime'
-import { createNuxtState, useState } from '../../lib/runtime/state'
+import { createNuxtApp, createNuxtState, useState } from '../../lib'
 
 describe('createNuxtState', () => {
   it('creates refs from initial values', () => {
