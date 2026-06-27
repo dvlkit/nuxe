@@ -13,8 +13,8 @@ export interface RuntimeConfig {
 function isRuntimeConfigValue(value: unknown): value is RuntimeConfig | Record<string, unknown> | string | number | boolean | null | undefined {
   if (value === null || value === undefined) return true
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true
-  if (typeof value === 'object' && !Array.isArray(value)) return true
-  return false
+  return typeof value === 'object' && !Array.isArray(value);
+
 }
 
 function applyEnvVar(config: RuntimeConfig, keys: string[], value: string): void {
@@ -70,7 +70,7 @@ export function resolveRuntimeConfig(config: RuntimeConfig = { public: {} }): Ru
   }
 
   const envKeys = collectKeys('', resolved)
-  for (const { keys, value } of envKeys) {
+  for (const { keys } of envKeys) {
     const envKey = keys.length === 0 ? '' : `NUXE_${keys.map(camelToUpperSnake).join('_')}`
     if (!envKey) continue
     const envValue = process.env[envKey]
@@ -80,7 +80,7 @@ export function resolveRuntimeConfig(config: RuntimeConfig = { public: {} }): Ru
   }
 
   const publicEnvKeys = collectKeys('', resolved.public)
-  for (const { keys, value } of publicEnvKeys) {
+  for (const { keys } of publicEnvKeys) {
     const envKey = keys.length === 0 ? '' : `NUXE_PUBLIC_${keys.map(camelToUpperSnake).join('_')}`
     if (!envKey) continue
     const envValue = process.env[envKey]

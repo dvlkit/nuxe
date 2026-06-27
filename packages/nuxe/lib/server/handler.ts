@@ -13,7 +13,7 @@ import {
   getRequestDependencies,
   type RendererContext,
 } from 'vue-bundle-renderer/runtime'
-import type { Manifest as RendererManifest, ResourceMeta } from 'vue-bundle-renderer'
+import type { Manifest as RendererManifest } from 'vue-bundle-renderer'
 import type { App } from 'vue'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'

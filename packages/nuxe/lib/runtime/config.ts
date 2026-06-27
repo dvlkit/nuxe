@@ -1,4 +1,4 @@
-import { getCurrentInstance, inject, provide, type App, type InjectionKey } from 'vue'
+import { getCurrentInstance, inject, type App, type InjectionKey } from 'vue'
 
 export interface RuntimeConfig {
   public: Record<string, unknown>
