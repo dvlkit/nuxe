@@ -42,3 +42,4 @@ export {
   type FetchRequest,
 } from './runtime/fetch'
 export { useFetch, type UseFetchOptions, type UseFetchReturn, type UseFetchError } from './runtime/use-fetch'
+export { useRuntimeConfig, provideRuntimeConfig, type RuntimeConfig } from './runtime/config'

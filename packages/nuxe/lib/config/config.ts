@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { NuxeConfigSchema, type NuxeConfig, type NuxeConfigInput } from './schema'
+import { resolveRuntimeConfig, type RuntimeConfig } from './runtime-config'
 
 export const defineConfig = <T extends NuxeConfigInput>(config: T): T => config
 
@@ -7,10 +8,12 @@ export interface LoadNuxeConfigOptions {
   cwd: string
 }
 
-export type ResolvedNuxeConfig = Omit<NuxeConfig, 'server'> & {
+export type ResolvedNuxeConfig = Omit<NuxeConfig, 'server' | 'runtimeConfig'> & {
   server: {
     port: number
   }
+  runtimeConfig: RuntimeConfig
+  runtimeConfigInput: RuntimeConfig
 }
 
 export async function loadNuxeConfig(opts: LoadNuxeConfigOptions): Promise<ResolvedNuxeConfig> {
@@ -36,11 +39,15 @@ export async function loadNuxeConfig(opts: LoadNuxeConfigOptions): Promise<Resol
 
   const envPort = process.env.PORT ? Number(process.env.PORT) : undefined
   const resolvedPort = result.output.server.port ?? envPort ?? 3000
+  const runtimeConfigInput = result.output.runtimeConfig as RuntimeConfig
+  const runtimeConfig = resolveRuntimeConfig(runtimeConfigInput)
 
   return {
     ...result.output,
     server: {
       port: resolvedPort,
     },
+    runtimeConfig,
+    runtimeConfigInput,
   }
 }

@@ -21,7 +21,8 @@ import { pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import { createViteNodeClient } from '../vite/vite-node-client.js'
 import { serializePayload } from './payload.js'
-import { createError, serializeError } from '../runtime/error.js'
+import { createError, serializeError } from '../runtime'
+import { getPublicRuntimeConfig, resolveRuntimeConfig, type RuntimeConfig } from '../config/runtime-config.js'
 
 interface NuxeViteNodeOptions {
   socketPath: string
@@ -52,6 +53,15 @@ function loadOptions(): NuxeViteNodeOptions | null {
     return JSON.parse(raw) as NuxeViteNodeOptions
   } catch {
     return null
+  }
+}
+
+function loadRuntimeConfig(): RuntimeConfig {
+  try {
+    const raw = readFileSync(join(process.cwd(), '.nuxe', 'runtime-config.json'), 'utf-8')
+    return resolveRuntimeConfig(JSON.parse(raw) as RuntimeConfig)
+  } catch {
+    return resolveRuntimeConfig({ public: {} })
   }
 }
 
@@ -185,6 +195,7 @@ async function renderApp(
   manifest: RendererManifest,
   createApp: (ctx: NuxeSSRContext) => Promise<App>,
   isDev: boolean,
+  runtimeConfig: RuntimeConfig,
   updateManifest?: () => Promise<RendererManifest | null>,
 ): Promise<Response> {
   try {
@@ -275,7 +286,9 @@ async function renderApp(
 
           const ctx = ssrContext.ctx!
           await ctx.awaitAll()
-          const nuxePayload: Record<string, unknown> = {}
+          const nuxePayload: Record<string, unknown> = {
+            runtimeConfig: getPublicRuntimeConfig(runtimeConfig),
+          }
           if (Object.keys(ctx.payload).length > 0) {
             nuxePayload.data = ctx.payload
           }
@@ -285,10 +298,8 @@ async function renderApp(
               nuxePayload.error = serializedError
             }
           }
-          if (Object.keys(nuxePayload).length > 0) {
-            const serialized = serializePayload(nuxePayload)
-            controller.enqueue(encoder.encode(`<script>window.__NUXE__=${serialized};</script>`))
-          }
+          const serialized = serializePayload(nuxePayload)
+          controller.enqueue(encoder.encode(`<script>window.__NUXE__=${serialized};</script>`))
 
           controller.enqueue(encoder.encode(`${entryScript}${HTML_CLOSE}`))
           controller.close()
@@ -332,12 +343,13 @@ async function renderApp(
     }
     ssrContext.error = createError(error instanceof Error ? error : String(error))
     const errorApp = await createApp(ssrContext)
-    return renderApp(request, ssrContext, errorApp, manifest, createApp, isDev, updateManifest)
+    return renderApp(request, ssrContext, errorApp, manifest, createApp, isDev, runtimeConfig, updateManifest)
   }
 }
 
 export default async function handler(request: Request): Promise<Response> {
   const isDev = process.env.NUXE_DEV === 'true'
+  const runtimeConfig = loadRuntimeConfig()
 
   const ssrContext: NuxeSSRContext = {
     url: request.url,
@@ -356,7 +368,7 @@ export default async function handler(request: Request): Promise<Response> {
 
       const { app, manifest, createApp, client } = await loadAppAndManifestDev(options, ssrContext)
       try {
-        return await renderApp(request, ssrContext, app, manifest, createApp, true, async () =>
+        return await renderApp(request, ssrContext, app, manifest, createApp, true, runtimeConfig, async () =>
           (await client.manifest() as RendererManifest | null) ?? null,
         )
       } finally {
@@ -365,7 +377,7 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     const { app, manifest, createApp } = await loadAppAndManifestProd(ssrContext)
-    return renderApp(request, ssrContext, app, manifest, createApp, false)
+    return renderApp(request, ssrContext, app, manifest, createApp, false, runtimeConfig)
   } catch (error) {
     console.error('[nuxe] handler error', error)
     return renderErrorResponse(500, error instanceof Error ? error.message : String(error))

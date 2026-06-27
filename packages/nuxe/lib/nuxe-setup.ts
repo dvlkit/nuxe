@@ -6,12 +6,13 @@ import { resolve, join } from 'node:path'
 import { mergeConfig } from 'vite'
 import type { PluginOption, UserConfig } from 'vite'
 import { nitro } from 'nitro/vite'
-import { NuxeConfig } from './config'
+import { NuxeConfig, type ResolvedNuxeConfig } from './config'
 import { scanMiddlewares } from './middleware/scanner'
 import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
 import { scanPages } from './pages/scanner'
 import { generateTypedRouter } from './pages/typed-router'
 import { generateNavigateTo, generateUseRoute } from './pages/generated-composables'
+import { generateRuntimeConfigTypes } from './config/generate-runtime-config-types'
 import nuxePageMetaPlugin from './pages/page-meta-plugin'
 import vue from '@vitejs/plugin-vue'
 import { NuxeViteNodePlugin } from './vite/vite-node-server'
@@ -50,7 +51,7 @@ function patchVueExclude(plugin: VuePlugin, exclude: RegExp) {
   return plugin
 }
 
-export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): Promise<NuxeProjectSetup> {
+export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeConfig): Promise<NuxeProjectSetup> {
   generateNuxeEntries(cwd)
 
   const layoutsDir = resolve(cwd, 'app/layouts')
@@ -62,6 +63,12 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
   const hasErrorComponent = existsSync(join(cwd, 'app', 'error.vue'))
 
   writeFileSync(join(cwd, '.nuxe', 'typed-router.d.ts'), generateTypedRouter(scannedPages))
+  writeFileSync(join(cwd, '.nuxe', 'runtime-config.d.ts'), generateRuntimeConfigTypes(config.runtimeConfig))
+  writeFileSync(join(cwd, '.nuxe', 'runtime-config.json'), JSON.stringify(config.runtimeConfigInput, null, 2))
+  writeFileSync(
+    join(cwd, '.nuxe', 'runtime-config-public.json'),
+    JSON.stringify({ public: config.runtimeConfigInput.public ?? {} }, null, 2),
+  )
 
   const nuxeComposablesDir = join(cwd, '.nuxe', 'composables')
   if (!existsSync(nuxeComposablesDir)) {
@@ -94,7 +101,7 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
           ],
         },
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError']},
+        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig']},
       ],
       dirs: ['app/composables', '.nuxe/composables'],
       dts: '.nuxe/auto-imports.d.ts',

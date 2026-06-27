@@ -29,3 +29,4 @@ export {
   type UseFetchReturn,
   type UseFetchError,
 } from './use-fetch'
+export { useRuntimeConfig, provideRuntimeConfig, type RuntimeConfig } from './config'

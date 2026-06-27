@@ -110,7 +110,8 @@ import App from '/app/app.vue'
 import { ErrorComponent } from 'virtual:nuxe/error'
 import { routes } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
-import { setHydratedPayload, createError, provideError, deserializeError } from '@dvlkit/nuxe/runtime'
+import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig } from '@dvlkit/nuxe/runtime'
+import publicRuntimeConfig from '/.nuxe/runtime-config-public.json'
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
 async function main() {
@@ -122,12 +123,17 @@ async function main() {
   app.config.errorHandler = (err) => {
     error.value = createError(err)
   }
+  let runtimeConfig: RuntimeConfig = publicRuntimeConfig
   if (typeof window !== 'undefined' && window.__NUXE__) {
     setHydratedPayload(window.__NUXE__.data || null)
+    if (window.__NUXE__.runtimeConfig) {
+      runtimeConfig = window.__NUXE__.runtimeConfig as RuntimeConfig
+    }
     if (window.__NUXE__.error) {
       error.value = deserializeError(window.__NUXE__.error)
     }
   }
+  provideRuntimeConfig(app, runtimeConfig)
   const originalWarn = console.warn
   console.warn = (...args) => {
     if (typeof args[0] === 'string' && args[0].includes('No match found')) return
@@ -165,7 +171,8 @@ import { createStreamableHead } from '@unhead/vue/stream/server'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'virtual:nuxe/routes'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { createRequestContext, provideRequestContext, createError, provideError } from '@dvlkit/nuxe/runtime'
+import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig } from '@dvlkit/nuxe/runtime'
+import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
 ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
@@ -174,6 +181,7 @@ async function createApp(ssrContext) {
   const ctx = createRequestContext()
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
   provideRequestContext(app, ctx)
+  provideRuntimeConfig(app, runtimeConfig)
   const error = ref(ssrContext.error || null)
   provideError(app, error)
   const { head } = createStreamableHead()
