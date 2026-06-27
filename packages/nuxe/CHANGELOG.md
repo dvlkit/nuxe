@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.6.2
+
+### Patch Changes
+
+- 485a0eb: fix publish workflow
+
 ## 0.6.1
 
 ### Patch Changes
