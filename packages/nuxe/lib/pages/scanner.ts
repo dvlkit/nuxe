@@ -11,6 +11,7 @@ export interface RouteRules {
 export interface ScannedPage {
   filePath: string
   path: string
+  pathTemplate: string
   name: string
   meta?: Record<string, unknown>
   routeRules?: RouteRules
@@ -104,18 +105,18 @@ function isIgnoredSegment(segment: string): boolean {
   return segment.startsWith('_')
 }
 
-function segmentToRoute(segment: string): { path: string; paramName?: string; catchAll?: boolean } {
+function segmentToRoute(segment: string): { path: string; template: string; paramName?: string; catchAll?: boolean } {
   const match = PARAM_RE.exec(segment)
   if (!match) {
-    return { path: `/${segment}` }
+    return { path: `/${segment}`, template: `/${segment}` }
   }
 
   const [, spread, name] = match
   if (spread) {
-    return { path: `/:${name}(.*)*`, paramName: name, catchAll: true }
+    return { path: `/:${name}(.*)*`, template: `/[...${name}]`, paramName: name, catchAll: true }
   }
 
-  return { path: `/:${name}`, paramName: name }
+  return { path: `/:${name}`, template: `/[${name}]`, paramName: name }
 }
 
 function scanDir(dir: string, baseRoute: string, pages: ScannedPage[]): void {
@@ -140,6 +141,7 @@ function scanDir(dir: string, baseRoute: string, pages: ScannedPage[]): void {
     const segments = relativePath.split(sep).map((s) => s.replace(/\.vue$/, ''))
 
     let routePath = ''
+    let routePathTemplate = ''
     let routeNameParts: string[] = []
 
     for (const segment of segments) {
@@ -148,21 +150,25 @@ function scanDir(dir: string, baseRoute: string, pages: ScannedPage[]): void {
         continue
       }
 
-      const { path } = segmentToRoute(segment)
+      const { path, template } = segmentToRoute(segment)
       routePath += path
+      routePathTemplate += template
       routeNameParts.push(segment.replace(/\[|\]|\.\.\./g, ''))
     }
 
     if (nameWithoutExt === 'index' && routePath.length > 1) {
       routePath = routePath.replace(/\/index$/, '')
+      routePathTemplate = routePathTemplate.replace(/\/index$/, '')
     }
 
     if (routePath === '') routePath = '/'
+    if (routePathTemplate === '') routePathTemplate = '/'
 
     const config = extractPageConfig(filePath)
     pages.push({
       filePath,
       path: routePath,
+      pathTemplate: routePathTemplate,
       name: routeNameParts.join('-').replace(/^-|-$/g, '') || 'index',
       meta: config?.meta,
       routeRules: config?.routeRules,

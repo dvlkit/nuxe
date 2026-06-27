@@ -36,6 +36,7 @@ describe('scanPages', () => {
     expect(pages).toHaveLength(1)
     expect(pages[0]).toMatchObject({
       path: '/users/:id',
+      pathTemplate: '/users/[id]',
       name: 'users-id',
     })
   })
@@ -49,6 +50,7 @@ describe('scanPages', () => {
     expect(pages).toHaveLength(1)
     expect(pages[0]).toMatchObject({
       path: '/:slug(.*)*',
+      pathTemplate: '/[...slug]',
       name: 'slug',
     })
   })

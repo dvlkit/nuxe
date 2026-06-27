@@ -10,6 +10,8 @@ import { NuxeConfig } from './config'
 import { scanMiddlewares } from './middleware/scanner'
 import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
 import { scanPages } from './pages/scanner'
+import { generateTypedRouter } from './pages/typed-router'
+import { generateNavigateTo, generateUseRoute } from './pages/generated-composables'
 import nuxePageMetaPlugin from './pages/page-meta-plugin'
 import vue from '@vitejs/plugin-vue'
 import { NuxeViteNodePlugin } from './vite/vite-node-server'
@@ -58,6 +60,15 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
   const scannedMiddlewares = scanMiddlewares(cwd)
   const scannedPages = scanPages(cwd)
 
+  writeFileSync(join(cwd, '.nuxe', 'typed-router.d.ts'), generateTypedRouter(scannedPages))
+
+  const nuxeComposablesDir = join(cwd, '.nuxe', 'composables')
+  if (!existsSync(nuxeComposablesDir)) {
+    mkdirSync(nuxeComposablesDir, { recursive: true })
+  }
+  writeFileSync(join(nuxeComposablesDir, 'navigateTo.ts'), generateNavigateTo())
+  writeFileSync(join(nuxeComposablesDir, 'useNuxeRoute.ts'), generateUseRoute())
+
   const frameworkPlugins: PluginOption[] = [
     patchVueExclude(vue() as VuePlugin, /\?assets/),
     nuxePageMetaPlugin(),
@@ -82,9 +93,9 @@ export async function createNuxeProjectSetup(cwd: string, config: NuxeConfig): P
           ],
         },
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'navigateTo', 'abortNavigation', 'useHead']},
+        {'@dvlkit/nuxe': ['definePage', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead']},
       ],
-      dirs: ['app/composables'],
+      dirs: ['app/composables', '.nuxe/composables'],
       dts: '.nuxe/auto-imports.d.ts',
     }),
     Components({
