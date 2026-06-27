@@ -42,6 +42,10 @@
   "bin": {
     "nuxe": "dist/bin/nuxe.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dvlkit/nuxe.git"
+  },
   "files": [
     "dist",
     "README.md",
