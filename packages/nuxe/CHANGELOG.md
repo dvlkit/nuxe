@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.1
+
+### Patch Changes
+
+- 28e5c62: update changeset
+
 ## 0.7.0
 
 ### Minor Changes

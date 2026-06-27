@@ -1,5 +1,11 @@
 # create-nuxe
 
+## 0.2.1
+
+### Patch Changes
+
+- 28e5c62: update changeset
+
 ## 0.2.0
 
 ### Minor Changes
