@@ -44,3 +44,4 @@ export { useLoadingIndicator, type LoadingIndicator } from './use-loading-indica
 export { useState, createNuxtState, provideNuxtState, type NuxtState } from './state'
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './cookie'
 export { useRequestEvent, useRequestHeaders } from './request'
+export { createStreamableHead } from '@unhead/vue/stream/server'

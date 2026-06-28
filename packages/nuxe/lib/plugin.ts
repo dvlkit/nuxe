@@ -180,7 +180,7 @@ void main()
 
 const ENTRY_SERVER_SOURCE = `import { createSSRApp, ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { createStreamableHead } from '@unhead/vue/stream/server'
+import { createStreamableHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'virtual:nuxe/routes'
 import { ErrorComponent } from 'virtual:nuxe/error'
