@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.2
+
+### Patch Changes
+
+- 49bb641: update template
+
 ## 0.7.1
 
 ### Patch Changes

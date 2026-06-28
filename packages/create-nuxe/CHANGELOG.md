@@ -1,5 +1,11 @@
 # create-nuxe
 
+## 0.2.3
+
+### Patch Changes
+
+- 49bb641: update template
+
 ## 0.2.2
 
 ### Patch Changes
