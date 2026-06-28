@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.5
+
+### Patch Changes
+
+- e24a90e: createHead
+
 ## 0.7.4
 
 ### Patch Changes
