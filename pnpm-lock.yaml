@@ -30,6 +30,9 @@ importers:
       '@unhead/vue':
         specifier: 3.1.4
         version: 3.1.4(crossws@0.4.6(srvx@0.11.17))(esbuild@0.27.7)(lightningcss@1.32.0)(rolldown@1.1.2)(typescript@6.0.3)(vite@8.0.16(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
+      '@vitejs/plugin-vue':
+        specifier: 6.0.7
+        version: 6.0.7(vite@8.0.16(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       '@vue/compiler-sfc':
         specifier: 3.5.38
         version: 3.5.38
@@ -94,9 +97,6 @@ importers:
       '@types/node':
         specifier: 22.20.0
         version: 22.20.0
-      '@vitejs/plugin-vue':
-        specifier: 6.0.7
-        version: 6.0.7(vite@8.0.16(@types/node@22.20.0)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.38(typescript@6.0.3))
       tsdown:
         specifier: 0.22.3
         version: 0.22.3(typescript@6.0.3)(vue-tsc@3.3.5(typescript@6.0.3))

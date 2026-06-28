@@ -8,14 +8,23 @@ import { intro, outro, text, confirm, isCancel, cancel } from "@clack/prompts";
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = dirname(__filename);
 var TEMPLATE_DIR = resolve(__dirname, "../lib/template");
-function resolveLatestNuxeVersion() {
+async function resolveNuxeVersion() {
   try {
     const nuxePkg = resolve(__dirname, "../../nuxe/package.json");
     const { version } = JSON.parse(readFileSync(nuxePkg, "utf-8"));
     return version;
   } catch {
-    return "latest";
+    const res = await fetch("https://registry.npmjs.org/@dvlkit/nuxe/latest");
+    if (!res.ok) return "latest";
+    const { version } = await res.json();
+    return version;
   }
+}
+async function resolveLatestVersion(pkg) {
+  const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(pkg)}/latest`);
+  if (!res.ok) throw new Error(`Failed to fetch latest version for ${pkg}`);
+  const { version } = await res.json();
+  return version;
 }
 async function main() {
   intro("\u2728 create-nuxe \u2014 scaffold a new nuxe project");
@@ -66,32 +75,65 @@ async function main() {
   const pkgPath = join(projectDir, "package.json");
   const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
   pkg.name = projectName;
-  pkg.dependencies["@dvlkit/nuxe"] = resolveLatestNuxeVersion();
+  const [nuxeVer, vueVer, vueRouterVer, tsVer] = await Promise.all([
+    resolveNuxeVersion(),
+    resolveLatestVersion("vue"),
+    resolveLatestVersion("vue-router"),
+    resolveLatestVersion("typescript")
+  ]);
+  pkg.dependencies["@dvlkit/nuxe"] = nuxeVer;
+  pkg.dependencies.vue = vueVer;
+  pkg.dependencies["vue-router"] = vueRouterVer;
+  pkg.devDependencies.typescript = tsVer;
   writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
   const configPath = join(projectDir, "nuxe.config.ts");
-  const config = readFileSync(configPath, "utf-8").replace("3000", devPort);
-  writeFileSync(configPath, config);
+  const configLines = [
+    `import { defineConfig } from '@dvlkit/nuxe'`
+  ];
+  if (useTailwind) {
+    configLines.push(`import tailwindcss from '@tailwindcss/vite'`);
+  }
+  configLines.push(
+    ``,
+    `export default defineConfig({`,
+    `  server: {`,
+    `    port: ${devPort},`,
+    `  },`
+  );
+  if (useTailwind) {
+    configLines.push(
+      `  vite: {`,
+      `    plugins: [tailwindcss()],`,
+      `  },`
+    );
+  }
+  configLines.push(`})`);
+  writeFileSync(configPath, configLines.join("\n") + "\n");
   if (!includeDemo) {
-    rmSync(join(projectDir, "pages"), { recursive: true, force: true });
-    rmSync(join(projectDir, "components"), { recursive: true, force: true });
-    rmSync(join(projectDir, "composables"), { recursive: true, force: true });
-    const appPath = join(projectDir, "app.vue");
+    rmSync(join(projectDir, "app", "pages"), { recursive: true, force: true });
+    rmSync(join(projectDir, "app", "components"), { recursive: true, force: true });
+    rmSync(join(projectDir, "app", "composables"), { recursive: true, force: true });
+    const appPath = join(projectDir, "app", "app.vue");
     writeFileSync(appPath, "<template>\n  <RouterView />\n</template>\n");
   }
   if (useTailwind) {
+    const [twVer, twViteVer] = await Promise.all([
+      resolveLatestVersion("tailwindcss"),
+      resolveLatestVersion("@tailwindcss/vite")
+    ]);
     const cssDir = join(projectDir, "app", "assets", "css");
     mkdirSync(cssDir, { recursive: true });
     writeFileSync(join(cssDir, "main.css"), '@import "tailwindcss";\n');
-    pkg.devDependencies ??= {};
-    pkg.devDependencies.tailwindcss = "^4.0.0";
+    pkg.devDependencies.tailwindcss = twVer;
+    pkg.devDependencies["@tailwindcss/vite"] = twViteVer;
     writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
-    const appPath = join(projectDir, "app.vue");
+    const appPath = join(projectDir, "app", "app.vue");
     const appContent = readFileSync(appPath, "utf-8");
     if (!appContent.includes("assets/css/main.css")) {
       writeFileSync(appPath, appContent.trimEnd() + `
 
 <script setup lang="ts">
-import './app/assets/css/main.css'
+import './assets/css/main.css'
 </script>
 `);
     }
@@ -100,7 +142,7 @@ import './app/assets/css/main.css'
   console.log("");
   console.log("  Next steps:");
   console.log(`    cd ${projectName}`);
-  console.log("    pnpm install");
+  console.log(`    pnpm install`);
   console.log(`    pnpm dev`);
   console.log("");
   console.log(`  Open http://localhost:${devPort}`);
