@@ -1,5 +1,11 @@
 # create-nuxe
 
+## 0.2.2
+
+### Patch Changes
+
+- 52ad148: add repo
+
 ## 0.2.1
 
 ### Patch Changes
