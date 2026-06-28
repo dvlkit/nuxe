@@ -106,7 +106,7 @@ async function __nuxe_runNamedMiddlewares(to, from, ssrContext) {
 
 const ENTRY_CLIENT_SOURCE = `import { createSSRApp, ref } from 'vue'
 import { RouterView, createRouter, createWebHistory } from 'vue-router'
-import { createHead } from '@unhead/vue/client'
+import { createHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import App from '/app/app.vue'
 import { ErrorComponent } from 'virtual:nuxe/error'
