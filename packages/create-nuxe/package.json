@@ -2,6 +2,10 @@
   "name": "create-nuxe",
   "version": "0.2.1",
   "description": "Scaffold a new nuxe project",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dvlkit/nuxe.git"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
