@@ -1,5 +1,11 @@
 # create-nuxe
 
+## 0.2.4
+
+### Patch Changes
+
+- ae7dc37: update workflow
+
 ## 0.2.3
 
 ### Patch Changes

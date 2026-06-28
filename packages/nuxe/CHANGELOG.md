@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.3
+
+### Patch Changes
+
+- ae7dc37: update workflow
+
 ## 0.7.2
 
 ### Patch Changes
