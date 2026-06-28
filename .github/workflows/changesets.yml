@@ -80,11 +80,19 @@ jobs:
             VERSION=$(node -p "require('./${PKG_DIR}/package.json').version")
             TAG="${NAME}@${VERSION}"
 
-            git tag -a "$TAG" -m "Release ${TAG}"
-            git push origin "$TAG"
+            if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+              git tag -a "$TAG" -m "Release ${TAG}"
+              git push origin "$TAG"
+            else
+              echo "Tag $TAG already exists, skipping"
+            fi
 
-            gh release create "$TAG" \
-              --title "${NAME} v${VERSION}" \
-              --generate-notes \
-              --target "$(git rev-parse HEAD)"
+            if ! gh release view "$TAG" >/dev/null 2>&1; then
+              gh release create "$TAG" \
+                --title "${NAME} v${VERSION}" \
+                --generate-notes \
+                --target "$(git rev-parse HEAD)"
+            else
+              echo "Release $TAG already exists, skipping"
+            fi
           done
