@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.4
+
+### Patch Changes
+
+- 3e89837: createStreamableHead
+
 ## 0.7.3
 
 ### Patch Changes
