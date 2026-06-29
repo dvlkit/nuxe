@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.7
+
+### Patch Changes
+
+- d6f4787: auto import client only
+
 ## 0.7.6
 
 ### Patch Changes
