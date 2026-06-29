@@ -45,7 +45,6 @@ export { useFetch, type UseFetchOptions, type UseFetchReturn, type UseFetchError
 export {
   useRuntimeConfig,
   provideRuntimeConfig,
-  loadRuntimeConfig,
   type RuntimeConfig,
 } from './runtime/config'
 export {

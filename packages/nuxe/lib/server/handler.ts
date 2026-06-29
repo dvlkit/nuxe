@@ -23,7 +23,7 @@ import { createViteNodeClient } from '../vite/vite-node-client.js'
 import { serializePayload } from './payload.js'
 import { createError, serializeError } from '../runtime'
 import { getPublicRuntimeConfig, type RuntimeConfig } from '../config/runtime-config.js'
-import { loadRuntimeConfig } from '../runtime/config.js'
+import { loadRuntimeConfig } from './config.js'
 
 interface NuxeViteNodeOptions {
   socketPath: string

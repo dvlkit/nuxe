@@ -20,3 +20,4 @@ export {
 } from 'h3'
 
 export { default as handler } from './handler'
+export { loadRuntimeConfig, resetRuntimeConfigCache } from './config'

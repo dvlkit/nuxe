@@ -2,25 +2,26 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createSSRApp, defineComponent } from 'vue'
-import {
-  loadRuntimeConfig,
-  provideRuntimeConfig,
-  useRuntimeConfig,
-} from '../../lib'
-import { resetRuntimeConfigCache } from '../../lib/runtime/config'
+import { loadRuntimeConfig, resetRuntimeConfigCache } from '../../lib/server/config'
 
-describe('runtime config', () => {
+describe('loadRuntimeConfig (server)', () => {
   let tempDir: string
+  let savedEnv: Record<string, string | undefined>
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), 'nuxe-runtime-config-'))
     vi.spyOn(process, 'cwd').mockImplementation(() => tempDir)
+    savedEnv = { NUXE_API_BASE_URL: process.env.NUXE_API_BASE_URL }
+    delete process.env.NUXE_API_BASE_URL
     resetRuntimeConfigCache()
   })
 
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true })
+    for (const [key, value] of Object.entries(savedEnv)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
     resetRuntimeConfigCache()
     vi.restoreAllMocks()
   })
@@ -33,24 +34,22 @@ describe('runtime config', () => {
     )
   }
 
-  it('falls back to filesystem config when no Vue app provides one', () => {
+  it('parses the runtime-config.json file from cwd', () => {
     writeConfig({ apiBaseUrl: 'https://api.local', public: { foo: 'bar' } })
-    resetRuntimeConfigCache()
 
-    const config = useRuntimeConfig()
+    const config = loadRuntimeConfig()
     expect(config.apiBaseUrl).toBe('https://api.local')
     expect(config.public).toEqual({ foo: 'bar' })
   })
 
-  it('returns empty defaults when the filesystem file is missing', () => {
-    const config = useRuntimeConfig()
+  it('returns an empty public default when the file is missing', () => {
+    const config = loadRuntimeConfig()
     expect(config.public).toEqual({})
     expect(config.apiBaseUrl).toBeUndefined()
   })
 
   it('caches the filesystem read across calls', () => {
     writeConfig({ tag: 'first', public: {} })
-    resetRuntimeConfigCache()
 
     const first = loadRuntimeConfig()
     expect(first.tag).toBe('first')
@@ -71,29 +70,12 @@ describe('runtime config', () => {
     expect(loadRuntimeConfig().tag).toBe('second')
   })
 
-  it('inside a Vue app, prefers the provideRuntimeConfig value', () => {
-    const app = createSSRApp(defineComponent({ render: () => null }))
-    const provided = { apiBaseUrl: 'https://provided', public: { x: 1 } }
-    provideRuntimeConfig(app, provided)
-
-    let config: ReturnType<typeof useRuntimeConfig>
-    app.runWithContext(() => {
-      config = useRuntimeConfig()
-    })
-
-    expect(config!).toBe(provided)
-  })
-
-  it('inside a Vue app without a provider, falls back to filesystem', () => {
-    writeConfig({ apiBaseUrl: 'https://fs', public: { x: 1 } })
+  it('respects NUXE_* environment variables', () => {
+    writeConfig({ apiBaseUrl: 'https://default', public: {} })
+    process.env.NUXE_API_BASE_URL = 'https://from-env'
     resetRuntimeConfigCache()
 
-    const app = createSSRApp(defineComponent({ render: () => null }))
-    let config: ReturnType<typeof useRuntimeConfig>
-    app.runWithContext(() => {
-      config = useRuntimeConfig()
-    })
-
-    expect(config!.apiBaseUrl).toBe('https://fs')
+    const config = loadRuntimeConfig()
+    expect(config.apiBaseUrl).toBe('https://from-env')
   })
 })
