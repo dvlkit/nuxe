@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.14
+
+### Patch Changes
+
+- 0226ed4: add baseUrl support and enhance $fetch functionality
+
 ## 0.7.13
 
 ### Patch Changes
