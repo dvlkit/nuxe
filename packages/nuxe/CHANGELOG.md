@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.8
+
+### Patch Changes
+
+- ac3338e: re-export h3event
+
 ## 0.7.7
 
 ### Patch Changes
