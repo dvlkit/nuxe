@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./components/client-only": {
+      "types": "./dist/components/client-only.d.ts",
+      "default": "./dist/components/client-only.js"
+    },
     "./components/nuxe-layout": {
       "types": "./dist/components/nuxe-layout.d.ts",
       "default": "./dist/components/nuxe-layout.js"

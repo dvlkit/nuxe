@@ -9,6 +9,7 @@ export default defineConfig([
       'index': 'lib/index.ts',
       'setup': 'lib/nuxe-setup.ts',
       'plugin': 'lib/plugin.ts',
+      'components/client-only': 'lib/components/client-only.ts',
       'components/nuxe-layout': 'lib/components/nuxe-layout.ts',
       'components/nuxe-root': 'lib/components/nuxe-root.ts',
       'runtime/index': 'lib/runtime/index.ts',
@@ -46,6 +47,8 @@ export default defineConfig([
         await copyFile(join(outDir, 'setup.d.mts'), join(outDir, 'setup.d.ts'))
         await copyFile(join(outDir, 'plugin.mjs'), join(outDir, 'plugin.js'))
         await copyFile(join(outDir, 'plugin.d.mts'), join(outDir, 'plugin.d.ts'))
+        await copyFile(join(outDir, 'components/client-only.mjs'), join(outDir, 'components/client-only.js'))
+        await copyFile(join(outDir, 'components/client-only.d.mts'), join(outDir, 'components/client-only.d.ts'))
         await copyFile(join(outDir, 'components/nuxe-layout.mjs'), join(outDir, 'components/nuxe-layout.js'))
         await copyFile(join(outDir, 'components/nuxe-layout.d.mts'), join(outDir, 'components/nuxe-layout.d.ts'))
         await copyFile(join(outDir, 'components/nuxe-root.mjs'), join(outDir, 'components/nuxe-root.js'))
