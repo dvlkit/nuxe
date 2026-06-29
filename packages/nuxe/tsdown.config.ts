@@ -15,6 +15,7 @@ export default defineConfig([
       'runtime/index': 'lib/runtime/index.ts',
       'server/index': 'lib/server/index.ts',
       'server/handler': 'lib/server/handler.ts',
+      'server/nitro-log-request': 'lib/server/nitro-log-request.ts',
     },
     deps: {
       onlyBundle: [],
@@ -59,6 +60,8 @@ export default defineConfig([
         await copyFile(join(outDir, 'server/index.d.mts'), join(outDir, 'server/index.d.ts'))
         await copyFile(join(outDir, 'server/handler.mjs'), join(outDir, 'server/handler.js'))
         await copyFile(join(outDir, 'server/handler.d.mts'), join(outDir, 'server/handler.d.ts'))
+        await copyFile(join(outDir, 'server/nitro-log-request.mjs'), join(outDir, 'server/nitro-log-request.js'))
+        await copyFile(join(outDir, 'server/nitro-log-request.d.mts'), join(outDir, 'server/nitro-log-request.d.ts'))
       },
     },
   },

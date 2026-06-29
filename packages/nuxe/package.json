@@ -34,6 +34,10 @@
       "types": "./dist/server/handler.d.ts",
       "default": "./dist/server/handler.js"
     },
+    "./server/nitro-log-request": {
+      "types": "./dist/server/nitro-log-request.d.ts",
+      "default": "./dist/server/nitro-log-request.js"
+    },
     "./runtime/server/handler": {
       "types": "./dist/server/handler.d.ts",
       "default": "./dist/server/handler.js"

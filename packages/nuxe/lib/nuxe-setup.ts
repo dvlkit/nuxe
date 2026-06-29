@@ -123,6 +123,11 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
           '@dvlkit/nuxe/server/handler',
         ),
       },
+      plugins: [
+        createRequire(join(cwd, 'package.json')).resolve(
+          '@dvlkit/nuxe/server/nitro-log-request',
+        ),
+      ],
     } as Parameters<typeof nitro>[0]),
   ]
 
