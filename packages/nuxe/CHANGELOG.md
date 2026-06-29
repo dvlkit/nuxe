@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.13
+
+### Patch Changes
+
+- a9d4ea0: enhance runtime configuration handling and add comprehensive tests
+
 ## 0.7.12
 
 ### Patch Changes
