@@ -104,6 +104,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
         },
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
         {'@dvlkit/nuxe': ['definePage', 'defineNuxtPlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders']},
+        {'@dvlkit/nuxe/components/client-only': [['default', 'ClientOnly']]},
       ],
       dirs: ['app/composables', '.nuxe/composables'],
       dts: '.nuxe/auto-imports.d.ts',
