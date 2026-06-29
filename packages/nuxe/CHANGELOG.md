@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.11
+
+### Patch Changes
+
+- 99cd7da: refactor runtime configuration handling and add tests for loadRuntimeConfig
+
 ## 0.7.10
 
 ### Patch Changes
