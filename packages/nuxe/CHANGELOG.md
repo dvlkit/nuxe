@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.9
+
+### Patch Changes
+
+- 8cec5af: add nitro logger
+
 ## 0.7.8
 
 ### Patch Changes
