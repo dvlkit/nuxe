@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.6
+
+### Patch Changes
+
+- d26cff9: client only
+
 ## 0.7.5
 
 ### Patch Changes
