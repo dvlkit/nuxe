@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.12
+
+### Patch Changes
+
+- 606ac53: correct runtime-config.json serialization to use runtimeConfig
+
 ## 0.7.11
 
 ### Patch Changes
