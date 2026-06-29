@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 describe('nitro-log-request plugin', () => {
   let originalLog: typeof console.log
   let logged: string[]
+  let savedEnv: Record<string, string | undefined>
 
   beforeEach(() => {
     originalLog = console.log
@@ -10,11 +11,26 @@ describe('nitro-log-request plugin', () => {
     console.log = (...args: unknown[]) => {
       logged.push(args.map(String).join(' '))
     }
-    vi.resetModules()
+    
+    savedEnv = {
+      NUXE_SILENT: process.env.NUXE_SILENT,
+      CI: process.env.CI,
+      VITEST: process.env.VITEST,
+      NODE_ENV: process.env.NODE_ENV,
+    }
+    delete process.env.NUXE_SILENT
+    delete process.env.CI
+    delete process.env.VITEST
+    delete process.env.NODE_ENV
+
   })
 
   afterEach(() => {
     console.log = originalLog
+    for (const [key, value] of Object.entries(savedEnv)) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
     vi.restoreAllMocks()
   })
 
@@ -42,14 +58,14 @@ describe('nitro-log-request plugin', () => {
   function makeEvent(
     path = '/',
     method = 'GET',
-    startedAt: number | undefined = 0,
+    startedAt?: number,
   ) {
     const url = new URL(path, 'http://localhost')
     const event: Record<string, unknown> = {
       path,
       method,
       url,
-      req: { method, url: url.href },
+      req: { method, url: url.href, headers: new Headers() },
       context: { __nuxeStartedAt: startedAt },
     }
     return event

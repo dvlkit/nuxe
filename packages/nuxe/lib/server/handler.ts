@@ -22,7 +22,8 @@ import { createRequire } from 'node:module'
 import { createViteNodeClient } from '../vite/vite-node-client.js'
 import { serializePayload } from './payload.js'
 import { createError, serializeError } from '../runtime'
-import { getPublicRuntimeConfig, resolveRuntimeConfig, type RuntimeConfig } from '../config/runtime-config.js'
+import { getPublicRuntimeConfig, type RuntimeConfig } from '../config/runtime-config.js'
+import { loadRuntimeConfig } from '../runtime/config.js'
 
 interface NuxeViteNodeOptions {
   socketPath: string
@@ -55,15 +56,6 @@ function loadOptions(): NuxeViteNodeOptions | null {
     return JSON.parse(raw) as NuxeViteNodeOptions
   } catch {
     return null
-  }
-}
-
-function loadRuntimeConfig(): RuntimeConfig {
-  try {
-    const raw = readFileSync(join(process.cwd(), '.nuxe', 'runtime-config.json'), 'utf-8')
-    return resolveRuntimeConfig(JSON.parse(raw) as RuntimeConfig)
-  } catch {
-    return resolveRuntimeConfig({ public: {} })
   }
 }
 

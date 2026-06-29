@@ -1,20 +1,41 @@
-import { getCurrentInstance, inject, type App, type InjectionKey } from 'vue'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { hasInjectionContext, inject, type App, type InjectionKey } from 'vue'
+import {
+  resolveRuntimeConfig as resolveConfig,
+  type RuntimeConfig,
+} from '../config/runtime-config'
 
-export interface RuntimeConfig {
-  public: Record<string, unknown>
-  [key: string]: unknown
+export type { RuntimeConfig }
+
+const NUXE_RUNTIME_CONFIG_KEY: InjectionKey<RuntimeConfig> =
+  Symbol('@dvlkit/nuxe/runtime-config')
+
+let cachedServerConfig: RuntimeConfig | undefined
+
+export function loadRuntimeConfig(): RuntimeConfig {
+  if (cachedServerConfig) return cachedServerConfig
+  try {
+    const raw = readFileSync(
+      join(process.cwd(), '.nuxe', 'runtime-config.json'),
+      'utf-8',
+    )
+    cachedServerConfig = resolveConfig(JSON.parse(raw) as RuntimeConfig)
+  } catch {
+    cachedServerConfig = resolveConfig({ public: {} })
+  }
+  return cachedServerConfig
 }
 
-const NUXE_RUNTIME_CONFIG_KEY: InjectionKey<RuntimeConfig> = Symbol('@dvlkit/nuxe/runtime-config')
+export function resetRuntimeConfigCache(): void {
+  cachedServerConfig = undefined
+}
 
 export function useRuntimeConfig(): RuntimeConfig {
-  const instance = getCurrentInstance()
-  if (instance) {
-    return instance.appContext.app.runWithContext(() =>
-      inject(NUXE_RUNTIME_CONFIG_KEY, { public: {} }),
-    )
+  if (hasInjectionContext()) {
+    return inject(NUXE_RUNTIME_CONFIG_KEY, loadRuntimeConfig())
   }
-  return inject(NUXE_RUNTIME_CONFIG_KEY, { public: {} })
+  return loadRuntimeConfig()
 }
 
 export function provideRuntimeConfig(app: App, config: RuntimeConfig): void {

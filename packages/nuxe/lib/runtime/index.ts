@@ -29,7 +29,12 @@ export {
   type UseFetchReturn,
   type UseFetchError,
 } from './use-fetch'
-export { useRuntimeConfig, provideRuntimeConfig, type RuntimeConfig } from './config'
+export {
+  useRuntimeConfig,
+  provideRuntimeConfig,
+  loadRuntimeConfig,
+  type RuntimeConfig,
+} from './config'
 export {
   defineNuxtPlugin,
   defineNuxePlugin,
