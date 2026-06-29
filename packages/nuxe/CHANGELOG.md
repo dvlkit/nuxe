@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.10
+
+### Patch Changes
+
+- 4ed4cee: update loadRuntimeConfig
+
 ## 0.7.9
 
 ### Patch Changes
