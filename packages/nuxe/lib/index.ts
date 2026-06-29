@@ -42,6 +42,7 @@ export {
   type FetchRequest,
 } from './runtime/fetch'
 export { useFetch, type UseFetchOptions, type UseFetchReturn, type UseFetchError } from './runtime/use-fetch'
+export { provideBaseURL, useBaseURL, resetBaseURLCache } from './runtime/base-url'
 export {
   useRuntimeConfig,
   provideRuntimeConfig,

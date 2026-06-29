@@ -24,6 +24,7 @@ const nuxeConfigSchema = v.object({
   ),
   vite: v.optional(v.custom<UserConfig>(() => true), {}),
   runtimeConfig: v.optional(runtimeConfigSchema, {}),
+  baseUrl: v.optional(v.string()),
 })
 
 export const NuxeConfigSchema: typeof nuxeConfigSchema = nuxeConfigSchema

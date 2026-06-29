@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
 
 import { useFetch } from '../../lib'
-import { createRequestContext, runWithContext } from '../../lib/runtime'
+import { createRequestContext, runWithContext, resetBaseURLCache } from '../../lib/runtime'
 import { setHydratedPayload } from '../../lib'
 
 let fetchMock: ReturnType<typeof vi.fn>
@@ -22,6 +22,7 @@ describe('useFetch', () => {
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     vi.stubGlobal('window', {})
+    resetBaseURLCache()
   })
 
   afterEach(() => {
@@ -269,6 +270,82 @@ describe('useFetch', () => {
       expect(data.value).toEqual({ hydrated: true })
       expect(status.value).toBe('success')
       expect(fetchMock).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('baseURL resolution (Nuxt-style)', () => {
+    it('uses the URL provided via provideBaseURL when no explicit baseURL is given', async () => {
+      vi.unstubAllGlobals()
+      fetchMock = vi.fn()
+      vi.stubGlobal('fetch', fetchMock)
+
+      const { createSSRApp } = await import('vue')
+      const { provideBaseURL } = await import('../../lib')
+      const app = createSSRApp({ render: () => null })
+      provideBaseURL(app, 'https://myapp.example.com')
+
+      mockResponseOnce(jsonResponse({ ok: true }))
+      await app.runWithContext(async () => {
+        const ctx = (await import('../../lib/runtime')).createRequestContext()
+        await (await import('../../lib/runtime')).runWithContext(ctx, async () => {
+          useFetch('/api/me', { key: 'b1' })
+          await ctx.awaitAll()
+        })
+      })
+
+      const [url] = fetchMock.mock.calls[0] as [string]
+      expect(url).toBe('https://myapp.example.com/api/me')
+    })
+
+    it('falls back to NUXE_BASE_URL env when no provideBaseURL is set', async () => {
+      vi.unstubAllGlobals()
+      fetchMock = vi.fn()
+      vi.stubGlobal('fetch', fetchMock)
+
+      const saved = process.env.NUXE_BASE_URL
+      process.env.NUXE_BASE_URL = 'http://localhost:4000'
+      try {
+        const { createSSRApp } = await import('vue')
+        const app = createSSRApp({ render: () => null })
+
+        mockResponseOnce(jsonResponse({ ok: true }))
+        await app.runWithContext(async () => {
+          const ctx = (await import('../../lib/runtime')).createRequestContext()
+          await (await import('../../lib/runtime')).runWithContext(ctx, async () => {
+            useFetch('/api/me', { key: 'b2' })
+            await ctx.awaitAll()
+          })
+        })
+
+        const [url] = fetchMock.mock.calls[0] as [string]
+        expect(url).toBe('http://localhost:4000/api/me')
+      } finally {
+        if (saved === undefined) delete process.env.NUXE_BASE_URL
+        else process.env.NUXE_BASE_URL = saved
+      }
+    })
+
+    it('lets options.baseURL override the provided one', async () => {
+      vi.unstubAllGlobals()
+      fetchMock = vi.fn()
+      vi.stubGlobal('fetch', fetchMock)
+
+      const { createSSRApp } = await import('vue')
+      const { provideBaseURL } = await import('../../lib')
+      const app = createSSRApp({ render: () => null })
+      provideBaseURL(app, 'https://myapp.example.com')
+
+      mockResponseOnce(jsonResponse({ ok: true }))
+      await app.runWithContext(async () => {
+        const ctx = (await import('../../lib/runtime')).createRequestContext()
+        await (await import('../../lib/runtime')).runWithContext(ctx, async () => {
+          useFetch('/api/me', { key: 'b3', baseURL: 'https://override.example.com' })
+          await ctx.awaitAll()
+        })
+      })
+
+      const [url] = fetchMock.mock.calls[0] as [string]
+      expect(url).toBe('https://override.example.com/api/me')
     })
   })
 })

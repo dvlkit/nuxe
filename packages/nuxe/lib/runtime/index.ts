@@ -44,5 +44,6 @@ export { useLoadingIndicator, type LoadingIndicator } from './use-loading-indica
 export { useState, createNuxtState, provideNuxtState, type NuxtState } from './state'
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './cookie'
 export { useRequestEvent, useRequestHeaders } from './request'
+export { provideBaseURL, useBaseURL, resetBaseURLCache } from './base-url'
 export { createStreamableHead } from '@unhead/vue/stream/server'
 export { createHead } from '@unhead/vue/client'

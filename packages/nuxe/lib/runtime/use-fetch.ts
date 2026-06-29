@@ -21,6 +21,7 @@ import {
   type UseAsyncDataReturn,
 } from './use-async-data'
 import { getCurrentContext } from './request-context'
+import { useBaseURL } from './base-url'
 
 const REF_OR_GETTER_OPTIONS = [
   'method',
@@ -51,7 +52,16 @@ function resolveServerBaseURL(explicit: unknown): string | undefined {
   if (typeof window !== 'undefined') return toValue(explicit) as string | undefined
   const v = toValue(explicit) as string | undefined
   if (v) return v
-  return process.env.NUXE_BASE_URL ?? 'http://localhost:3000'
+  // Priority:
+  //   1. `runtimeConfig.app.baseURL` from `nuxe.config.ts` (provided via
+  //      `provideBaseURL` to the Vue app).
+  //   2. `process.env.NUXE_BASE_URL` (set by the CLI at startup).
+  //   3. `http://localhost:3000` so the request still produces a valid URL.
+  return (
+    useBaseURL()
+    ?? process.env.NUXE_BASE_URL
+    ?? 'http://localhost:3000'
+  )
 }
 
 async function runHook<C>(hook: unknown, ctx: C): Promise<void> {

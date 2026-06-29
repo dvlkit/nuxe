@@ -140,6 +140,7 @@ async function main() {
     }
   }
   provideRuntimeConfig(app, runtimeConfig)
+  provideBaseURL(app, (runtimeConfig as { app?: { baseURL?: string } }).app?.baseURL)
   const originalWarn = console.warn
   console.warn = (...args) => {
     if (typeof args[0] === 'string' && args[0].includes('No match found')) return
@@ -184,7 +185,7 @@ import { createStreamableHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'virtual:nuxe/routes'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, createNuxtApp, runPlugins, createNuxtState } from '@dvlkit/nuxe/runtime'
+import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxtApp, runPlugins, createNuxtState } from '@dvlkit/nuxe/runtime'
 import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
@@ -196,6 +197,7 @@ async function createApp(ssrContext) {
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
   provideRequestContext(app, ctx)
   provideRuntimeConfig(app, runtimeConfig)
+  provideBaseURL(app, (runtimeConfig as { baseUrl?: string }).baseUrl)
   const error = ref(ssrContext.error || null)
   provideError(app, error)
   const { head } = createStreamableHead()
