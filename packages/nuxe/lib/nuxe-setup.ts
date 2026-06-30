@@ -1,4 +1,3 @@
-import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -94,24 +93,6 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
       serverOutDir: join(cwd, '.output', 'server'),
     }),
     NuxeDevStyleSSRPlugin({ root: cwd }),
-    AutoImport({
-      imports: [
-        'vue',
-        {
-          'vue-router': [
-            'useRoute',
-            'useRouter',
-            'onBeforeRouteLeave',
-            'onBeforeRouteUpdate',
-          ],
-        },
-        {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxePlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders']},
-        {'@dvlkit/nuxe/components/client-only': [['default', 'ClientOnly']]},
-      ],
-      dirs: ['app/composables', '.nuxe/composables'],
-      dts: '.nuxe/auto-imports.d.ts',
-    }),
     Components({
       dirs: ['app/components'],
       dts: '.nuxe/components.d.ts',
