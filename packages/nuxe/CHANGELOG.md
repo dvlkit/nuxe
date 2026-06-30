@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.33
+
+### Patch Changes
+
+- 1b8afbf: add useRequestURL
+
 ## 0.7.32
 
 ### Patch Changes
