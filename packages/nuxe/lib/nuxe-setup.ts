@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { resolve, join } from 'node:path'
 import { mergeConfig } from 'vite'
-import type { PluginOption, UserConfig } from 'vite'
+import type { Plugin, PluginOption, UserConfig } from 'vite'
 import { nitro } from 'nitro/vite'
 import type { ResolvedNuxeConfig } from './config'
 import { scanMiddlewares } from './middleware/scanner'
@@ -42,7 +42,7 @@ type VuePlugin = Plugin & {
 }
 
 function patchVueExclude(plugin: VuePlugin, exclude: RegExp) {
-  if (!plugin.transform?.handler) return plugin
+  if (!plugin?.transform?.handler) return plugin
   const original = plugin.transform.handler
   plugin.transform.handler = function (...args) {
     if (exclude.test(args[1])) return
@@ -81,6 +81,27 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
   writeFileSync(join(nuxeComposablesDir, 'navigateTo.ts'), generateNavigateTo())
   writeFileSync(join(nuxeComposablesDir, 'useNuxeRoute.ts'), generateUseRoute())
 
+  const nitroPlugin = nitro({
+    preset: 'node-server',
+    serverDir: 'server',
+    renderer: {
+      handler: createRequire(join(cwd, 'package.json')).resolve(
+        '@dvlkit/nuxe/server/handler',
+      ),
+    },
+    plugins: (() => {
+      try {
+        return [
+          createRequire(join(cwd, 'package.json')).resolve(
+            '@dvlkit/nuxe/server/nitro-log-request',
+          ),
+        ]
+      } catch {
+        return []
+      }
+    })(),
+  } as Parameters<typeof nitro>[0])
+
   const frameworkPlugins: PluginOption[] = [
     patchVueExclude(vue() as VuePlugin, /\?assets/),
     nuxePageMetaPlugin(),
@@ -99,26 +120,6 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
       directoryAsNamespace: true,
     }),
     nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares, pages: scannedPages, plugins: scannedPlugins, errorComponent: hasErrorComponent}),
-    nitro({
-      preset: 'node-server',
-      serverDir: 'server',
-      renderer: {
-        handler: createRequire(join(cwd, 'package.json')).resolve(
-          '@dvlkit/nuxe/server/handler',
-        ),
-      },
-      plugins: (() => {
-        try {
-          return [
-            createRequire(join(cwd, 'package.json')).resolve(
-              '@dvlkit/nuxe/server/nitro-log-request',
-            ),
-          ]
-        } catch {
-          return []
-        }
-      })(),
-    } as Parameters<typeof nitro>[0]),
   ]
 
   const baseConfig = mergeConfig({
@@ -145,6 +146,9 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
         'vue-router',
         '@unhead/vue',
         'unhead',
+        'nitro',
+        'nitro/vite',
+        'nitropack',
         'c12',
         'chokidar',
         'jiti',
@@ -168,6 +172,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
       },
       ssr: {
         consumer: 'server',
+        plugins: nitroPlugin as PluginOption[],
         define: {
           'process.server': true,
           'process.client': false,
