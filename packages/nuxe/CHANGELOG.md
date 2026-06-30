@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.32
+
+### Patch Changes
+
+- bbe18a7: remove default export from plugin in index.ts
+
 ## 0.7.31
 
 ### Patch Changes
