@@ -99,4 +99,46 @@ describe('useRequestFetch', () => {
 
     expect(captured!.get('cookie') ?? null).toBeNull()
   })
+
+  it('reads headers from an explicit h3 event when called from an endpoint', async () => {
+    let captured: Headers | undefined
+    const h3Event = {
+      req: {
+        headers: new Headers({
+          cookie: 'pgsid=from-event',
+          'x-custom': 'event-value',
+        }),
+        url: 'http://localhost:3000/api/listings/xyz',
+      },
+    }
+    globalThis.fetch = vi.fn(async (_input: unknown, init?: RequestInit) => {
+      captured = init?.headers
+      return new Response('{}', { status: 200 })
+    }) as typeof fetch
+
+    const fetch = useRequestFetch(h3Event)
+    await fetch('/v1/listings/xyz')
+
+    expect(captured!.get('cookie')).toBe('pgsid=from-event')
+    expect(captured!.get('x-custom')).toBe('event-value')
+  })
+
+  it('derives baseURL from an explicit h3 event url', async () => {
+    let capturedUrl: string | undefined
+    const h3Event = {
+      req: {
+        headers: new Headers(),
+        url: 'https://api.puertogarage.cl/api/listings/xyz',
+      },
+    }
+    globalThis.fetch = vi.fn(async (input: unknown) => {
+      capturedUrl = String(input)
+      return new Response('{}', { status: 200 })
+    }) as typeof fetch
+
+    const fetch = useRequestFetch(h3Event)
+    await fetch('/v1/upstream')
+
+    expect(capturedUrl).toBe('https://api.puertogarage.cl/v1/upstream')
+  })
 })

@@ -2,14 +2,13 @@ import type { $Fetch } from 'ofetch'
 import { $fetch as ofetch$fetch, createFetch } from 'ofetch'
 import { useNuxeApp } from '../plugins/runtime'
 
-export function useRequestFetch(): $Fetch {
+export function useRequestFetch(event?: { req?: { headers?: Headers; url?: string } }): $Fetch {
   if (typeof window !== 'undefined') {
     return ofetch$fetch as $Fetch
   }
 
-  const nuxeApp = useNuxeApp()
-  const ssrRequest = nuxeApp?.ssrContext?.request as
-    | { headers?: Headers }
+  const ssrRequest = event?.req ?? useNuxeApp()?.ssrContext?.request as
+    | { headers?: Headers; url?: string }
     | undefined
 
   if (!ssrRequest?.headers) {
@@ -21,15 +20,27 @@ export function useRequestFetch(): $Fetch {
     requestHeaders[key] = value
   })
 
+  let baseURL: string | undefined
+  if (ssrRequest.url) {
+    try {
+      baseURL = new URL(ssrRequest.url, 'http://localhost').origin
+    } catch {
+      baseURL = undefined
+    }
+  }
+
   return createFetch({
-  defaults: {
-    onRequest({ options }) {
-      const headers = new Headers(options.headers)
-      for (const [key, value] of Object.entries(requestHeaders)) {
-        if (!headers.has(key)) headers.set(key, value)
-      }
-      options.headers = headers
+    defaults: {
+      onRequest({ options }) {
+        const headers = new Headers(options.headers)
+        for (const [key, value] of Object.entries(requestHeaders)) {
+          if (!headers.has(key)) headers.set(key, value)
+        }
+        options.headers = headers
+        if (baseURL && !options.baseURL) {
+          options.baseURL = baseURL
+        }
+      },
     },
-  },
-}) as $Fetch
+  }) as $Fetch
 }
