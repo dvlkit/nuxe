@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.16
+
+### Patch Changes
+
+- a2d7ce4: update useState
+
 ## 0.7.15
 
 ### Patch Changes
