@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.20
+
+### Patch Changes
+
+- dff3ba3: add AsyncLocalStorage support to Nuxe app and request contexts
+
 ## 0.7.19
 
 ### Patch Changes
