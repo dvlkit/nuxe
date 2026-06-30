@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.29
+
+### Patch Changes
+
+- 81bf95c: integrate AutoImport plugin and refactor nitro plugin setup in Nuxe project
+
 ## 0.7.28
 
 ### Patch Changes
