@@ -1,6 +1,5 @@
 /// <reference path="./virtual-modules.d.ts" />
 
-export { default } from './plugin'
 export { defineConfig, type NuxeConfig, type NuxeConfigInput } from './config/define-config'
 export { useHead } from '@unhead/vue'
 export * from './head'
