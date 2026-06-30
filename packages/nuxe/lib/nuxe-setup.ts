@@ -68,7 +68,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
   writeFileSync(join(cwd, '.nuxe', 'runtime-config.d.ts'), generateRuntimeConfigTypes(config.runtimeConfig))
   writeFileSync(
     join(cwd, '.nuxe', 'runtime-config.json'),
-    JSON.stringify({ ...config.runtimeConfig, baseUrl: config.baseUrl }, null, 2),
+    JSON.stringify({ ...config.runtimeConfigInput, baseUrl: config.baseUrl }, null, 2),
   )
   writeFileSync(
     join(cwd, '.nuxe', 'runtime-config-public.json'),

@@ -5,6 +5,13 @@ export function camelToUpperSnake(key: string): string {
     .toUpperCase()
 }
 
+export const NUXE_RESERVED_ENV = new Set([
+  'NUXE_SILENT',
+  'NUXE_DEV',
+  'NUXE_BASE_URL',
+  'NUXE_VITE_NODE_OPTIONS',
+])
+
 export interface RuntimeConfig {
   public: Record<string, unknown>
   [key: string]: unknown
@@ -15,6 +22,32 @@ function isRuntimeConfigValue(value: unknown): value is RuntimeConfig | Record<s
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true
   return typeof value === 'object' && !Array.isArray(value);
 
+}
+
+function camelFromSnake(snake: string): string {
+  return snake
+    .toLowerCase()
+    .split('_')
+    .map((part, i) =>
+      i === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1),
+    )
+    .join('')
+}
+
+function nuxeEnvToPath(envName: string): string[] | null {
+  if (!envName.startsWith('NUXE_')) return null
+  if (NUXE_RESERVED_ENV.has(envName)) return null
+
+  const publicPrefix = 'NUXE_PUBLIC_'
+  if (envName.startsWith(publicPrefix)) {
+    const sub = envName.slice(publicPrefix.length)
+    if (!sub) return null
+    return ['public', camelFromSnake(sub)]
+  }
+
+  const sub = envName.slice('NUXE_'.length)
+  if (!sub) return null
+  return [camelFromSnake(sub)]
 }
 
 function applyEnvVar(config: RuntimeConfig, keys: string[], value: string): void {
@@ -47,6 +80,15 @@ function applyEnvVar(config: RuntimeConfig, keys: string[], value: string): void
   }
 }
 
+export function injectRuntimeConfigFromEnv(target: RuntimeConfig): void {
+  for (const [envName, envValue] of Object.entries(process.env)) {
+    if (envValue === undefined) continue
+    const path = nuxeEnvToPath(envName)
+    if (path === null) continue
+    applyEnvVar(target, path, envValue)
+  }
+}
+
 function collectKeys(prefix: string, obj: unknown, keys: string[] = []): Array<{ keys: string[], value: unknown }> {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
     return [{ keys, value: obj }]
@@ -69,25 +111,21 @@ export function resolveRuntimeConfig(config: RuntimeConfig = { public: {} }): Ru
       : value
   }
 
+  // Pass 1: override declared keys from NUXE_* / NUXE_PUBLIC_* env vars.
+  // Supports nested paths (e.g. `public.api.timeout` -> NUXE_PUBLIC_API_TIMEOUT).
   const envKeys = collectKeys('', resolved)
   for (const { keys } of envKeys) {
-    const envKey = keys.length === 0 ? '' : `NUXE_${keys.map(camelToUpperSnake).join('_')}`
-    if (!envKey) continue
+    if (keys.length === 0) continue
+    const prefix = keys[0] === 'public' ? 'NUXE_PUBLIC_' : 'NUXE_'
+    const envKey = `${prefix}${keys.slice(keys[0] === 'public' ? 1 : 0).map(camelToUpperSnake).join('_')}`
     const envValue = process.env[envKey]
     if (envValue !== undefined) {
       applyEnvVar(resolved, keys, envValue)
     }
   }
 
-  const publicEnvKeys = collectKeys('', resolved.public)
-  for (const { keys } of publicEnvKeys) {
-    const envKey = keys.length === 0 ? '' : `NUXE_PUBLIC_${keys.map(camelToUpperSnake).join('_')}`
-    if (!envKey) continue
-    const envValue = process.env[envKey]
-    if (envValue !== undefined) {
-      applyEnvVar(resolved, ['public', ...keys], envValue)
-    }
-  }
+  // Pass 2: auto-inject env vars that have no matching declared key.
+  injectRuntimeConfigFromEnv(resolved)
 
   return resolved
 }
@@ -95,3 +133,4 @@ export function resolveRuntimeConfig(config: RuntimeConfig = { public: {} }): Ru
 export function getPublicRuntimeConfig(config: RuntimeConfig): RuntimeConfig {
   return { public: config.public }
 }
+
