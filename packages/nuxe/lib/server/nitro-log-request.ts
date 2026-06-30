@@ -2,6 +2,7 @@ import { definePlugin } from 'nitro'
 import { getRequestURL } from 'h3'
 import type { HTTPEvent, H3Event } from 'h3'
 import { logRequest } from '../utils/logger'
+import { isNuxeError } from '../runtime/error'
 
 function methodOf(event: HTTPEvent): string {
   return (event.req.method ?? 'GET').toUpperCase()
@@ -59,6 +60,7 @@ export default definePlugin((nitroApp) => {
 
     const url = fullPath(event)
     const method = methodOf(event)
-    logRequest(method, url, 500, 0, 'error', error.message)
+    const status = isNuxeError(error) ? error.statusCode : 500
+    logRequest(method, url, status, 0, 'error', error.message)
   })
 })
