@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.28
+
+### Patch Changes
+
+- 35fed4e: integrate nitro plugin into Nuxe project setup and refine Vue plugin handler
+
 ## 0.7.27
 
 ### Patch Changes
