@@ -140,7 +140,6 @@ async function main() {
     }
   }
   provideRuntimeConfig(app, runtimeConfig)
-  provideBaseURL(app, (runtimeConfig as { app?: { baseURL?: string } }).app?.baseURL)
   const originalWarn = console.warn
   console.warn = (...args) => {
     if (typeof args[0] === 'string' && args[0].includes('No match found')) return
