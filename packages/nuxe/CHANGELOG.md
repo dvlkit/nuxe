@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.23
+
+### Patch Changes
+
+- 2e7281a: enhance runtime configuration handling with environment variable support
+
 ## 0.7.22
 
 ### Patch Changes
