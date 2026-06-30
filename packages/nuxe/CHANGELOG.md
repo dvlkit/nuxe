@@ -1,5 +1,12 @@
 # nuxe
 
+## 0.7.21
+
+### Patch Changes
+
+- 3ec273d: add server polyfill and update plugin definitions in Nuxe app
+- 7fc8238: add AsyncLocalStorage polyfill and update context handling in Nuxe app
+
 ## 0.7.20
 
 ### Patch Changes
