@@ -3,8 +3,6 @@ import { NuxeConfigSchema, type NuxeConfig, type NuxeConfigInput } from './schem
 import { resolveRuntimeConfig, type RuntimeConfig } from './runtime-config'
 import { setupDotenv } from 'c12'
 
-export const defineConfig = <T extends NuxeConfigInput>(config: T): T => config
-
 export interface LoadNuxeConfigOptions {
   cwd: string
 }

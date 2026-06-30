@@ -7,6 +7,7 @@ export default defineConfig([
     dts: { oxc: false },
     entry: {
       'index': 'lib/index.ts',
+      'config/define-config': 'lib/config/define-config.ts',
       'setup': 'lib/nuxe-setup.ts',
       'plugin': 'lib/plugin.ts',
       'components/client-only': 'lib/components/client-only.ts',
@@ -46,6 +47,8 @@ export default defineConfig([
         const outDir = ctx.options.outDir
         await copyFile(join(outDir, 'index.mjs'), join(outDir, 'index.js'))
         await copyFile(join(outDir, 'index.d.mts'), join(outDir, 'index.d.ts'))
+        await copyFile(join(outDir, 'config/define-config.mjs'), join(outDir, 'config/define-config.js'))
+        await copyFile(join(outDir, 'config/define-config.d.mts'), join(outDir, 'config/define-config.d.ts'))
         await copyFile(join(outDir, 'setup.mjs'), join(outDir, 'setup.js'))
         await copyFile(join(outDir, 'setup.d.mts'), join(outDir, 'setup.d.ts'))
         await copyFile(join(outDir, 'plugin.mjs'), join(outDir, 'plugin.js'))

@@ -1,4 +1,4 @@
-import { defineConfig } from '@dvlkit/nuxe'
+import { defineConfig } from '@dvlkit/nuxe/config'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
