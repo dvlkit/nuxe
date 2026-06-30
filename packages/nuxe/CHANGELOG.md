@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.17
+
+### Patch Changes
+
+- 44e78d0: enhance Nuxe app functionality with new context providers and improved request handling
+
 ## 0.7.16
 
 ### Patch Changes
