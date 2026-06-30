@@ -46,6 +46,10 @@
       "types": "./dist/runtime/server-polyfill.d.ts",
       "default": "./dist/runtime/server-polyfill.js"
     },
+    "./runtime/server-head": {
+      "types": "./dist/runtime/server-head.d.ts",
+      "default": "./dist/runtime/server-head.js"
+    },
     "./setup": {
       "types": "./dist/nuxe-setup.d.ts",
       "default": "./dist/nuxe-setup.js"

@@ -46,5 +46,4 @@ export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from
 export { createNuxeState, clearNuxeState, useState, type NuxeState } from './state'
 export { useRequestEvent, useRequestHeaders } from './request'
 export { provideBaseURL, useBaseURL, resetBaseURLCache } from './base-url'
-export { createStreamableHead } from '@unhead/vue/stream/server'
 export { createHead } from '@unhead/vue/client'
