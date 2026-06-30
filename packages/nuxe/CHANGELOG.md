@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.37
+
+### Patch Changes
+
+- 4a976f6: update useRequestURL to handle URL instances
+
 ## 0.7.36
 
 ### Patch Changes
