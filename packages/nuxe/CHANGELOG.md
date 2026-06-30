@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.25
+
+### Patch Changes
+
+- ae18ad6: refactor streamable head handling and add server-head module
+
 ## 0.7.24
 
 ### Patch Changes
