@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.30
+
+### Patch Changes
+
+- afbc008: refactor config structure and update imports for defineConfig
+
 ## 0.7.29
 
 ### Patch Changes
