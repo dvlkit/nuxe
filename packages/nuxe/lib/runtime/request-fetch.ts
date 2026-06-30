@@ -31,13 +31,16 @@ export function useRequestFetch(event?: { req?: { headers?: Headers; url?: strin
 
   return createFetch({
     defaults: {
-      onRequest({ options }) {
+      onRequest({ options, request }) {
         const headers = new Headers(options.headers)
         for (const [key, value] of Object.entries(requestHeaders)) {
           if (!headers.has(key)) headers.set(key, value)
         }
         options.headers = headers
-        if (baseURL && !options.baseURL) {
+        const url = String(request)
+        if (/^https?:\/\//i.test(url)) {
+          delete options.baseURL
+        } else if (baseURL && !options.baseURL) {
           options.baseURL = baseURL
         }
       },

@@ -141,4 +141,23 @@ describe('useRequestFetch', () => {
 
     expect(capturedUrl).toBe('https://api.puertogarage.cl/v1/upstream')
   })
+
+  it('does not double up baseURL when the caller passes an absolute URL', async () => {
+    let capturedUrl: string | undefined
+    const h3Event = {
+      req: {
+        headers: new Headers({ cookie: 'pgsid=abc' }),
+        url: 'http://localhost:3000/api/listings/calza-deportiva-26093',
+      },
+    }
+    globalThis.fetch = vi.fn(async (input: unknown) => {
+      capturedUrl = String(input)
+      return new Response('{}', { status: 200 })
+    }) as typeof fetch
+
+    const fetch = useRequestFetch(h3Event)
+    await fetch('http://localhost:8080/v1/listings/calza-deportiva-26093')
+
+    expect(capturedUrl).toBe('http://localhost:8080/v1/listings/calza-deportiva-26093')
+  })
 })
