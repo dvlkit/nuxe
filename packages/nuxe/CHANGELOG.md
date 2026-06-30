@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.26
+
+### Patch Changes
+
+- 57e35b8: add additional framework plugins to Nuxe project setup
+
 ## 0.7.25
 
 ### Patch Changes
