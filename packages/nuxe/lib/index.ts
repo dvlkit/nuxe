@@ -21,15 +21,22 @@ export {
 } from './runtime'
 export {
   createError,
-  isNuxtError,
+  isNuxeError,
   serializeError,
   deserializeError,
   showError,
   useError,
   clearError,
-  type NuxtError,
-  type NuxtErrorPayload,
+  type NuxeError,
+  type NuxeErrorPayload,
 } from './runtime/error'
+export {
+  createRequestContext,
+  runWithContext,
+  getCurrentContext,
+  provideRequestContext,
+  type NuxeRequestContext,
+} from './runtime/request-context'
 export {
   $fetch,
   createFetch,
@@ -49,17 +56,16 @@ export {
   type RuntimeConfig,
 } from './runtime/config'
 export {
-  defineNuxtPlugin,
   defineNuxePlugin,
-  createNuxtApp,
+  createNuxeApp,
   runPlugins,
-  useNuxtApp,
-  type NuxtApp,
-  type NuxtPlugin,
-  type NuxtAppHooks,
+  useNuxeApp,
+  type NuxeApp,
+  type NuxePlugin,
+  type NuxeAppHooks,
 } from './plugins/runtime'
 export { useLoadingIndicator, type LoadingIndicator } from './runtime/use-loading-indicator'
-export { default as NuxtLoadingIndicator } from './components/nuxt-loading-indicator'
-export { useState, createNuxtState, provideNuxtState, type NuxtState } from './runtime/state'
+export { default as NuxeLoadingIndicator } from './components/nuxe-loading-indicator'
+export { useState, createNuxeState, provideNuxeState, resetNuxeStateCache, type NuxeState } from './runtime/state'
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './runtime/cookie'
 export { useRequestEvent, useRequestHeaders } from './runtime/request'

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { createError, isNuxtError, NuxtError } from '../../lib/runtime/error'
+import { createError, isNuxeError, NuxeError } from '../../lib/runtime/error'
 
 describe('error helpers', () => {
-  it('createError builds a NuxtError from payload', () => {
+  it('createError builds a NuxeError from payload', () => {
     const err = createError({ statusCode: 404, statusMessage: 'Not Found' })
-    expect(err).toBeInstanceOf(NuxtError)
+    expect(err).toBeInstanceOf(NuxeError)
     expect(err.statusCode).toBe(404)
     expect(err.statusMessage).toBe('Not Found')
   })
@@ -22,14 +22,14 @@ describe('error helpers', () => {
     expect(err.message).toBe('boom')
   })
 
-  it('createError returns the same NuxtError instance', () => {
-    const existing = new NuxtError({ statusCode: 403 })
+  it('createError returns the same NuxeError instance', () => {
+    const existing = new NuxeError({ statusCode: 403 })
     expect(createError(existing)).toBe(existing)
   })
 
-  it('isNuxtError identifies NuxtError instances', () => {
-    expect(isNuxtError(new NuxtError())).toBe(true)
-    expect(isNuxtError(new Error())).toBe(false)
-    expect(isNuxtError('error')).toBe(false)
+  it('isNuxeError identifies NuxeError instances', () => {
+    expect(isNuxeError(new NuxeError())).toBe(true)
+    expect(isNuxeError(new Error())).toBe(false)
+    expect(isNuxeError('error')).toBe(false)
   })
 })

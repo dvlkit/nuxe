@@ -1,5 +1,5 @@
 import { getCurrentInstance, isRef, onMounted, onServerPrefetch, ref, type Ref, shallowRef } from 'vue'
-import { getCurrentContext } from './request-context'
+import { getCurrentContext, runWithContext } from './request-context'
 
 export interface UseAsyncDataOptions<T> {
   default?: () => T | Ref<T>
@@ -70,8 +70,13 @@ export function useAsyncData<T>(key: string, handler: () => Promise<T>, options:
   const retryDelay = Math.max(0, options.retryDelayMs ?? 0)
 
   const runHandler = async (): Promise<void> => {
+    const exec = ctx
+      ? () => runWithContext(ctx, () =>
+          runWithRetries(handler, retries, retryDelay),
+        )
+      : () => runWithRetries(handler, retries, retryDelay)
     try {
-      const result = await runWithRetries(handler, retries, retryDelay)
+      const result = await exec()
       data.value = result
       status.value = 'success'
       if (ctx) ctx.payload[key] = result

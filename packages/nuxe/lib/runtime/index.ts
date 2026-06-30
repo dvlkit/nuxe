@@ -1,15 +1,15 @@
 export { createRequestContext, runWithContext, getCurrentContext, provideRequestContext, type NuxeRequestContext } from './request-context'
 export {
   createError,
-  isNuxtError,
+  isNuxeError,
   serializeError,
   deserializeError,
   showError,
   useError,
   clearError,
   provideError,
-  type NuxtError,
-  type NuxtErrorPayload,
+  type NuxeError,
+  type NuxeErrorPayload,
 } from './error'
 export { useAsyncData, setHydratedPayload, type UseAsyncDataOptions, type UseAsyncDataReturn } from './use-async-data'
 export {
@@ -31,18 +31,17 @@ export {
 } from './use-fetch'
 export { useRuntimeConfig, provideRuntimeConfig, type RuntimeConfig } from './config'
 export {
-  defineNuxtPlugin,
   defineNuxePlugin,
-  createNuxtApp,
+  createNuxeApp,
   runPlugins,
-  useNuxtApp,
-  type NuxtApp,
-  type NuxtPlugin,
-  type NuxtAppHooks,
+  useNuxeApp,
+  type NuxeApp,
+  type NuxePlugin,
+  type NuxeAppHooks,
 } from '../plugins/runtime'
 export { useLoadingIndicator, type LoadingIndicator } from './use-loading-indicator'
-export { useState, createNuxtState, provideNuxtState, type NuxtState } from './state'
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './cookie'
+export { createNuxeState, provideNuxeState, resetNuxeStateCache, useState, type NuxeState } from './state'
 export { useRequestEvent, useRequestHeaders } from './request'
 export { provideBaseURL, useBaseURL, resetBaseURLCache } from './base-url'
 export { createStreamableHead } from '@unhead/vue/stream/server'

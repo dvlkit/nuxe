@@ -37,9 +37,9 @@ interface NuxeSSRContext extends VueSSRContext {
   request: Request
   _renderResponse?: Response
   _spa?: boolean
-  error?: import('../runtime/error').NuxtError | null
+  error?: import('../runtime/error').NuxeError | null
   head?: ReturnType<typeof createStreamableHead>['head']
-  nuxtApp?: import('../plugins/runtime').NuxtApp
+  nuxeApp?: import('../plugins/runtime').NuxeApp
   ctx?: {
     payload: Record<string, unknown>
     pending: Map<string, Promise<unknown>>
@@ -294,9 +294,9 @@ async function renderApp(
               nuxePayload.error = serializedError
             }
           }
-          if (ssrContext.nuxtApp?.state && Object.keys(ssrContext.nuxtApp.state).length > 0) {
+          if (ssrContext.nuxeApp?.state && Object.keys(ssrContext.nuxeApp.state).length > 0) {
             nuxePayload.state = Object.fromEntries(
-              Object.entries(ssrContext.nuxtApp.state).map(([k, ref]) => [k, ref.value]),
+              Object.entries(ssrContext.nuxeApp.state).map(([k, ref]) => [k, ref.value]),
             )
           }
           const serialized = serializePayload(nuxePayload)

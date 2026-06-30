@@ -1,5 +1,5 @@
 import { ref, watch, type Ref } from 'vue'
-import { useNuxtApp } from '../plugins/runtime'
+import { useNuxeApp } from '../plugins/runtime'
 
 export interface CookieOptions {
   maxAge?: number
@@ -31,14 +31,14 @@ export function serializeCookie(name: string, value: string, options: CookieOpti
 }
 
 export function useCookie(name: string, options: CookieOptions = {}): Ref<string | undefined> {
-  const nuxtApp = useNuxtApp()
+  const nuxeApp = useNuxeApp()
   const isClient = typeof window !== 'undefined'
 
   let initial: string | undefined
   if (isClient) {
     initial = parseCookieValue(document.cookie, name)
   } else {
-    const request = (nuxtApp.ssrContext as { request?: Request } | undefined)?.request
+    const request = (nuxeApp.ssrContext as { request?: Request } | undefined)?.request
     const cookieHeader = request?.headers.get('cookie')
     initial = cookieHeader ? parseCookieValue(cookieHeader, name) : undefined
   }

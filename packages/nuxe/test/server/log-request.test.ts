@@ -139,7 +139,7 @@ describe('nitro-log-request plugin', () => {
         status: 200,
         headers: { 'content-type': 'application/javascript' },
       }),
-      makeEvent('/_nuxt/entry.js', 'GET', 0),
+      makeEvent('/_nuxe/entry.js', 'GET', 0),
     )
 
     expect(logged[0]).toContain('asset')

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSSRApp, defineComponent } from 'vue'
-import { createNuxtApp, createNuxtState, parseCookieValue, serializeCookie, useCookie } from '../../lib'
+import { createNuxeApp, createNuxeState, parseCookieValue, serializeCookie, useCookie } from '../../lib'
 
 function createMockRequest(cookieHeader: string): Request {
   return new Request('http://localhost/', {headers: {cookie: cookieHeader}})
@@ -30,11 +30,11 @@ describe('cookie helpers', () => {
 describe('useCookie server', () => {
   it('reads initial value from request cookie header', () => {
     const app = createSSRApp(defineComponent({render: () => null}))
-    createNuxtApp({
+    createNuxeApp({
       vueApp: app,
       router: {} as any,
       config: {public: {}},
-      state: createNuxtState(),
+      state: createNuxeState(),
       ssrContext: {
         request: createMockRequest('session=hello'),
       },

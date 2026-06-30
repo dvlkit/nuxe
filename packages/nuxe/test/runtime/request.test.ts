@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createSSRApp, defineComponent } from 'vue'
-import { createNuxtApp, createNuxtState, useRequestEvent, useRequestHeaders } from '../../lib'
+import { createNuxeApp, createNuxeState, useRequestEvent, useRequestHeaders } from '../../lib'
 
 describe('useRequestEvent', () => {
   it('returns the raw request from ssrContext', () => {
@@ -8,11 +8,11 @@ describe('useRequestEvent', () => {
       headers: { 'x-custom': 'hello' },
     })
     const app = createSSRApp(defineComponent({ render: () => null }))
-    createNuxtApp({
+    createNuxeApp({
       vueApp: app,
       router: {} as any,
       config: { public: {} },
-      state: createNuxtState(),
+      state: createNuxeState(),
       ssrContext: { request },
     })
 
@@ -26,11 +26,11 @@ describe('useRequestEvent', () => {
 
   it('returns undefined on client (no ssrContext)', () => {
     const app = createSSRApp(defineComponent({ render: () => null }))
-    createNuxtApp({
+    createNuxeApp({
       vueApp: app,
       router: {} as any,
       config: { public: {} },
-      state: createNuxtState(),
+      state: createNuxeState(),
     })
 
     let event: ReturnType<typeof useRequestEvent>
@@ -51,11 +51,11 @@ describe('useRequestHeaders', () => {
       },
     })
     const app = createSSRApp(defineComponent({ render: () => null }))
-    createNuxtApp({
+    createNuxeApp({
       vueApp: app,
       router: {} as any,
       config: { public: {} },
-      state: createNuxtState(),
+      state: createNuxeState(),
       ssrContext: { request },
     })
 
@@ -70,11 +70,11 @@ describe('useRequestHeaders', () => {
 
   it('returns empty object on client', () => {
     const app = createSSRApp(defineComponent({ render: () => null }))
-    createNuxtApp({
+    createNuxeApp({
       vueApp: app,
       router: {} as any,
       config: { public: {} },
-      state: createNuxtState(),
+      state: createNuxeState(),
     })
 
     let headers: ReturnType<typeof useRequestHeaders>

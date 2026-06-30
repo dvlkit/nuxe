@@ -1,9 +1,9 @@
 import { defineComponent, h } from 'vue'
-import { useNuxtApp } from '../plugins/runtime'
+import { useNuxeApp } from '../plugins/runtime'
 import { useLoadingIndicator } from '../runtime'
 
 export default defineComponent({
-  name: 'NuxtLoadingIndicator',
+  name: 'NuxeLoadingIndicator',
   props: {
     color: {
       type: String,
@@ -23,14 +23,14 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const nuxtApp = useNuxtApp()
+    const nuxeApp = useNuxeApp()
     const { progress, isLoading, start, finish } = useLoadingIndicator({
       duration: props.duration,
       throttle: props.throttle,
     })
 
-    nuxtApp.hook('page:start', start)
-    nuxtApp.hook('page:finish', finish)
+    nuxeApp.hook('page:start', start)
+    nuxeApp.hook('page:finish', finish)
 
     return () => {
       if (!isLoading.value) return null

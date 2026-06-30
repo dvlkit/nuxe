@@ -113,7 +113,7 @@ import { ErrorComponent } from 'virtual:nuxe/error'
 import { routes } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
-import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxtApp, runPlugins, createNuxtState } from '@dvlkit/nuxe/runtime'
+import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxeApp, runPlugins, createNuxeState } from '@dvlkit/nuxe/runtime'
 import publicRuntimeConfig from '/.nuxe/runtime-config-public.json'
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
@@ -149,11 +149,11 @@ async function main() {
     history: createWebHistory(),
     routes,
   })
-  const state = createNuxtState(initialState)
-  const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig, state })
-  await runPlugins(plugins, nuxtApp)
-  await nuxtApp.callHook('app:created')
-  router.beforeEach(() => nuxtApp.callHook('page:start'))
+  const state = createNuxeState(initialState)
+  const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, state })
+  await runPlugins(plugins, nuxeApp)
+  await nuxeApp.callHook('app:created')
+  router.beforeEach(() => nuxeApp.callHook('page:start'))
   let isFirstNavigation = true
   router.beforeEach((to, from) => {
     if (isFirstNavigation) {
@@ -167,12 +167,12 @@ async function main() {
     }
     return __nuxe_runMiddlewareChain(to, from)
   })
-  router.afterEach(() => nuxtApp.callHook('page:finish'))
+  router.afterEach(() => nuxeApp.callHook('page:finish'))
   app.use(router)
   await router.isReady()
   console.warn = originalWarn
   app.mount('#app')
-  await nuxtApp.callHook('app:mounted')
+  await nuxeApp.callHook('app:mounted')
 }
 
 void main()
@@ -184,7 +184,7 @@ import { createStreamableHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'virtual:nuxe/routes'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxtApp, runPlugins, createNuxtState } from '@dvlkit/nuxe/runtime'
+import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, runPlugins, createNuxeState } from '@dvlkit/nuxe/runtime'
 import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
@@ -209,11 +209,11 @@ async function createApp(ssrContext) {
       console.warn(msg)
     },
   })
-  const state = createNuxtState()
-  const nuxtApp = createNuxtApp({ vueApp: app, router, config: runtimeConfig, ssrContext, state })
-  ssrContext.nuxtApp = nuxtApp
-  await runPlugins(plugins, nuxtApp)
-  await nuxtApp.callHook('app:created')
+  const state = createNuxeState()
+  const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, ssrContext, state })
+  ssrContext.nuxeApp = nuxeApp
+  await runPlugins(plugins, nuxeApp)
+  await nuxeApp.callHook('app:created')
   app.use(router)
 
   const url = new URL(ssrContext.url, 'http://localhost')
@@ -273,7 +273,7 @@ async function createApp(ssrContext) {
 
   router.beforeEach((to, from) => __nuxe_runNamedMiddlewares(to, from, ssrContext))
 
-  await nuxtApp.callHook('page:start')
+  await nuxeApp.callHook('page:start')
   try {
     await router.push(href)
   } catch (err) {
@@ -286,7 +286,7 @@ async function createApp(ssrContext) {
   }
 
   await router.isReady()
-  await nuxtApp.callHook('page:finish')
+  await nuxeApp.callHook('page:finish')
 
   ssrContext.modules = ssrContext.modules || new Set()
   ssrContext.head = head

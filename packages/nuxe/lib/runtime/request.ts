@@ -1,8 +1,8 @@
-import { useNuxtApp } from '../plugins/runtime'
+import { useNuxeApp } from '../plugins/runtime'
 
 export function useRequestEvent(): Request | undefined {
-  const nuxtApp = useNuxtApp()
-  return nuxtApp.ssrContext?.request as Request | undefined
+  const nuxeApp = useNuxeApp()
+  return nuxeApp.ssrContext?.request as Request | undefined
 }
 
 export function useRequestHeaders(): Record<string, string> {

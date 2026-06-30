@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { App, Router } from 'vue'
 import { createSSRApp, defineComponent } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import { createNuxtApp, defineNuxtPlugin, defineNuxePlugin, runPlugins, useNuxtApp } from '../../lib'
-import type { NuxtPlugin } from '../../lib'
+import { createNuxeApp, defineNuxePlugin, runPlugins, useNuxeApp } from '../../lib'
+import type { NuxePlugin } from '../../lib'
 
 function createTestApp(): { app: App; router: Router } {
   const app = createSSRApp(defineComponent({ render: () => null }))
@@ -14,39 +14,39 @@ function createTestApp(): { app: App; router: Router } {
   return { app, router }
 }
 
-describe('createNuxtApp', () => {
+describe('createNuxeApp', () => {
   it('exposes vueApp, router and config', () => {
     const { app, router } = createTestApp()
-    const nuxtApp = createNuxtApp({ vueApp: app, router, config: { public: {} } })
-    expect(nuxtApp.vueApp).toBe(app)
-    expect(nuxtApp.router).toBe(router)
-    expect(nuxtApp.config).toEqual({ public: {} })
+    const nuxeApp = createNuxeApp({ vueApp: app, router, config: { public: {} } })
+    expect(nuxeApp.vueApp).toBe(app)
+    expect(nuxeApp.router).toBe(router)
+    expect(nuxeApp.config).toEqual({ public: {} })
   })
 
   it('calls registered hooks', async () => {
     const { app, router } = createTestApp()
-    const nuxtApp = createNuxtApp({ vueApp: app, router, config: { public: {} } })
+    const nuxeApp = createNuxeApp({ vueApp: app, router, config: { public: {} } })
     const fn = vi.fn()
-    nuxtApp.hook('app:created', fn)
-    await nuxtApp.callHook('app:created')
+    nuxeApp.hook('app:created', fn)
+    await nuxeApp.callHook('app:created')
     expect(fn).toHaveBeenCalledOnce()
   })
 
-  it('provides nuxtApp for useNuxtApp', () => {
+  it('provides nuxeApp for useNuxeApp', () => {
     const { app, router } = createTestApp()
-    const nuxtApp = createNuxtApp({ vueApp: app, router, config: { public: {} } })
-    let injected = null as typeof nuxtApp | null
+    const nuxeApp = createNuxeApp({ vueApp: app, router, config: { public: {} } })
+    let injected = null as typeof nuxeApp | null
     app.runWithContext(() => {
-      injected = useNuxtApp()
+      injected = useNuxeApp()
     })
-    expect(injected).toBe(nuxtApp)
+    expect(injected).toBe(nuxeApp)
   })
 })
 
-describe('defineNuxtPlugin', () => {
+describe('defineNuxePlugin', () => {
   it('returns the plugin unchanged', () => {
     const plugin = () => {}
-    expect(defineNuxtPlugin(plugin)).toBe(plugin)
+    expect(defineNuxePlugin(plugin)).toBe(plugin)
   })
 
   it('defineNuxePlugin is an alias', () => {
@@ -56,31 +56,31 @@ describe('defineNuxtPlugin', () => {
 })
 
 describe('runPlugins', () => {
-  it('runs function plugins with nuxtApp', async () => {
+  it('runs function plugins with nuxeApp', async () => {
     const { app, router } = createTestApp()
-    const nuxtApp = createNuxtApp({ vueApp: app, router, config: { public: {} } })
+    const nuxeApp = createNuxeApp({ vueApp: app, router, config: { public: {} } })
     const plugin = vi.fn()
-    await runPlugins([plugin], nuxtApp)
-    expect(plugin).toHaveBeenCalledWith(nuxtApp)
+    await runPlugins([plugin], nuxeApp)
+    expect(plugin).toHaveBeenCalledWith(nuxeApp)
   })
 
   it('runs object plugins using setup', async () => {
     const { app, router } = createTestApp()
-    const nuxtApp = createNuxtApp({ vueApp: app, router, config: { public: {} } })
+    const nuxeApp = createNuxeApp({ vueApp: app, router, config: { public: {} } })
     const setup = vi.fn()
-    await runPlugins([{ setup }], nuxtApp)
-    expect(setup).toHaveBeenCalledWith(nuxtApp)
+    await runPlugins([{ setup }], nuxeApp)
+    expect(setup).toHaveBeenCalledWith(nuxeApp)
   })
 
   it('awaits async plugins', async () => {
     const { app, router } = createTestApp()
-    const nuxtApp = createNuxtApp({ vueApp: app, router, config: { public: {} } })
+    const nuxeApp = createNuxeApp({ vueApp: app, router, config: { public: {} } })
     let resolved = false
-    const plugin: NuxtPlugin = async () => {
+    const plugin: NuxePlugin = async () => {
       await Promise.resolve()
       resolved = true
     }
-    await runPlugins([plugin], nuxtApp)
+    await runPlugins([plugin], nuxeApp)
     expect(resolved).toBe(true)
   })
 })

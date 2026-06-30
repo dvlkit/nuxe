@@ -1,7 +1,7 @@
 import { getCurrentInstance, inject, provide, ref, type App, type InjectionKey, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-export interface NuxtErrorPayload {
+export interface NuxeErrorPayload {
   statusCode?: number
   statusMessage?: string
   message?: string
@@ -9,17 +9,17 @@ export interface NuxtErrorPayload {
   data?: unknown
 }
 
-const NUXE_ERROR_KEY: InjectionKey<Ref<NuxtError | null>> = Symbol('@dvlkit/nuxe/error')
+const NUXE_ERROR_KEY: InjectionKey<Ref<NuxeError | null>> = Symbol('@dvlkit/nuxe/error')
 
-export class NuxtError extends Error {
+export class NuxeError extends Error {
   readonly statusCode: number
   readonly statusMessage: string
   readonly description?: string
   readonly data?: unknown
 
-  constructor(payload: NuxtErrorPayload = {}) {
+  constructor(payload: NuxeErrorPayload = {}) {
     super(payload.message || payload.statusMessage || 'An error occurred')
-    this.name = 'NuxtError'
+    this.name = 'NuxeError'
     this.statusCode = payload.statusCode || 500
     this.statusMessage = payload.statusMessage || 'Internal Server Error'
     this.description = payload.description
@@ -27,18 +27,18 @@ export class NuxtError extends Error {
   }
 }
 
-export function isNuxtError(err: unknown): err is NuxtError {
+export function isNuxeError(err: unknown): err is NuxeError {
   return (
-    err instanceof NuxtError ||
+    err instanceof NuxeError ||
     (typeof err === 'object' &&
       err !== null &&
-      (err as Error).name === 'NuxtError' &&
-      typeof (err as NuxtError).statusCode === 'number')
+      (err as Error).name === 'NuxeError' &&
+      typeof (err as NuxeError).statusCode === 'number')
   )
 }
 
-export function serializeError(err: unknown): NuxtErrorPayload | null {
-  if (!isNuxtError(err)) return null
+export function serializeError(err: unknown): NuxeErrorPayload | null {
+  if (!isNuxeError(err)) return null
   return {
     statusCode: err.statusCode,
     statusMessage: err.statusMessage,
@@ -48,40 +48,40 @@ export function serializeError(err: unknown): NuxtErrorPayload | null {
   }
 }
 
-export function deserializeError(payload: NuxtErrorPayload): NuxtError {
-  return new NuxtError(payload)
+export function deserializeError(payload: NuxeErrorPayload): NuxeError {
+  return new NuxeError(payload)
 }
 
-export function createError(payload: NuxtErrorPayload | string | Error): NuxtError {
-  if (payload instanceof NuxtError) return payload
-  if (typeof payload === 'string') return new NuxtError({ statusMessage: payload })
+export function createError(payload: NuxeErrorPayload | string | Error): NuxeError {
+  if (payload instanceof NuxeError) return payload
+  if (typeof payload === 'string') return new NuxeError({ statusMessage: payload })
   if (payload instanceof Error) {
-    return new NuxtError({
+    return new NuxeError({
       message: payload.message,
       statusMessage: 'Internal Server Error',
       statusCode: 500,
     })
   }
-  return new NuxtError(payload)
+  return new NuxeError(payload)
 }
 
-export function showError(err: NuxtErrorPayload | string | Error): never {
-  const nuxtError = createError(err)
+export function showError(err: NuxeErrorPayload | string | Error): never {
+  const nuxeError = createError(err)
   const instance = getCurrentInstance()
   if (instance) {
     const errorRef = instance.appContext.app.runWithContext(() => inject(NUXE_ERROR_KEY, null))
     if (errorRef) {
-      errorRef.value = nuxtError
+      errorRef.value = nuxeError
     }
   }
-  throw nuxtError
+  throw nuxeError
 }
 
-export function useError(): Ref<NuxtError | null> {
+export function useError(): Ref<NuxeError | null> {
   return inject(NUXE_ERROR_KEY, ref(null))
 }
 
-export function provideError(app: App, error: Ref<NuxtError | null>): void {
+export function provideError(app: App, error: Ref<NuxeError | null>): void {
   app.provide(NUXE_ERROR_KEY, error)
 }
 

@@ -273,7 +273,7 @@ describe('useFetch', () => {
     })
   })
 
-  describe('baseURL resolution (Nuxt-style)', () => {
+  describe('baseURL resolution (per-request)', () => {
     it('uses the URL provided via provideBaseURL when no explicit baseURL is given', async () => {
       vi.unstubAllGlobals()
       fetchMock = vi.fn()

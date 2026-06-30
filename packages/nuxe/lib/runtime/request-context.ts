@@ -1,9 +1,11 @@
 import { getCurrentInstance, inject, type App, type InjectionKey } from 'vue'
+import type { NuxeState } from './state'
 import type { RouteRules } from '../pages/scanner'
 
 export interface NuxeRequestContext {
   payload: Record<string, unknown>
   pending: Map<string, Promise<unknown>>
+  state?: NuxeState
   awaitAll(): Promise<void>
   routeRules?: RouteRules
 }
@@ -14,6 +16,7 @@ export function createRequestContext(): NuxeRequestContext {
   return {
     payload,
     pending,
+    state: {},
     async awaitAll() {
       if (pending.size === 0) return
       await Promise.allSettled(pending.values())

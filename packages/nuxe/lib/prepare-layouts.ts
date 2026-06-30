@@ -7,8 +7,8 @@ export function prepareLayouts(cwd: string): void {
     ? readdirSync(layoutsDir).filter(f => f.endsWith('.vue'))
     : []
 
-  const nuxtGenDir = resolve(cwd, '.nuxe')
-  if (!existsSync(nuxtGenDir)) mkdirSync(nuxtGenDir, {recursive: true})
+  const nuxeGenDir = resolve(cwd, '.nuxe')
+  if (!existsSync(nuxeGenDir)) mkdirSync(nuxeGenDir, {recursive: true})
 
   const moduleContent = layoutFiles.length === 0
     ? 'export default {}\n'
@@ -18,5 +18,5 @@ export function prepareLayouts(cwd: string): void {
     .map((f, i) => `  '${f.replace(/\.vue$/, '').toLowerCase()}': __layout_${i}`)
     .join(',\n') + '\n}\n'
 
-  writeFileSync(join(nuxtGenDir, 'layouts.mjs'), moduleContent)
+  writeFileSync(join(nuxeGenDir, 'layouts.mjs'), moduleContent)
 }
