@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.38
+
+### Patch Changes
+
+- bee139e: update port resolution logic in loadNuxeConfig
+
 ## 0.7.37
 
 ### Patch Changes
