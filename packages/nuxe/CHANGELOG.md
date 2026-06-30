@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.19
+
+### Patch Changes
+
+- 53c1bbc: enhance Nuxe app state management with clearNuxeState function and improved context handling
+
 ## 0.7.18
 
 ### Patch Changes
