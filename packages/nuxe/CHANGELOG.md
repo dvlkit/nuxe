@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.24
+
+### Patch Changes
+
+- 5bdaa9f: add runtime environment setup with dotenv support and integrate into config loading
+
 ## 0.7.23
 
 ### Patch Changes
