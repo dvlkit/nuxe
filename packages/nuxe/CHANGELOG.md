@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.36
+
+### Patch Changes
+
+- f62a9e5: update useRequestFetch to prevent baseURL duplication for absolute URLs
+
 ## 0.7.35
 
 ### Patch Changes
