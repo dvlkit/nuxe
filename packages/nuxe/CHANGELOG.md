@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.35
+
+### Patch Changes
+
+- 54fe0b2: enhance useRequestFetch to accept event parameter for headers and URL
+
 ## 0.7.34
 
 ### Patch Changes
