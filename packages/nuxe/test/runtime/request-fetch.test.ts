@@ -47,7 +47,7 @@ describe('useRequestFetch', () => {
     let captured: Headers | undefined
     const request = new Request('http://localhost/', {
       headers: {
-        cookie: 'pgsid=abc123; session=demo',
+        cookie: 'session=abc123',
         'x-custom': 'hello',
       },
     })
@@ -58,11 +58,11 @@ describe('useRequestFetch', () => {
 
     await withSsrContextAsync({ request }, async () => {
       const fetch = useRequestFetch()
-      await fetch('/api/listings/xyz')
+      await fetch('/api/things/abc')
     })
 
     expect(captured).toBeInstanceOf(Headers)
-    expect(captured!.get('cookie')).toBe('pgsid=abc123; session=demo')
+    expect(captured!.get('cookie')).toBe('session=abc123')
     expect(captured!.get('x-custom')).toBe('hello')
   })
 
@@ -105,10 +105,10 @@ describe('useRequestFetch', () => {
     const h3Event = {
       req: {
         headers: new Headers({
-          cookie: 'pgsid=from-event',
+          cookie: 'session=from-event',
           'x-custom': 'event-value',
         }),
-        url: 'http://localhost:3000/api/listings/xyz',
+        url: 'http://localhost:3000/api/things/abc',
       },
     }
     globalThis.fetch = vi.fn(async (_input: unknown, init?: RequestInit) => {
@@ -117,9 +117,9 @@ describe('useRequestFetch', () => {
     }) as typeof fetch
 
     const fetch = useRequestFetch(h3Event)
-    await fetch('/v1/listings/xyz')
+    await fetch('/v1/things/abc')
 
-    expect(captured!.get('cookie')).toBe('pgsid=from-event')
+    expect(captured!.get('cookie')).toBe('session=from-event')
     expect(captured!.get('x-custom')).toBe('event-value')
   })
 
@@ -128,7 +128,7 @@ describe('useRequestFetch', () => {
     const h3Event = {
       req: {
         headers: new Headers(),
-        url: 'https://api.puertogarage.cl/api/listings/xyz',
+        url: 'https://api.example.com/api/things/abc',
       },
     }
     globalThis.fetch = vi.fn(async (input: unknown) => {
@@ -139,15 +139,15 @@ describe('useRequestFetch', () => {
     const fetch = useRequestFetch(h3Event)
     await fetch('/v1/upstream')
 
-    expect(capturedUrl).toBe('https://api.puertogarage.cl/v1/upstream')
+    expect(capturedUrl).toBe('https://api.example.com/v1/upstream')
   })
 
   it('does not double up baseURL when the caller passes an absolute URL', async () => {
     let capturedUrl: string | undefined
     const h3Event = {
       req: {
-        headers: new Headers({ cookie: 'pgsid=abc' }),
-        url: 'http://localhost:3000/api/listings/calza-deportiva-26093',
+        headers: new Headers({ cookie: 'session=abc' }),
+        url: 'http://localhost:3000/api/things/abc',
       },
     }
     globalThis.fetch = vi.fn(async (input: unknown) => {
@@ -156,8 +156,8 @@ describe('useRequestFetch', () => {
     }) as typeof fetch
 
     const fetch = useRequestFetch(h3Event)
-    await fetch('http://localhost:8080/v1/listings/calza-deportiva-26093')
+    await fetch('http://upstream.example.com/v1/things/abc')
 
-    expect(capturedUrl).toBe('http://localhost:8080/v1/listings/calza-deportiva-26093')
+    expect(capturedUrl).toBe('http://upstream.example.com/v1/things/abc')
   })
 })

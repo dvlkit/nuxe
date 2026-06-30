@@ -32,7 +32,10 @@ export function useRequestURL(
     return new URL(fallback, 'http://localhost')
   }
 
-  const raw = request.url
+  const raw = request.url instanceof URL
+    ? request.url.href
+    : (request.url as string | undefined) ?? ''
+
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
     return new URL(raw)
   }

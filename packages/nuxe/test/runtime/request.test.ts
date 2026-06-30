@@ -107,7 +107,7 @@ describe('client-side early-return (no Vue context warning)', () => {
 })
 
 describe('useRequestURL', () => {
-  type FakeRequest = { url: string; headers: Headers }
+  type FakeRequest = { url: string | URL; headers: Headers }
 
   function makeRequest(path: string, headerEntries: Record<string, string> = {}): FakeRequest {
     return {
@@ -139,6 +139,14 @@ describe('useRequestURL', () => {
     expect(url.host).toBe('example.com')
     expect(url.protocol).toBe('https:')
     expect(url.searchParams.get('bar')).toBe('1')
+  })
+
+  it('handles a h3 event whose url is a URL instance (not a string)', () => {
+    const request = makeRequest(new URL('https://example.com/productos/abc?q=1') as unknown as string)
+    const url = withSsrContext({ request }, () => useRequestURL())
+    expect(url.pathname).toBe('/productos/abc')
+    expect(url.host).toBe('example.com')
+    expect(url.searchParams.get('q')).toBe('1')
   })
 
   it('builds an absolute URL from host header when request.url is relative', () => {
