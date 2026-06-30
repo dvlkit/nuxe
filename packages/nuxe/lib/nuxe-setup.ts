@@ -120,7 +120,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
       dts: '.nuxe/components.d.ts',
       directoryAsNamespace: true,
     }),
-    nuxe({layouts: layoutFiles, middlewares: scannedMiddlewares, pages: scannedPages, plugins: scannedPlugins, errorComponent: hasErrorComponent}),
+    nuxe({layouts: layoutFiles, cwd, pagesDir: 'app/pages', middlewares: scannedMiddlewares, plugins: scannedPlugins, errorComponent: hasErrorComponent}),
     nitro({
       preset: 'node-server',
       serverDir: 'server',

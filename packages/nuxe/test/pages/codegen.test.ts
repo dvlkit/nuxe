@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { generateRoutesModule } from '../../lib/pages/codegen'
+import { generateRoutesModule, ROUTES_HMR_CODE } from '../../lib/pages/codegen'
 import type { ScannedPage } from '../../lib/pages/scanner'
 
 describe('generateRoutesModule', () => {
   it('generates an empty array when there are no pages', () => {
-    expect(generateRoutesModule([])).toBe('export const routes = []\n')
+    const code = generateRoutesModule([])
+    expect(code).toContain(ROUTES_HMR_CODE)
+    expect(code).toContain('export default []')
+    expect(code).not.toContain('export const routes')
   })
 
   it('generates routes with dynamic imports and meta', () => {
@@ -27,6 +30,7 @@ describe('generateRoutesModule', () => {
     expect(code).toContain("component: () => import('/app/pages/users/[id].vue')")
     expect(code).toContain('meta: {"layout":"default"}')
     expect(code).toContain('meta: {}')
+    expect(code).toContain('export default [')
   })
 
   it('includes routeRules inside meta', () => {
@@ -41,5 +45,17 @@ describe('generateRoutesModule', () => {
 
     const code = generateRoutesModule(pages)
     expect(code).toContain('meta: {"routeRules":{"ssr":false}}')
+  })
+})
+
+describe('ROUTES_HMR_CODE', () => {
+  it('declares handleHotUpdate as an exported function', () => {
+    expect(ROUTES_HMR_CODE).toContain('export function handleHotUpdate(router)')
+  })
+
+  it('uses import.meta.hot.accept for HMR replacement', () => {
+    expect(ROUTES_HMR_CODE).toContain('import.meta.hot.accept')
+    expect(ROUTES_HMR_CODE).toContain('router.clearRoutes()')
+    expect(ROUTES_HMR_CODE).toContain('router.addRoute(route)')
   })
 })

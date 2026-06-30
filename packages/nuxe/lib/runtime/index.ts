@@ -11,7 +11,7 @@ export {
   type NuxeError,
   type NuxeErrorPayload,
 } from './error'
-export { useAsyncData, setHydratedPayload, type UseAsyncDataOptions, type UseAsyncDataReturn } from './use-async-data'
+export { useAsyncData, setHydratedPayload, readHydratedKey, type UseAsyncDataOptions, type UseAsyncDataReturn } from './use-async-data'
 export {
   $fetch,
   createFetch,

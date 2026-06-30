@@ -119,6 +119,53 @@ function segmentToRoute(segment: string): { path: string; template: string; para
   return { path: `/:${name}`, template: `/[${name}]`, paramName: name }
 }
 
+export function pagePathToRoute(filePath: string, baseRoute: string): ScannedPage | null {
+  if (!isPageFile(filePath)) return null
+
+  const nameWithoutExt = filePath
+    .split(sep)
+    .pop()!
+    .replace(/\.vue$/, '')
+  if (isIgnoredSegment(nameWithoutExt)) return null
+
+  const relativePath = relative(baseRoute, filePath)
+  const segments = relativePath.split(sep).map((s) => s.replace(/\.vue$/, ''))
+
+  let routePath = ''
+  let routePathTemplate = ''
+  const routeNameParts: string[] = []
+
+  for (const segment of segments) {
+    if (segment.startsWith('(') && segment.endsWith(')')) {
+      routeNameParts.push(segment.slice(1, -1))
+      continue
+    }
+
+    const { path, template } = segmentToRoute(segment)
+    routePath += path
+    routePathTemplate += template
+    routeNameParts.push(segment.replace(/\[|\]|\.\.\./g, ''))
+  }
+
+  if (nameWithoutExt === 'index' && routePath.length > 1) {
+    routePath = routePath.replace(/\/index$/, '')
+    routePathTemplate = routePathTemplate.replace(/\/index$/, '')
+  }
+
+  if (routePath === '') routePath = '/'
+  if (routePathTemplate === '') routePathTemplate = '/'
+
+  const config = extractPageConfig(filePath)
+  return {
+    filePath,
+    path: routePath,
+    pathTemplate: routePathTemplate,
+    name: routeNameParts.join('-').replace(/^-|-$/g, '') || 'index',
+    meta: config?.meta,
+    routeRules: config?.routeRules,
+  }
+}
+
 function scanDir(dir: string, baseRoute: string, pages: ScannedPage[]): void {
   if (!existsSync(dir)) return
 
@@ -133,46 +180,8 @@ function scanDir(dir: string, baseRoute: string, pages: ScannedPage[]): void {
     .sort((a, b) => a.name.localeCompare(b.name))
 
   for (const file of files) {
-    const nameWithoutExt = file.name.slice(0, -extname(file.name).length)
-    if (isIgnoredSegment(nameWithoutExt)) continue
-
-    const filePath = join(dir, file.name)
-    const relativePath = relative(baseRoute, filePath)
-    const segments = relativePath.split(sep).map((s) => s.replace(/\.vue$/, ''))
-
-    let routePath = ''
-    let routePathTemplate = ''
-    let routeNameParts: string[] = []
-
-    for (const segment of segments) {
-      if (segment.startsWith('(') && segment.endsWith(')')) {
-        routeNameParts.push(segment.slice(1, -1))
-        continue
-      }
-
-      const { path, template } = segmentToRoute(segment)
-      routePath += path
-      routePathTemplate += template
-      routeNameParts.push(segment.replace(/\[|\]|\.\.\./g, ''))
-    }
-
-    if (nameWithoutExt === 'index' && routePath.length > 1) {
-      routePath = routePath.replace(/\/index$/, '')
-      routePathTemplate = routePathTemplate.replace(/\/index$/, '')
-    }
-
-    if (routePath === '') routePath = '/'
-    if (routePathTemplate === '') routePathTemplate = '/'
-
-    const config = extractPageConfig(filePath)
-    pages.push({
-      filePath,
-      path: routePath,
-      pathTemplate: routePathTemplate,
-      name: routeNameParts.join('-').replace(/^-|-$/g, '') || 'index',
-      meta: config?.meta,
-      routeRules: config?.routeRules,
-    })
+    const page = pagePathToRoute(join(dir, file.name), baseRoute)
+    if (page) pages.push(page)
   }
 
   for (const subdir of dirs) {

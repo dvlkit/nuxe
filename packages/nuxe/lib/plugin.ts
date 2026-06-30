@@ -1,10 +1,11 @@
-import type { Plugin } from 'vite'
+import type { Plugin, ViteDevServer } from 'vite'
+import { isAbsolute, join, sep } from 'node:path'
 import { generateClientMiddlewaresModule, generateServerMiddlewaresModule } from './middleware/codegen'
 import type { ScannedMiddleware } from './middleware/scanner'
 import { generateClientPluginsModule, generateServerPluginsModule } from './plugins/codegen'
 import type { ScannedPlugin } from './plugins/scanner'
 import { generateRoutesModule } from './pages/codegen'
-import type { ScannedPage } from './pages/scanner'
+import { createPagesContext, type PagesContext } from './pages/context'
 
 const CLIENT_MIDDLEWARE_CHAIN_LOGIC = `
 function __nuxe_runMiddlewareChain(to, from) {
@@ -110,7 +111,7 @@ import { createHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import App from '/app/app.vue'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { routes } from 'virtual:nuxe/routes'
+import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
 import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxeApp, runPlugins, createNuxeState } from '@dvlkit/nuxe/runtime'
@@ -149,6 +150,7 @@ async function main() {
     history: createWebHistory(),
     routes,
   })
+  handleHotUpdate(router)
   const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, state: createNuxeState(initialState) })
   await runPlugins(plugins, nuxeApp)
   await nuxeApp.callHook('app:created')
@@ -182,11 +184,11 @@ import { createSSRApp, ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createStreamableHead } from '@dvlkit/nuxe/runtime/server-head'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
-import { routes } from 'virtual:nuxe/routes'
 import { ErrorComponent } from 'virtual:nuxe/error'
 import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, provideNuxeApp, runPlugins, createNuxeState } from '@dvlkit/nuxe/runtime'
 import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
+import routes from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
 import { plugins } from 'virtual:nuxe/plugins-server'
 ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
@@ -307,8 +309,9 @@ export const NUXE_ENTRY_CLIENT: string = ENTRY_CLIENT_SOURCE
 
 export interface NuxeOptions {
   layouts: string[]
+  cwd: string
+  pagesDir?: string
   middlewares?: ScannedMiddleware[]
-  pages?: ScannedPage[]
   plugins?: ScannedPlugin[]
   errorComponent?: boolean
 }
@@ -348,17 +351,68 @@ export const ErrorComponent = defineComponent({
 })\n`
 }
 
-export default function nuxe(options: NuxeOptions = { layouts: [] }): Plugin {
+export default function nuxe(options: NuxeOptions): Plugin {
   const layoutsModule = buildLayoutsModule(options.layouts)
   const clientMiddlewaresModule = generateClientMiddlewaresModule(options.middlewares ?? [])
   const serverMiddlewaresModule = generateServerMiddlewaresModule(options.middlewares ?? [])
   const clientPluginsModule = generateClientPluginsModule(options.plugins ?? [])
   const serverPluginsModule = generateServerPluginsModule(options.plugins ?? [])
-  const routesModule = generateRoutesModule(options.pages ?? [])
   const errorModule = buildErrorModule(options.errorComponent ?? false)
+
+  let routesModule = ''
+  let pagesCtx: PagesContext | undefined
+
+  function rebuildRoutes(): void {
+    if (!pagesCtx) return
+    routesModule = generateRoutesModule(pagesCtx.emit())
+  }
+
+  function isUnderPagesDir(absolutePath: string): boolean {
+    if (!options.cwd) return false
+    const root = join(options.cwd, options.pagesDir ?? 'app/pages')
+    return absolutePath === root || absolutePath.startsWith(root + sep)
+  }
+
+  function invalidateRoutesModule(server: ViteDevServer): void {
+    const mod = server.moduleGraph.getModuleById('\0virtual:nuxe/routes')
+    if (mod) {
+      server.moduleGraph.invalidateModule(mod)
+      server.ws.send({ type: 'full-reload', path: '*' })
+    }
+  }
 
   return {
     name: 'nuxe:framework',
+
+    configResolved() {
+      pagesCtx = createPagesContext({
+        cwd: options.cwd,
+        pagesDir: options.pagesDir,
+      })
+      rebuildRoutes()
+    },
+
+    configureServer(server) {
+      if (!pagesCtx || !options.cwd) return
+
+      const handle = (filePath: string, kind: 'add' | 'change' | 'unlink') => {
+        const absolute = isAbsolute(filePath) ? filePath : join(options.cwd, filePath)
+        if (!isUnderPagesDir(absolute)) return
+        if (!absolute.endsWith('.vue')) return
+
+        if (kind === 'add' || kind === 'change') {
+          pagesCtx!.addFile(absolute)
+        } else {
+          pagesCtx!.removeFile(absolute)
+        }
+        rebuildRoutes()
+        invalidateRoutesModule(server)
+      }
+
+      server.watcher.on('add', (p) => handle(p, 'add'))
+      server.watcher.on('change', (p) => handle(p, 'change'))
+      server.watcher.on('unlink', (p) => handle(p, 'unlink'))
+    },
 
     resolveId(id) {
       if (id === 'virtual:nuxe/layouts' || id === '\0virtual:nuxe/layouts') {

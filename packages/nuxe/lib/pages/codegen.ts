@@ -1,11 +1,40 @@
 import type { ScannedPage } from './scanner'
 
-function slugify(filePath: string): string {
-  return filePath
-    .replace(/[^a-zA-Z0-9]/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '')
+export const ROUTES_HMR_CODE = `if (import.meta.hot) {
+  import.meta.hot.accept((mod) => {
+    const router = import.meta.hot.data.router
+    if (!router) {
+      import.meta.hot.invalidate('[nuxe] Cannot replace routes: no active router in hot data. Reloading.')
+      return
+    }
+    const addedRoutes = router.getRoutes().filter((r) => !r._initial)
+    router.clearRoutes()
+    const next = (mod && mod.default) || []
+    for (const route of next) {
+      router.addRoute(route)
+    }
+    for (const route of router.getRoutes()) {
+      route._initial = true
+    }
+    for (const route of addedRoutes) {
+      router.addRoute(route)
+    }
+    router.isReady().then(() => {
+      router.replace(router.currentRoute.value.fullPath).catch(() => {})
+    })
+  })
 }
+
+export function handleHotUpdate(router) {
+  if (import.meta.hot) {
+    import.meta.hot.data ||= {}
+    import.meta.hot.data.router = router
+    for (const route of router.getRoutes()) {
+      route._initial = true
+    }
+  }
+}
+`
 
 function serializeMeta(meta: Record<string, unknown> | undefined, routeRules?: import('./scanner').RouteRules): string {
   const combined: Record<string, unknown> = { ...meta }
@@ -24,7 +53,7 @@ function routeComponentPath(filePath: string): string {
 
 export function generateRoutesModule(pages: ScannedPage[]): string {
   if (pages.length === 0) {
-    return 'export const routes = []\n'
+    return `${ROUTES_HMR_CODE}\nexport default []\n`
   }
 
   const routes = pages
@@ -34,5 +63,5 @@ export function generateRoutesModule(pages: ScannedPage[]): string {
     })
     .join(',\n')
 
-  return `export const routes = [\n${routes}\n]\n`
+  return `${ROUTES_HMR_CODE}\nexport default [\n${routes}\n]\n`
 }

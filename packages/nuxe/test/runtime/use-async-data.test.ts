@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { effectScope, nextTick, ref, type Ref } from 'vue'
 import {
   createRequestContext,
   runWithContext,
@@ -246,5 +246,262 @@ describe('useAsyncData (client)', () => {
 
     expect(data.value).toBe('from-server')
     expect(handler).not.toHaveBeenCalled()
+  })
+})
+
+describe('useAsyncData (reactive key + watch)', () => {
+  // Client-side watcher tests need a Vue effect scope to register the
+  // watchers and to exercise cleanup via onScopeDispose. We also stub
+  // `window` so useAsyncData takes the client code path (the same trick
+  // the 'client' describe block above uses).
+  let scope: ReturnType<typeof effectScope>
+
+  beforeEach(() => {
+    vi.stubGlobal('window', {})
+    setHydratedPayload({})
+    scope = effectScope()
+  })
+
+  afterEach(() => {
+    scope.stop()
+    vi.unstubAllGlobals()
+    setHydratedPayload({})
+  })
+
+  function inScope<T>(fn: () => T): T {
+    let result!: T
+    scope.run(() => {
+      result = fn()
+    })
+    return result
+  }
+
+  it('re-fetches when a Ref<string> key changes', async () => {
+    const key: Ref<string> = ref('a')
+    const handler = vi.fn(async (k: string) => `result-${k}`)
+
+    const { data, status } = inScope(() =>
+      useAsyncData<string>(key, () => handler(key.value)),
+    ) as ReturnType<typeof useAsyncData<string>>
+
+    await vi.waitFor(() => {
+      expect(data.value).toBe('result-a')
+    })
+    expect(handler).toHaveBeenCalledTimes(1)
+
+    key.value = 'b'
+    await nextTick()
+    await vi.waitFor(() => {
+      expect(data.value).toBe('result-b')
+    })
+    expect(handler).toHaveBeenCalledTimes(2)
+    expect(status.value).toBe('success')
+  })
+
+  it('re-fetches when a getter key changes', async () => {
+    const slug: Ref<string> = ref('apple')
+    let count = 0
+
+    const { data } = inScope(() =>
+      useAsyncData<string>(
+        () => `listing-${slug.value}`,
+        async () => {
+          count += 1
+          return `payload-${slug.value}`
+        },
+      ),
+    ) as ReturnType<typeof useAsyncData<string>>
+
+    await vi.waitFor(() => {
+      expect(data.value).toBe('payload-apple')
+    })
+    expect(count).toBe(1)
+
+    slug.value = 'banana'
+    await nextTick()
+    await vi.waitFor(() => {
+      expect(data.value).toBe('payload-banana')
+    })
+    expect(count).toBe(2)
+  })
+
+  it('resets pending/error state when key changes', async () => {
+    const key: Ref<string> = ref('a')
+    const handler = vi.fn(async (k: string) => {
+      if (k === 'a') throw new Error('first fails')
+      return `ok-${k}`
+    })
+
+    const { data, status, error } = inScope(() =>
+      useAsyncData<string>(key, () => handler(key.value)),
+    ) as ReturnType<typeof useAsyncData<string>>
+
+    await vi.waitFor(() => {
+      expect(status.value).toBe('error')
+    })
+    expect(error.value?.message).toBe('first fails')
+
+    key.value = 'b'
+    await nextTick()
+    await vi.waitFor(() => {
+      expect(data.value).toBe('ok-b')
+    })
+    expect(status.value).toBe('success')
+    expect(error.value).toBeNull()
+  })
+
+  it('does not refetch when key is a static string', async () => {
+    const handler = vi.fn(async () => 'once')
+
+    const { data } = inScope(() =>
+      useAsyncData<string>('static', handler),
+    ) as ReturnType<typeof useAsyncData<string>>
+
+    await vi.waitFor(() => {
+      expect(data.value).toBe('once')
+    })
+
+    await nextTick()
+    await nextTick()
+    expect(handler).toHaveBeenCalledTimes(1)
+  })
+
+  it('watch option re-runs handler when any source changes', async () => {
+    const slug: Ref<string> = ref('x')
+    const page: Ref<number> = ref(1)
+    const handler = vi.fn(async () => `p=${slug.value}-${page.value}`)
+
+    const { data } = inScope(() =>
+      useAsyncData<string>(
+        'paged',
+        handler,
+        { watch: [slug, page] },
+      ),
+    ) as ReturnType<typeof useAsyncData<string>>
+
+    await vi.waitFor(() => {
+      expect(data.value).toBe('p=x-1')
+    })
+    expect(handler).toHaveBeenCalledTimes(1)
+
+    page.value = 2
+    await nextTick()
+    await vi.waitFor(() => {
+      expect(data.value).toBe('p=x-2')
+    })
+    expect(handler).toHaveBeenCalledTimes(2)
+
+    slug.value = 'y'
+    await nextTick()
+    await vi.waitFor(() => {
+      expect(data.value).toBe('p=y-2')
+    })
+    expect(handler).toHaveBeenCalledTimes(3)
+  })
+
+  it('watch option accepts a single non-array source', async () => {
+    const source: Ref<number> = ref(1)
+    const handler = vi.fn(async (n: number) => n * 10)
+
+    const { data } = inScope(() =>
+      useAsyncData<number>(
+        'single',
+        async () => handler(source.value),
+        { watch: source },
+      ),
+    ) as ReturnType<typeof useAsyncData<number>>
+
+    await vi.waitFor(() => {
+      expect(data.value).toBe(10)
+    })
+
+    source.value = 5
+    await nextTick()
+    await vi.waitFor(() => {
+      expect(data.value).toBe(50)
+    })
+    expect(handler).toHaveBeenCalledTimes(2)
+  })
+
+  it('watch + reactive key fires only one fetch per change', async () => {
+    const slug: Ref<string> = ref('a')
+    let count = 0
+
+    const { data } = inScope(() =>
+      useAsyncData<string>(
+        () => `listing-${slug.value}`,
+        async () => {
+          count += 1
+          return slug.value
+        },
+        { watch: [slug] },
+      ),
+    ) as ReturnType<typeof useAsyncData<string>>
+
+    await vi.waitFor(() => {
+      expect(data.value).toBe('a')
+    })
+    expect(count).toBe(1)
+
+    slug.value = 'b'
+    await nextTick()
+    await vi.waitFor(() => {
+      expect(data.value).toBe('b')
+    })
+    // The key watcher (sync) fires first and re-fetches; the deps watcher
+    // is gated on `keyChanging` and must skip. So count goes 1 -> 2.
+    expect(count).toBe(2)
+  })
+
+  it('watch stops firing after scope disposal', async () => {
+    const source: Ref<number> = ref(1)
+    const handler = vi.fn(async (n: number) => n)
+
+    const { data } = inScope(() =>
+      useAsyncData<number>('scoped', async () => handler(source.value), {
+        watch: source,
+      }),
+    ) as ReturnType<typeof useAsyncData<number>>
+
+    await vi.waitFor(() => {
+      expect(data.value).toBe(1)
+    })
+
+    scope.stop()
+    source.value = 99
+    await nextTick()
+    await nextTick()
+    // After dispose the watcher should not have re-run the handler.
+    expect(handler).toHaveBeenCalledTimes(1)
+  })
+
+  it('plain string key does not set up a key watcher', async () => {
+    const handler = vi.fn(async () => 'static-ok')
+
+    const { data } = inScope(() =>
+      useAsyncData<string>('static-key', handler),
+    ) as ReturnType<typeof useAsyncData<string>>
+
+    await vi.waitFor(() => {
+      expect(data.value).toBe('static-ok')
+    })
+
+    // Several ticks with no other reactivity — handler must not re-run.
+    await nextTick()
+    await nextTick()
+    expect(handler).toHaveBeenCalledTimes(1)
+  })
+
+  it('reactive key on the server uses the current key in the payload', async () => {
+    const ctx = createRequestContext()
+    const key: Ref<string> = ref('first')
+
+    await runWithContext(ctx, async () => {
+      useAsyncData<string>(key, async () => `result-${key.value}`)
+      await ctx.awaitAll()
+      await nextTick()
+
+      expect(ctx.payload[key.value]).toBe('result-first')
+    })
   })
 })
