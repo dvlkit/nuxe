@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.22
+
+### Patch Changes
+
+- 35b07e3: improve error logging by using specific status codes in Nuxe app
+
 ## 0.7.21
 
 ### Patch Changes
