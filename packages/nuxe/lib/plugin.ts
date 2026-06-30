@@ -149,8 +149,7 @@ async function main() {
     history: createWebHistory(),
     routes,
   })
-  const state = createNuxeState(initialState)
-  const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, state })
+  const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, state: createNuxeState(initialState) })
   await runPlugins(plugins, nuxeApp)
   await nuxeApp.callHook('app:created')
   router.beforeEach(() => nuxeApp.callHook('page:start'))
@@ -194,8 +193,6 @@ ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 async function createApp(ssrContext) {
   const ctx = createRequestContext()
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
-  provideRequestContext(app, ctx)
-  provideNuxeApp(ctx, nuxeApp)
   provideRuntimeConfig(app, runtimeConfig)
   provideBaseURL(app, (runtimeConfig as { baseUrl?: string }).baseUrl)
   const error = ref(ssrContext.error || null)
@@ -214,8 +211,13 @@ async function createApp(ssrContext) {
   const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, ssrContext, state })
   ssrContext.nuxeApp = nuxeApp
   await runPlugins(plugins, nuxeApp)
+  // The request context is created up top so it can carry the app to
+  // async handlers; we attach it to the Vue app now that everything is
+  // initialized (otherwise we'd hit a TDZ on nuxeApp).
   await nuxeApp.callHook('app:created')
   app.use(router)
+  provideRequestContext(app, ctx)
+  provideNuxeApp(ctx, nuxeApp)
 
   const url = new URL(ssrContext.url, 'http://localhost')
   const href = url.pathname + url.search
