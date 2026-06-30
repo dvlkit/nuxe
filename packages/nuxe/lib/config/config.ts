@@ -57,7 +57,8 @@ export async function loadNuxeConfig(opts: LoadNuxeConfigOptions): Promise<Resol
   }
 
   const envPort = process.env.PORT ? Number(process.env.PORT) : undefined
-  const resolvedPort = result.output.server.port ?? envPort ?? 3000
+  const configPort = result.output.server.port
+  const resolvedPort = envPort ?? configPort ?? 3000
   const runtimeConfigInput = result.output.runtimeConfig as RuntimeConfig
   const runtimeConfig = resolveRuntimeConfig(runtimeConfigInput)
 
