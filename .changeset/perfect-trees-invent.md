@@ -1,5 +1,0 @@
----
-"@dvlkit/nuxe": patch
----
-
-useRequestFetch

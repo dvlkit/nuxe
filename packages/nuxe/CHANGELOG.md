@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.34
+
+### Patch Changes
+
+- 965b975: useRequestFetch
+
 ## 0.7.33
 
 ### Patch Changes
