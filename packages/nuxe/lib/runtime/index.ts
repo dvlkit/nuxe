@@ -43,7 +43,7 @@ export {
 } from '../plugins/runtime'
 export { useLoadingIndicator, type LoadingIndicator } from './use-loading-indicator'
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './cookie'
-export { createNuxeState, provideNuxeState, resetNuxeStateCache, useState, type NuxeState } from './state'
+export { createNuxeState, clearNuxeState, useState, type NuxeState } from './state'
 export { useRequestEvent, useRequestHeaders } from './request'
 export { provideBaseURL, useBaseURL, resetBaseURLCache } from './base-url'
 export { createStreamableHead } from '@unhead/vue/stream/server'

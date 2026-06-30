@@ -1,17 +1,14 @@
-import {
-  getCurrentInstance,
-  hasInjectionContext,
-  inject,
-  type App,
-  type InjectionKey,
-} from 'vue'
+import { type App, type InjectionKey } from 'vue'
 import type { Router } from 'vue-router'
 import {
-  getCurrentContext,
-  provideNuxeState,
   type NuxeState,
   type RuntimeConfig,
 } from '../runtime'
+import {
+  NUXE_APP_INJECTION_KEY,
+  tryUseNuxeApp,
+  setNuxeApp,
+} from '../runtime/app-context'
 
 
 export interface NuxeApp {
@@ -20,6 +17,7 @@ export interface NuxeApp {
   ssrContext?: Record<string, unknown>
   config: RuntimeConfig
   state: NuxeState
+  payload: { state: NuxeState }
   hook: <N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]) => void
   callHook: <N extends keyof NuxeAppHooks>(
     name: N,
@@ -27,7 +25,7 @@ export interface NuxeApp {
   ) => Promise<void>
 }
 
-const NUXE_APP_KEY: InjectionKey<NuxeApp> = Symbol('@dvlkit/nuxe-app')
+const NUXE_APP_KEY: InjectionKey<NuxeApp> = NUXE_APP_INJECTION_KEY
 
 export interface NuxeAppHooks {
   'app:created': () => void | Promise<void>
@@ -70,6 +68,8 @@ class Hookable {
   }
 }
 
+const NUXE_STATE_KEY: InjectionKey<NuxeState> = Symbol('@dvlkit/nuxe-state')
+
 interface CreateNuxeAppOptions {
   vueApp: App
   router: Router
@@ -78,42 +78,35 @@ interface CreateNuxeAppOptions {
   state: NuxeState
 }
 
-type NuxeAppHolder = { nuxeApp?: NuxeApp }
 
 export function createNuxeApp(options: CreateNuxeAppOptions): NuxeApp {
   const hooks = new Hookable()
+  const state = options.state
   const nuxeApp: NuxeApp = {
     vueApp: options.vueApp,
     router: options.router,
     ssrContext: options.ssrContext,
     config: options.config,
-    state: options.state,
+    state,
+    payload: { state },
     hook: (name, fn) => hooks.add(name, fn),
     callHook: (name, ...args) => hooks.call(name, ...args),
   }
   options.vueApp.provide(NUXE_APP_KEY, nuxeApp)
-  provideNuxeState(options.vueApp, options.state)
   ;(options.vueApp as App & { $nuxe?: NuxeApp }).$nuxe = nuxeApp
+  options.vueApp.provide(NUXE_STATE_KEY, state)
   return nuxeApp
 }
 
-export function provideNuxeApp(ctx: NuxeAppHolder, nuxeApp: NuxeApp): void {
+export function provideNuxeApp(
+  ctx: { nuxeApp?: NuxeApp },
+  nuxeApp: NuxeApp,
+): void {
   ctx.nuxeApp = nuxeApp
+  setNuxeApp(nuxeApp)
 }
 
-export function tryUseNuxeApp(): NuxeApp | null {
-  let nuxeApp: NuxeApp | null = null
-  if (hasInjectionContext()) {
-    const inst = getCurrentInstance()
-    const viaVue = (inst?.appContext.app as (App & { $nuxe?: NuxeApp } | undefined))?.$nuxe
-    nuxeApp = viaVue ?? inject(NUXE_APP_KEY, null) ?? null
-  }
-  if (!nuxeApp) {
-    const ctx = getCurrentContext()
-    nuxeApp = ctx?.nuxeApp ?? null
-  }
-  return nuxeApp
-}
+export { tryUseNuxeApp } from '../runtime/app-context'
 
 export function useNuxeApp(): NuxeApp {
   const nuxeApp = tryUseNuxeApp()
@@ -135,4 +128,4 @@ export async function runPlugins(
   }
 }
 
-export type { NuxeAppHolder }
+export type NuxeAppHolder = { nuxeApp?: NuxeApp }

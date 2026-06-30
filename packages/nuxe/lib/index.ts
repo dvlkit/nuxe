@@ -68,6 +68,6 @@ export {
 } from './plugins/runtime'
 export { useLoadingIndicator, type LoadingIndicator } from './runtime/use-loading-indicator'
 export { default as NuxeLoadingIndicator } from './components/nuxe-loading-indicator'
-export { useState, createNuxeState, provideNuxeState, resetNuxeStateCache, type NuxeState } from './runtime/state'
+export { useState, createNuxeState, clearNuxeState, type NuxeState } from './runtime/state'
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './runtime/cookie'
 export { useRequestEvent, useRequestHeaders } from './runtime/request'

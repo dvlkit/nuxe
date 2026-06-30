@@ -1,4 +1,5 @@
-import { getCurrentInstance, inject, type App, type InjectionKey } from 'vue'
+import { getContext } from 'unctx'
+import { inject, type App, type InjectionKey } from 'vue'
 import type { NuxeState } from './state'
 import type { NuxeApp } from '../plugins/runtime'
 import type { RouteRules } from '../pages/scanner'
@@ -29,37 +30,31 @@ export function createRequestContext(): NuxeRequestContext {
 const NUXE_REQUEST_CONTEXT_KEY: InjectionKey<NuxeRequestContext> =
   Symbol.for('@dvlkit/nuxe/request-context') as InjectionKey<NuxeRequestContext>
 
-let _moduleCtx: NuxeRequestContext | undefined
+const nuxeContext = getContext<NuxeRequestContext>('nuxe', {
+  asyncContext: true,
+})
 
 export function getCurrentContext(): NuxeRequestContext | undefined {
-  const injected = inject(NUXE_REQUEST_CONTEXT_KEY, undefined)
-  if (injected !== undefined) return injected
-  const app = getCurrentInstance()?.appContext?.app as
-    | (App & { $nuxe?: NuxeRequestContext })
-    | null
-  if (app?.$nuxe !== undefined) return app.$nuxe
-  return _moduleCtx
+  const fromUnctx = nuxeContext.tryUse()
+  if (fromUnctx) return fromUnctx
+  return inject(NUXE_REQUEST_CONTEXT_KEY, undefined)
 }
 
 export function provideRequestContext(app: App, ctx: NuxeRequestContext): void {
   app.provide(NUXE_REQUEST_CONTEXT_KEY, ctx)
+  nuxeContext.set(ctx)
 }
 
-export async function runWithContext<T>(
+export function runWithContext<T>(
   ctx: NuxeRequestContext,
   fn: () => Promise<T>,
 ): Promise<T> {
-  const prev = _moduleCtx
-  _moduleCtx = ctx
-  try {
-    return await fn()
-  } finally {
-    _moduleCtx = prev
-  }
+  return nuxeContext.callAsync(ctx, fn)
 }
 
-declare module 'vue' {
-  interface App {
-    $nuxe?: NuxeApp
-  }
+export function runWithContextSync<T>(
+  ctx: NuxeRequestContext,
+  fn: () => T,
+): T {
+  return nuxeContext.call(ctx, fn)
 }

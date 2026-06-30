@@ -1,16 +1,30 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { createSSRApp, defineComponent } from 'vue'
 import {
-  createRequestContext,
+  clearNuxeState,
   createNuxeApp,
   createNuxeState,
-  provideNuxeState,
-  resetNuxeStateCache,
+  createRequestContext,
+  provideNuxeApp,
   runWithContext,
+  tryUseNuxeApp,
   useAsyncData,
+  useNuxeApp,
   useState,
-  type NuxeState,
 } from '../../lib'
+import { setNuxeApp } from '../../lib/runtime/app-context'
+
+function makeApp(initial?: Record<string, unknown>) {
+  const app = createSSRApp(defineComponent({ render: () => null }))
+  const state = createNuxeState(initial ?? {})
+  const nuxeApp = createNuxeApp({
+    vueApp: app,
+    router: {} as any,
+    config: { public: {} },
+    state,
+  })
+  return { app, state, nuxeApp }
+}
 
 describe('createNuxeState', () => {
   it('creates refs from initial values', () => {
@@ -21,17 +35,10 @@ describe('createNuxeState', () => {
 
 describe('useState (Vue context)', () => {
   it('returns a shared ref for the same key', () => {
-    const app = createSSRApp(defineComponent({ render: () => null }))
-    const state = createNuxeState()
-    createNuxeApp({
-      vueApp: app,
-      router: {} as any,
-      config: { public: {} },
-      state,
-    })
+    const { app } = makeApp()
 
-    let a = null as ReturnType<typeof useState> | null
-    let b = null as ReturnType<typeof useState> | null
+    let a: ReturnType<typeof useState> | null = null
+    let b: ReturnType<typeof useState> | null = null
     app.runWithContext(() => {
       a = useState('counter', () => 0)
       b = useState('counter', () => 100)
@@ -42,16 +49,9 @@ describe('useState (Vue context)', () => {
   })
 
   it('hydrates from initial state', () => {
-    const app = createSSRApp(defineComponent({ render: () => null }))
-    const state = createNuxeState({ user: 'luis' })
-    createNuxeApp({
-      vueApp: app,
-      router: {} as any,
-      config: { public: {} },
-      state,
-    })
+    const { app } = makeApp({ user: 'luis' })
 
-    let user = null as ReturnType<typeof useState<string>> | null
+    let user: ReturnType<typeof useState<string>> | null = null
     app.runWithContext(() => {
       user = useState('user', () => 'default')
     })
@@ -62,39 +62,55 @@ describe('useState (Vue context)', () => {
 
 describe('useState (async context)', () => {
   beforeEach(() => {
-    resetNuxeStateCache()
+    setNuxeApp(undefined)
+    clearNuxeState()
   })
 
-  it('finds state across Vue-context and module-level fallback', () => {
-    const state: NuxeState = createNuxeState({ counter: 7 })
+  it('reads state created in setup() from inside a useAsyncData handler', async () => {
+    const { nuxeApp } = makeApp()
+    provideNuxeApp({}, nuxeApp)
 
-    provideNuxeState({ provide: () => undefined } as never, state)
+    const result = await runWithContext(createRequestContext(), async () => {
+      const resolved = useNuxeApp()
+      expect(resolved).toBe(nuxeApp)
 
-    const a = useState('counter', () => 999)
-    expect(a.value).toBe(7)
-  })
-
-  it('persists across useAsyncData handlers (the Luis case)', async () => {
-    const state: NuxeState = createNuxeState({ session: undefined })
-    provideNuxeState({ provide: () => undefined } as never, state)
-
-    const ctx = createRequestContext()
-    const composed = await runWithContext(ctx, async () => {
-      const r = await useAsyncData('session-via-handler', async () => {
+      return await useAsyncData('session-via-handler', async () => {
         const sessionRef = useState<string | undefined>('session', () => 'seeded')
         return { session: sessionRef.value }
       })
-      await ctx.awaitAll()
-      return r
     })
 
-    expect(composed.data.value).toEqual({ session: 'seeded' })
+    expect(result.data.value).toEqual({ session: 'seeded' })
   })
 
   it('throws a clear error when called outside any context', () => {
-    resetNuxeStateCache()
+    expect(tryUseNuxeApp()).toBeNull()
+    clearNuxeState()
+
     expect(() => useState('orphan', () => 0)).toThrow(
       /\[nuxe\] useState/,
     )
+  })
+
+  it('clearing the state bag wipes entries', () => {
+    const { app } = makeApp({ counter: 7, name: 'luis' })
+    app.runWithContext(() => {
+      useState('extra', () => 'added')
+      expect(useState('counter').value).toBe(7)
+      clearNuxeState()
+      expect(useState('counter').value).toBeUndefined()
+      expect(useState('counter').value).toBeUndefined()
+    })
+  })
+
+  it('clearing a subset only removes matching keys', () => {
+    const { app } = makeApp({ keep: 1, drop: 2 })
+    app.runWithContext(() => {
+      expect(useState('keep').value).toBe(1)
+      expect(useState('drop').value).toBe(2)
+      clearNuxeState('drop')
+      expect(useState('keep').value).toBe(1)
+      expect(useState('drop').value).toBeUndefined()
+    })
   })
 })

@@ -1,4 +1,13 @@
-import { defineComponent, h, onMounted, shallowRef, type SlotsType } from 'vue'
+import {
+  cloneVNode,
+  createCommentVNode,
+  defineComponent,
+  h,
+  onMounted,
+  shallowRef,
+  type SlotsType,
+  type VNode,
+} from 'vue'
 
 interface ClientOnlyProps {
   fallback?: string
@@ -8,9 +17,9 @@ interface ClientOnlyProps {
 }
 
 type ClientOnlySlots = SlotsType<{
-  default?: () => any[]
-  fallback?: () => any[]
-  placeholder?: () => any[]
+  default?: () => VNode[]
+  fallback?: () => VNode[]
+  placeholder?: () => VNode[]
 }>
 
 export default defineComponent({
@@ -27,11 +36,17 @@ export default defineComponent({
   }),
   setup(props, { slots, attrs }) {
     const mounted = shallowRef(false)
-    onMounted(() => { mounted.value = true })
+    onMounted(() => {
+      mounted.value = true
+    })
 
     return () => {
       if (mounted.value) {
-        return slots.default?.()
+        const vnodes = slots.default?.()
+        if (vnodes && vnodes.length === 1) {
+          return [cloneVNode(vnodes[0]!, attrs)]
+        }
+        return vnodes
       }
 
       const slot = slots.fallback || slots.placeholder
@@ -39,9 +54,15 @@ export default defineComponent({
         return h(slot)
       }
 
-      const fallbackStr = props.fallback || props.placeholder || ''
-      const fallbackTag = props.fallbackTag || props.placeholderTag || 'span'
-      return h(fallbackTag, attrs, fallbackStr)
+      const fallbackStr = props.fallback || props.placeholder
+      const fallbackTag = props.fallbackTag || props.placeholderTag
+      if (fallbackStr !== undefined && fallbackTag !== undefined) {
+        return h(fallbackTag, attrs, fallbackStr)
+      }
+      if (fallbackStr !== undefined) {
+        return h('span', attrs, fallbackStr)
+      }
+      return [createCommentVNode('placeholder')]
     }
   },
 })
