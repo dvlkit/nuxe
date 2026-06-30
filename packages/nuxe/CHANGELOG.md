@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.27
+
+### Patch Changes
+
+- 8a3b001: remove AutoImport plugin from Nuxe project setup
+
 ## 0.7.26
 
 ### Patch Changes
