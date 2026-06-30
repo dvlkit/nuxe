@@ -1,7 +1,7 @@
-export default defineNuxtPlugin((nuxtApp) => {
-  console.log('[plugin:hello] app:created', nuxtApp.config.public.apiBase)
+export default defineNuxePlugin((nuxeApp) => {
+  console.log('[plugin:hello] app:created', nuxeApp.config.public.apiBase)
 
-  nuxtApp.hook('app:mounted', () => {
+  nuxeApp.hook('app:mounted', () => {
     console.log('[plugin:hello] app:mounted')
   })
 })

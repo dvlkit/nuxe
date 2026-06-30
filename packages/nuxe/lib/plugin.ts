@@ -177,7 +177,8 @@ async function main() {
 void main()
 `
 
-const ENTRY_SERVER_SOURCE = `import { createSSRApp, ref } from 'vue'
+const ENTRY_SERVER_SOURCE = `import '@dvlkit/nuxe/runtime/server-polyfill'
+import { createSSRApp, ref } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import { createStreamableHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'

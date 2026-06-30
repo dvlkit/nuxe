@@ -13,6 +13,7 @@ export default defineConfig([
       'components/nuxe-layout': 'lib/components/nuxe-layout.ts',
       'components/nuxe-root': 'lib/components/nuxe-root.ts',
       'runtime/index': 'lib/runtime/index.ts',
+      'runtime/server-polyfill': 'lib/runtime/server-polyfill.ts',
       'server/index': 'lib/server/index.ts',
       'server/handler': 'lib/server/handler.ts',
       'server/nitro-log-request': 'lib/server/nitro-log-request.ts',
@@ -56,6 +57,8 @@ export default defineConfig([
         await copyFile(join(outDir, 'components/nuxe-root.d.mts'), join(outDir, 'components/nuxe-root.d.ts'))
         await copyFile(join(outDir, 'runtime/index.mjs'), join(outDir, 'runtime/index.js'))
         await copyFile(join(outDir, 'runtime/index.d.mts'), join(outDir, 'runtime/index.d.ts'))
+        await copyFile(join(outDir, 'runtime/server-polyfill.mjs'), join(outDir, 'runtime/server-polyfill.js'))
+        await copyFile(join(outDir, 'runtime/server-polyfill.d.mts'), join(outDir, 'runtime/server-polyfill.d.ts'))
         await copyFile(join(outDir, 'server/index.mjs'), join(outDir, 'server/index.js'))
         await copyFile(join(outDir, 'server/index.d.mts'), join(outDir, 'server/index.d.ts'))
         await copyFile(join(outDir, 'server/handler.mjs'), join(outDir, 'server/handler.js'))

@@ -1,4 +1,3 @@
-import './als-polyfill'
 import { hasInjectionContext, inject, type InjectionKey } from 'vue'
 import type { NuxeApp } from '../plugins/runtime'
 import { getContext } from 'unctx'

@@ -42,6 +42,10 @@
       "types": "./dist/server/handler.d.ts",
       "default": "./dist/server/handler.js"
     },
+    "./runtime/server-polyfill": {
+      "types": "./dist/runtime/server-polyfill.d.ts",
+      "default": "./dist/runtime/server-polyfill.js"
+    },
     "./setup": {
       "types": "./dist/nuxe-setup.d.ts",
       "default": "./dist/nuxe-setup.js"

@@ -155,6 +155,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
         '@dvlkit/nuxe/server',
         '@dvlkit/nuxe/server/handler',
         '@dvlkit/nuxe/runtime/server/handler',
+        '@dvlkit/nuxe/runtime/server-polyfill',
         'vue',
         '@vue/runtime-core',
         '@vue/runtime-dom',

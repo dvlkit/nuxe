@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useHead } from '@dvlkit/nuxe'
-import { NuxtLoadingIndicator } from '@dvlkit/nuxe'
+import { NuxeLoadingIndicator } from '@dvlkit/nuxe'
 import { NuxeLayout } from '@dvlkit/nuxe/components/nuxe-layout'
 import './assets/main.css'
 
@@ -20,7 +20,7 @@ const links = [
 
 <template>
   <div class="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-    <NuxtLoadingIndicator />
+    <NuxeLoadingIndicator />
     <nav class="flex flex-wrap gap-2 bg-slate-100 p-4 dark:bg-slate-900">
       <RouterLink
         v-for="link in links"
