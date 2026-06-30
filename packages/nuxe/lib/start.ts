@@ -1,11 +1,12 @@
 import { resolve } from 'node:path'
 import { existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
-import { loadNuxeConfig } from './config'
+import { loadNuxeConfig, setupRuntimeEnv } from './config'
 import { printDevBanner } from './utils/banner'
 import { logInfo } from './utils/logger'
 
 export async function runStart(cwd: string): Promise<void> {
+  await setupRuntimeEnv(cwd)
   const config = await loadNuxeConfig({ cwd })
   const port = config.server.port
 

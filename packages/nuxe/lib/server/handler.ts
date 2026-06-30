@@ -24,6 +24,9 @@ import { serializePayload } from './payload.js'
 import { createError, serializeError } from '../runtime'
 import { getPublicRuntimeConfig, type RuntimeConfig } from '../config/runtime-config.js'
 import { loadRuntimeConfig } from './config.js'
+import { setupRuntimeEnv } from '../config/config.js'
+
+await setupRuntimeEnv(process.cwd())
 
 interface NuxeViteNodeOptions {
   socketPath: string

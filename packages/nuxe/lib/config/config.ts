@@ -1,6 +1,7 @@
 import * as v from 'valibot'
 import { NuxeConfigSchema, type NuxeConfig, type NuxeConfigInput } from './schema'
 import { resolveRuntimeConfig, type RuntimeConfig } from './runtime-config'
+import { setupDotenv } from 'c12'
 
 export const defineConfig = <T extends NuxeConfigInput>(config: T): T => config
 
@@ -16,7 +17,27 @@ export type ResolvedNuxeConfig = Omit<NuxeConfig, 'server' | 'runtimeConfig'> & 
   runtimeConfigInput: RuntimeConfig
 }
 
+async function loadEnvFiles(cwd: string): Promise<void> {
+  await setupDotenv({
+    cwd,
+    fileName: ['.env', `.env.${process.env.NODE_ENV ?? 'development'}`, '.env.local'],
+    env: process.env,
+  })
+}
+
+let envLoadedFor: string | null = null
+let envLoadPromise: Promise<void> | null = null
+
+export function setupRuntimeEnv(cwd: string): Promise<void> {
+  if (envLoadedFor === cwd && envLoadPromise) return envLoadPromise
+  envLoadedFor = cwd
+  envLoadPromise = loadEnvFiles(cwd).catch(() => undefined)
+  return envLoadPromise
+}
+
 export async function loadNuxeConfig(opts: LoadNuxeConfigOptions): Promise<ResolvedNuxeConfig> {
+  await setupRuntimeEnv(opts.cwd)
+
   const { loadConfig } = await import('c12')
 
   const { config } = await loadConfig<NuxeConfigInput>({
