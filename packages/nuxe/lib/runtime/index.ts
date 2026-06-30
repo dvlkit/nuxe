@@ -45,5 +45,6 @@ export { useLoadingIndicator, type LoadingIndicator } from './use-loading-indica
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './cookie'
 export { createNuxeState, clearNuxeState, useState, type NuxeState } from './state'
 export { useRequestEvent, useRequestHeaders, useRequestURL } from './request'
+export { useRequestFetch } from './request-fetch'
 export { provideBaseURL, useBaseURL, resetBaseURLCache } from './base-url'
 export { createHead } from '@unhead/vue/client'

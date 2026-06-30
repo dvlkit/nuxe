@@ -70,3 +70,4 @@ export { default as NuxeLoadingIndicator } from './components/nuxe-loading-indic
 export { useState, createNuxeState, clearNuxeState, type NuxeState } from './runtime/state'
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './runtime/cookie'
 export { useRequestEvent, useRequestHeaders, useRequestURL } from './runtime/request'
+export { useRequestFetch } from './runtime/request-fetch'
