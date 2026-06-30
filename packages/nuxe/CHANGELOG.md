@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.15
+
+### Patch Changes
+
+- 2f0b6a6: remove redundant baseURL provision in main function
+
 ## 0.7.14
 
 ### Patch Changes
