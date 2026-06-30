@@ -1,15 +1,9 @@
+import './als-polyfill'
 import { getContext } from 'unctx'
 import { inject, type App, type InjectionKey } from 'vue'
 import type { NuxeState } from './state'
 import type { NuxeApp } from '../plugins/runtime'
 import type { RouteRules } from '../pages/scanner'
-
-type AsyncLocalStorageCtor = new <T>() => {
-  getStore(): T | undefined
-  run<R>(store: T, callback: () => R): R
-}
-const AsyncLocalStorage: AsyncLocalStorageCtor | undefined = (globalThis as Record<string, unknown>)
-  .AsyncLocalStorage as AsyncLocalStorageCtor | undefined
 
 export interface NuxeRequestContext {
   payload: Record<string, unknown>
@@ -38,8 +32,7 @@ const NUXE_REQUEST_CONTEXT_KEY: InjectionKey<NuxeRequestContext> =
   Symbol.for('@dvlkit/nuxe/request-context') as InjectionKey<NuxeRequestContext>
 
 const nuxeContext = getContext<NuxeRequestContext>('nuxe', {
-  asyncContext: true,
-  AsyncLocalStorage: AsyncLocalStorage as unknown as Parameters<typeof getContext>[1] extends { AsyncLocalStorage?: infer A } ? A : never,
+  asyncContext: import.meta.server,
 })
 
 export function getCurrentContext(): NuxeRequestContext | undefined {
