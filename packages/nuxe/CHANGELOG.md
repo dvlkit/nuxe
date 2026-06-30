@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.18
+
+### Patch Changes
+
+- 49c0708: streamline Nuxe app initialization and context provision
+
 ## 0.7.17
 
 ### Patch Changes
