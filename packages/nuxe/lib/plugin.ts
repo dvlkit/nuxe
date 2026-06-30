@@ -184,7 +184,7 @@ import { createStreamableHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { routes } from 'virtual:nuxe/routes'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, runPlugins, createNuxeState } from '@dvlkit/nuxe/runtime'
+import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, provideNuxeApp, runPlugins, createNuxeState } from '@dvlkit/nuxe/runtime'
 import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
@@ -195,6 +195,7 @@ async function createApp(ssrContext) {
   const ctx = createRequestContext()
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
   provideRequestContext(app, ctx)
+  provideNuxeApp(ctx, nuxeApp)
   provideRuntimeConfig(app, runtimeConfig)
   provideBaseURL(app, (runtimeConfig as { baseUrl?: string }).baseUrl)
   const error = ref(ssrContext.error || null)

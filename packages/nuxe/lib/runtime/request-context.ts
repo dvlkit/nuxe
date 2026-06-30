@@ -1,11 +1,13 @@
 import { getCurrentInstance, inject, type App, type InjectionKey } from 'vue'
 import type { NuxeState } from './state'
+import type { NuxeApp } from '../plugins/runtime'
 import type { RouteRules } from '../pages/scanner'
 
 export interface NuxeRequestContext {
   payload: Record<string, unknown>
   pending: Map<string, Promise<unknown>>
   state?: NuxeState
+  nuxeApp?: NuxeApp
   awaitAll(): Promise<void>
   routeRules?: RouteRules
 }
@@ -41,7 +43,6 @@ export function getCurrentContext(): NuxeRequestContext | undefined {
 
 export function provideRequestContext(app: App, ctx: NuxeRequestContext): void {
   app.provide(NUXE_REQUEST_CONTEXT_KEY, ctx)
-  ;(app as App & { $nuxe?: NuxeRequestContext }).$nuxe = ctx
 }
 
 export async function runWithContext<T>(
@@ -59,6 +60,6 @@ export async function runWithContext<T>(
 
 declare module 'vue' {
   interface App {
-    $nuxe?: NuxeRequestContext
+    $nuxe?: NuxeApp
   }
 }

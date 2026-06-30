@@ -1,6 +1,17 @@
-import { inject, type App, type InjectionKey } from 'vue'
+import {
+  getCurrentInstance,
+  hasInjectionContext,
+  inject,
+  type App,
+  type InjectionKey,
+} from 'vue'
 import type { Router } from 'vue-router'
-import { provideNuxeState, type NuxeState, type RuntimeConfig } from '../runtime'
+import {
+  getCurrentContext,
+  provideNuxeState,
+  type NuxeState,
+  type RuntimeConfig,
+} from '../runtime'
 
 
 export interface NuxeApp {
@@ -10,7 +21,10 @@ export interface NuxeApp {
   config: RuntimeConfig
   state: NuxeState
   hook: <N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]) => void
-  callHook: <N extends keyof NuxeAppHooks>(name: N, ...args: Parameters<NuxeAppHooks[N]>) => Promise<void>
+  callHook: <N extends keyof NuxeAppHooks>(
+    name: N,
+    ...args: Parameters<NuxeAppHooks[N]>
+  ) => Promise<void>
 }
 
 const NUXE_APP_KEY: InjectionKey<NuxeApp> = Symbol('@dvlkit/nuxe-app')
@@ -27,7 +41,9 @@ export interface NuxePluginObject {
   parallel?: boolean
 }
 
-export type NuxePlugin = NuxePluginObject | ((nuxeApp: NuxeApp) => void | Promise<void>)
+export type NuxePlugin =
+  | NuxePluginObject
+  | ((nuxeApp: NuxeApp) => void | Promise<void>)
 
 export function defineNuxePlugin(plugin: NuxePlugin): NuxePlugin {
   return plugin
@@ -43,7 +59,10 @@ class Hookable {
     this.hooks[name]!.push(fn)
   }
 
-  async call<N extends keyof NuxeAppHooks>(name: N, ...args: Parameters<NuxeAppHooks[N]>): Promise<void> {
+  async call<N extends keyof NuxeAppHooks>(
+    name: N,
+    ...args: Parameters<NuxeAppHooks[N]>
+  ): Promise<void> {
     const fns = this.hooks[name] ?? []
     for (const fn of fns) {
       await (fn as (...a: unknown[]) => void | Promise<void>)(...args)
@@ -51,35 +70,69 @@ class Hookable {
   }
 }
 
-export function createNuxeApp(options: {
+interface CreateNuxeAppOptions {
   vueApp: App
   router: Router
   ssrContext?: Record<string, unknown>
   config: RuntimeConfig
   state: NuxeState
-}): NuxeApp {
+}
+
+type NuxeAppHolder = { nuxeApp?: NuxeApp }
+
+export function createNuxeApp(options: CreateNuxeAppOptions): NuxeApp {
   const hooks = new Hookable()
   const nuxeApp: NuxeApp = {
-    ...options,
+    vueApp: options.vueApp,
+    router: options.router,
+    ssrContext: options.ssrContext,
+    config: options.config,
+    state: options.state,
     hook: (name, fn) => hooks.add(name, fn),
     callHook: (name, ...args) => hooks.call(name, ...args),
   }
   options.vueApp.provide(NUXE_APP_KEY, nuxeApp)
   provideNuxeState(options.vueApp, options.state)
+  ;(options.vueApp as App & { $nuxe?: NuxeApp }).$nuxe = nuxeApp
   return nuxeApp
 }
 
-export function useNuxeApp(): NuxeApp {
-  const nuxeApp = inject(NUXE_APP_KEY)
+export function provideNuxeApp(ctx: NuxeAppHolder, nuxeApp: NuxeApp): void {
+  ctx.nuxeApp = nuxeApp
+}
+
+export function tryUseNuxeApp(): NuxeApp | null {
+  let nuxeApp: NuxeApp | null = null
+  if (hasInjectionContext()) {
+    const inst = getCurrentInstance()
+    const viaVue = (inst?.appContext.app as (App & { $nuxe?: NuxeApp } | undefined))?.$nuxe
+    nuxeApp = viaVue ?? inject(NUXE_APP_KEY, null) ?? null
+  }
   if (!nuxeApp) {
-    throw new Error('[nuxe] useNuxeApp() must be called inside a Nuxe plugin or setup function.')
+    const ctx = getCurrentContext()
+    nuxeApp = ctx?.nuxeApp ?? null
   }
   return nuxeApp
 }
 
-export async function runPlugins(plugins: NuxePlugin[], nuxeApp: NuxeApp): Promise<void> {
+export function useNuxeApp(): NuxeApp {
+  const nuxeApp = tryUseNuxeApp()
+  if (!nuxeApp) {
+    throw new Error(
+      '[nuxe] useNuxeApp() must be called inside a Nuxe plugin or setup function.',
+    )
+  }
+  return nuxeApp
+}
+
+export async function runPlugins(
+  plugins: NuxePlugin[],
+  nuxeApp: NuxeApp,
+): Promise<void> {
   for (const plugin of plugins) {
     const setup = typeof plugin === 'function' ? plugin : plugin.setup
     await setup(nuxeApp)
   }
 }
+
+export type { NuxeAppHolder }

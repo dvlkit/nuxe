@@ -33,8 +33,10 @@ export { useRuntimeConfig, provideRuntimeConfig, type RuntimeConfig } from './co
 export {
   defineNuxePlugin,
   createNuxeApp,
+  provideNuxeApp,
   runPlugins,
   useNuxeApp,
+  tryUseNuxeApp,
   type NuxeApp,
   type NuxePlugin,
   type NuxeAppHooks,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createSSRApp, defineComponent } from 'vue'
 import { createNuxeApp, createNuxeState, useRequestEvent, useRequestHeaders } from '../../lib'
 
@@ -83,5 +83,25 @@ describe('useRequestHeaders', () => {
     })
 
     expect(headers).toEqual({})
+  })
+})
+
+describe('client-side early-return (no Vue context warning)', () => {
+  it('useRequestEvent returns undefined on the client without calling useNuxeApp', () => {
+    vi.stubGlobal('window', {})
+    try {
+      expect(useRequestEvent()).toBeUndefined()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('useRequestHeaders returns {} on the client without calling useNuxeApp', () => {
+    vi.stubGlobal('window', {})
+    try {
+      expect(useRequestHeaders()).toEqual({})
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

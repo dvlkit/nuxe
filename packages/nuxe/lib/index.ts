@@ -58,8 +58,10 @@ export {
 export {
   defineNuxePlugin,
   createNuxeApp,
+  provideNuxeApp,
   runPlugins,
   useNuxeApp,
+  tryUseNuxeApp,
   type NuxeApp,
   type NuxePlugin,
   type NuxeAppHooks,

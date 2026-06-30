@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import type { App, Router } from 'vue'
 import { createSSRApp, defineComponent } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import { createNuxeApp, defineNuxePlugin, runPlugins, useNuxeApp } from '../../lib'
+import { createNuxeApp, createNuxeState, defineNuxePlugin, provideNuxeApp, runPlugins, useNuxeApp } from '../../lib'
+import { createRequestContext, runWithContext } from '../../lib/runtime'
 import type { NuxePlugin } from '../../lib'
 
 function createTestApp(): { app: App; router: Router } {
@@ -82,5 +83,28 @@ describe('runPlugins', () => {
     }
     await runPlugins([plugin], nuxeApp)
     expect(resolved).toBe(true)
+  })
+})
+
+describe('useNuxeApp in async contexts (Nuxt-style fallback)', () => {
+  it('falls back to NuxeRequestContext.nuxeApp when there is no Vue context', async () => {
+    const { app, router } = createTestApp()
+    const nuxeApp = createNuxeApp({
+      vueApp: app,
+      router,
+      config: { public: {} },
+      state: createNuxeState(),
+    })
+
+    const ctx = createRequestContext()
+    provideNuxeApp(ctx, nuxeApp)
+
+    let resolved = null as typeof nuxeApp | null
+    await runWithContext(ctx, async () => {
+      await Promise.resolve()
+      resolved = useNuxeApp()
+    })
+
+    expect(resolved).toBe(nuxeApp)
   })
 })
