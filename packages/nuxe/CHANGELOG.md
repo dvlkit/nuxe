@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.31
+
+### Patch Changes
+
+- 9478ada: enhance routing and page context management with HMR support and new APIs
+
 ## 0.7.30
 
 ### Patch Changes
