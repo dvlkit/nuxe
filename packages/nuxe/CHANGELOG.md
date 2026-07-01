@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.39
+
+### Patch Changes
+
+- dcf6493: widen `RouteMiddleware` type to accept async functions, fixing TS2345 on async middlewares. The runtime already handles promises (via `await mw(to, from)`); the type signature is now aligned with the runtime behavior.
+
 ## 0.7.38
 
 ### Patch Changes
