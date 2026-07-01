@@ -1,7 +1,12 @@
+import type { RouteRules } from './scanner'
+
 export interface PageMeta {
-  meta?: Record<string, unknown>
-  routeRules?: Record<string, unknown>
-  [key: string]: unknown
+  meta?: {
+    middleware?: string | string[]
+    layout?: string
+    [key: string]: unknown
+  }
+  routeRules?: RouteRules
 }
 
 export function definePage(meta: PageMeta): void {

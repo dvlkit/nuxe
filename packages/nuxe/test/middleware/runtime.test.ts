@@ -19,6 +19,22 @@ describe('defineNuxeRouteMiddleware', () => {
     const fn = defineNuxeRouteMiddleware(() => 'redirect-to' as any)
     expect(fn({} as any, {} as any)).toBe('redirect-to')
   })
+
+  it('accepts async middleware', async () => {
+    const fn = defineNuxeRouteMiddleware(async () => 'redirect-to' as any)
+    await expect(fn({} as any, {} as any)).resolves.toBe('redirect-to')
+  })
+
+  it('accepts async middleware that resolves to undefined', async () => {
+    const fn = defineNuxeRouteMiddleware(async () => undefined)
+    await expect(fn({} as any, {} as any)).resolves.toBeUndefined()
+  })
+
+  it('preserves async identity', () => {
+    const inner = async () => undefined as any
+    const wrapped = defineNuxeRouteMiddleware(inner)
+    expect(wrapped).toBe(inner)
+  })
 })
 
 describe('navigateTo', () => {
