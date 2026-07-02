@@ -1,10 +1,18 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
+import { createSSRApp, defineComponent } from 'vue'
 import {
+  clearNuxeState,
+  createNuxeApp,
+  createNuxeState,
   defineNuxeRouteMiddleware,
   navigateTo,
   abortNavigation,
+  runWithNuxeApp,
+  useNuxeApp,
+  useState,
   type RouteMiddleware,
 } from '../../lib'
+import { setNuxeApp } from '../../lib/runtime/app-context'
 
 const NAVIGATE_TO_MARKER = Symbol.for('@dvlkit/nuxe/navigate-to')
 const ABORT_NAVIGATION_MARKER = Symbol.for('@dvlkit/nuxe/abort-navigation')
@@ -185,5 +193,69 @@ describe('abortNavigation', () => {
       abortNavigation('second')
       expect((abortNavigation as any).__lastPayload).toEqual({ statusMessage: 'second' })
     })
+  })
+})
+
+describe('runWithNuxeApp (middleware context)', () => {
+  // setNuxeApp uses unctx's force-set, so a previous test leaking a nuxeApp
+  // would mask regressions. Reset both the unctx context and the payload
+  // state before each test so useState() can be re-initialized fresh.
+  beforeEach(() => {
+    setNuxeApp(undefined)
+    clearNuxeState()
+  })
+
+  afterEach(() => {
+    setNuxeApp(undefined)
+    clearNuxeState()
+  })
+
+  function makeNuxeApp() {
+    const app = createSSRApp(defineComponent({ render: () => null }))
+    return createNuxeApp({
+      vueApp: app,
+      router: {} as any,
+      config: { public: {} },
+      state: createNuxeState(),
+    })
+  }
+
+  it('resolves useNuxeApp() inside a synchronous middleware', () => {
+    const nuxeApp = makeNuxeApp()
+    let resolved: ReturnType<typeof useNuxeApp> | null = null
+    runWithNuxeApp(nuxeApp, () => {
+      resolved = useNuxeApp()
+    })
+    expect(resolved).toBe(nuxeApp)
+  })
+
+  it('lets useState() work inside a synchronous middleware (regression: useState previously threw outside setup)', () => {
+    const nuxeApp = makeNuxeApp()
+    let session: ReturnType<typeof useState<string>> | null = null
+    runWithNuxeApp(nuxeApp, () => {
+      // This is the exact pattern that used to throw with
+      // `[nuxe] useState() must be called inside a Nuxe plugin or setup function...`
+      session = useState('pg:session', () => 'seeded')
+    })
+    expect(session).not.toBeNull()
+    expect(session!.value).toBe('seeded')
+  })
+
+  it('lets useState() work inside an async middleware before any await', async () => {
+    // The common middleware shape: async function that decides based on
+    // an already-cached state value before hitting the network.
+    const nuxeApp = makeNuxeApp()
+    const sessionRef = await runWithNuxeApp(nuxeApp, async () => {
+      const ref = useState<string | undefined>('pg:session')
+      if (!ref.value) ref.value = 'from-middleware'
+      return ref
+    })
+    expect(sessionRef.value).toBe('from-middleware')
+  })
+
+  it('returns the value produced by fn', () => {
+    const nuxeApp = makeNuxeApp()
+    const result = runWithNuxeApp(nuxeApp, () => 'ok')
+    expect(result).toBe('ok')
   })
 })

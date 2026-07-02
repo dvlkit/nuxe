@@ -106,6 +106,11 @@ export function provideNuxeApp(
   setNuxeApp(nuxeApp)
 }
 
+export function runWithNuxeApp<T>(nuxeApp: NuxeApp, fn: () => T): T {
+  setNuxeApp(nuxeApp)
+  return nuxeApp.vueApp.runWithContext(fn) as T
+}
+
 export { tryUseNuxeApp } from '../runtime/app-context'
 
 export function useNuxeApp(): NuxeApp {

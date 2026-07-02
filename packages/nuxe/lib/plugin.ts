@@ -9,14 +9,14 @@ import { createPagesContext, type PagesContext } from './pages/context'
 
 const CLIENT_MIDDLEWARE_CHAIN_LOGIC = `
 function __nuxe_runMiddlewareChain(to, from) {
-  return __nuxe_runMiddlewareChainInner(to, from, new Set())
+  return __nuxe_runMiddlewareChainInner(__nuxeApp, to, from, new Set())
 }
 
-async function __nuxe_runMiddlewareChainInner(to, from, seen) {
+async function __nuxe_runMiddlewareChainInner(app, to, from, seen) {
   for (const mw of globalMiddlewares) {
     if (seen.has(mw)) continue
     seen.add(mw)
-    const result = await mw(to, from)
+    const result = await runWithNuxeApp(app, () => mw(to, from))
     if (result === false) return false
     if (result && result !== true) return result
   }
@@ -29,7 +29,7 @@ async function __nuxe_runMiddlewareChainInner(to, from, seen) {
       if (!mw) continue
       if (seen.has(mw)) continue
       seen.add(mw)
-      const result = await mw(to, from)
+      const result = await runWithNuxeApp(app, () => mw(to, from))
       if (result === false) return false
       if (result && result !== true) return result
     }
@@ -77,16 +77,16 @@ async function __nuxe_handleMiddlewareResult(ssrContext, result) {
   return true
 }
 
-async function __nuxe_runGlobalMiddlewares(to, from, ssrContext) {
+async function __nuxe_runGlobalMiddlewares(app, to, from, ssrContext) {
   for (const mw of globalMiddlewares) {
-    const result = await mw(to, from)
+    const result = await runWithNuxeApp(app, () => mw(to, from))
     const handled = await __nuxe_handleMiddlewareResult(ssrContext, result)
     if (handled !== true) return handled
   }
   return true
 }
 
-async function __nuxe_runNamedMiddlewares(to, from, ssrContext) {
+async function __nuxe_runNamedMiddlewares(app, to, from, ssrContext) {
   const meta = to && to.meta
   const named = meta && meta.middleware
   if (!named) return true
@@ -97,7 +97,7 @@ async function __nuxe_runNamedMiddlewares(to, from, ssrContext) {
     if (!mw) continue
     if (seen.has(mw)) continue
     seen.add(mw)
-    const result = await mw(to, from)
+    const result = await runWithNuxeApp(app, () => mw(to, from))
     const handled = await __nuxe_handleMiddlewareResult(ssrContext, result)
     if (handled !== true) return handled
   }
@@ -114,8 +114,9 @@ import { ErrorComponent } from 'virtual:nuxe/error'
 import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
-import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxeApp, runPlugins, createNuxeState } from '@dvlkit/nuxe/runtime'
+import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxeApp, provideNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
 import publicRuntimeConfig from '/.nuxe/runtime-config-public.json'
+let __nuxeApp
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
 async function main() {
@@ -152,6 +153,8 @@ async function main() {
   })
   handleHotUpdate(router)
   const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, state: createNuxeState(initialState) })
+  __nuxeApp = nuxeApp
+  provideNuxeApp({ nuxeApp }, nuxeApp)
   await runPlugins(plugins, nuxeApp)
   await nuxeApp.callHook('app:created')
   router.beforeEach(() => nuxeApp.callHook('page:start'))
@@ -185,7 +188,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { createStreamableHead } from '@dvlkit/nuxe/runtime/server-head'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, provideNuxeApp, runPlugins, createNuxeState } from '@dvlkit/nuxe/runtime'
+import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, provideNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
 import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import routes from 'virtual:nuxe/routes'
@@ -260,7 +263,7 @@ async function createApp(ssrContext) {
     return app
   }
 
-  await __nuxe_runGlobalMiddlewares(resolved, router.currentRoute.value, ssrContext)
+  await __nuxe_runGlobalMiddlewares(nuxeApp, resolved, router.currentRoute.value, ssrContext)
   if (ssrContext._renderResponse) {
     ssrContext.modules = ssrContext.modules || new Set()
     ssrContext.head = head
@@ -277,7 +280,7 @@ async function createApp(ssrContext) {
     return app
   }
 
-  router.beforeEach((to, from) => __nuxe_runNamedMiddlewares(to, from, ssrContext))
+  router.beforeEach((to, from) => __nuxe_runNamedMiddlewares(nuxeApp, to, from, ssrContext))
 
   await nuxeApp.callHook('page:start')
   try {

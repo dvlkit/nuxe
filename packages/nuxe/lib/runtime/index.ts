@@ -35,6 +35,7 @@ export {
   createNuxeApp,
   provideNuxeApp,
   runPlugins,
+  runWithNuxeApp,
   useNuxeApp,
   tryUseNuxeApp,
   type NuxeApp,
