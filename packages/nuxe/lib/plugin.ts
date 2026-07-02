@@ -294,6 +294,13 @@ async function createApp(ssrContext) {
     }
   }
 
+  if (ssrContext._renderResponse) {
+    ssrContext.modules = ssrContext.modules || new Set()
+    ssrContext.head = head
+    ssrContext.ctx = ctx
+    return app
+  }
+
   await router.isReady()
   await nuxeApp.callHook('page:finish')
 
