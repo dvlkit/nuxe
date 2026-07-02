@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.40
+
+### Patch Changes
+
+- c3cf82d: add runWithNuxeApp function for middleware context and update related tests
+
 ## 0.7.39
 
 ### Patch Changes
