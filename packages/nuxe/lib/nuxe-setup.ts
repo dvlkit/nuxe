@@ -124,7 +124,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
     nitro({
       preset: 'node-server',
       serverDir: 'server',
-      apiBaseURL: config.apiPrefix,
+      apiBaseURL: config.server.apiPrefix,
       renderer: {
         handler: createRequire(join(cwd, 'package.json')).resolve(
           '@dvlkit/nuxe/server/handler',

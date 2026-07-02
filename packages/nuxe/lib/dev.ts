@@ -13,7 +13,7 @@ export async function runDev(cwd: string): Promise<void> {
   const startedAt = Date.now()
   prepareLayouts(cwd)
   const config = await loadNuxeConfig({ cwd })
-  process.env.NUXE_API_PREFIX = config.apiPrefix
+  process.env.NUXE_API_PREFIX = config.server.apiPrefix
   const port = config.server.port
   const setup = await createNuxeProjectSetup(cwd, config)
 

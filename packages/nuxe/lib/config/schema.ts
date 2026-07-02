@@ -19,21 +19,21 @@ const nuxeConfigSchema = v.object({
   server: v.optional(
     v.object({
       port: v.optional(v.pipe(v.number(), v.minValue(1), v.maxValue(65535))),
+      apiPrefix: v.optional(
+        v.pipe(
+          v.string(),
+          v.regex(/^\/(?!\/)/, 'apiPrefix must start with "/" (e.g. "/api" or "/v1")'),
+          v.check((s) => s.length > 1, 'apiPrefix cannot be just "/"'),
+          v.transform((s) => s.replace(/\/+$/, '')),
+        ),
+        '/api',
+      ),
     }),
     {},
   ),
   vite: v.optional(v.custom<UserConfig>(() => true), {}),
   runtimeConfig: v.optional(runtimeConfigSchema, {}),
   baseUrl: v.optional(v.string()),
-  apiPrefix: v.optional(
-    v.pipe(
-      v.string(),
-      v.regex(/^\/(?!\/)/, 'apiPrefix must start with "/" (e.g. "/api" or "/v1")'),
-      v.check((s) => s.length > 1, 'apiPrefix cannot be just "/"'),
-      v.transform((s) => s.replace(/\/+$/, '')),
-    ),
-    '/api',
-  ),
 })
 
 export const NuxeConfigSchema: typeof nuxeConfigSchema = nuxeConfigSchema

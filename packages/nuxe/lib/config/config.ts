@@ -10,6 +10,7 @@ export interface LoadNuxeConfigOptions {
 export type ResolvedNuxeConfig = Omit<NuxeConfig, 'server' | 'runtimeConfig'> & {
   server: {
     port: number
+    apiPrefix: string
   }
   runtimeConfig: RuntimeConfig
   runtimeConfigInput: RuntimeConfig
@@ -66,6 +67,7 @@ export async function loadNuxeConfig(opts: LoadNuxeConfigOptions): Promise<Resol
     ...result.output,
     server: {
       port: resolvedPort,
+      apiPrefix: result.output.server.apiPrefix,
     },
     runtimeConfig,
     runtimeConfigInput,
