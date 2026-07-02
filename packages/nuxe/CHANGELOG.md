@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.41
+
+### Patch Changes
+
+- 1627163: solve redirectTo
+
 ## 0.7.40
 
 ### Patch Changes
