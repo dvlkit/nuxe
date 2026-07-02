@@ -24,7 +24,14 @@ function classify(
 ): string | undefined {
   if (status >= 500) return 'error'
   if (ASSET_RE.test(url)) return 'asset'
-  if (url.startsWith('/api/') || url.startsWith('/_')) return 'api'
+  const apiPrefix = process.env.NUXE_API_PREFIX || '/api'
+  if (
+    url === apiPrefix
+    || url.startsWith(apiPrefix + '/')
+    || url.startsWith('/_')
+  ) {
+    return 'api'
+  }
   if (contentType && contentType.includes('text/html')) return 'page'
   return 'api'
 }

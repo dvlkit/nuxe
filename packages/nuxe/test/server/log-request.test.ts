@@ -17,11 +17,13 @@ describe('nitro-log-request plugin', () => {
       CI: process.env.CI,
       VITEST: process.env.VITEST,
       NODE_ENV: process.env.NODE_ENV,
+      NUXE_API_PREFIX: process.env.NUXE_API_PREFIX,
     }
     delete process.env.NUXE_SILENT
     delete process.env.CI
     delete process.env.VITEST
     delete process.env.NODE_ENV
+    delete process.env.NUXE_API_PREFIX
 
   })
 
@@ -229,5 +231,44 @@ describe('nitro-log-request plugin', () => {
 
     nitroApp.fire('error', new Error('orphan'), { event: undefined })
     expect(logged).toHaveLength(0)
+  })
+
+  it('classifies routes under a custom apiPrefix (NUXE_API_PREFIX="/v1")', async () => {
+    process.env.NUXE_API_PREFIX = '/v1'
+    const nitroApp = makeHooks()
+    const plugin = await loadPlugin()
+    plugin(nitroApp as unknown as Parameters<typeof plugin>[0])
+
+    nitroApp.fire(
+      'response',
+      new Response('{"ok":true}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+      makeEvent('/v1/orders', 'GET', 0),
+    )
+
+    expect(logged).toHaveLength(1)
+    expect(logged[0]).toContain('/v1/orders')
+    expect(logged[0]).toContain('api')
+  })
+
+  it('still classifies "/api/*" as api when NUXE_API_PREFIX is unset (default)', async () => {
+    // NUXE_API_PREFIX is deleted in beforeEach
+    const nitroApp = makeHooks()
+    const plugin = await loadPlugin()
+    plugin(nitroApp as unknown as Parameters<typeof plugin>[0])
+
+    nitroApp.fire(
+      'response',
+      new Response('{"ok":true}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+      makeEvent('/api/orders', 'GET', 0),
+    )
+
+    expect(logged).toHaveLength(1)
+    expect(logged[0]).toContain('api')
   })
 })

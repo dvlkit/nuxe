@@ -8,6 +8,7 @@ import { logInfo } from './utils/logger'
 export async function runStart(cwd: string): Promise<void> {
   await setupRuntimeEnv(cwd)
   const config = await loadNuxeConfig({ cwd })
+  process.env.NUXE_API_PREFIX = config.apiPrefix
   const port = config.server.port
 
   const serverPath = resolve(cwd, '.output/server/index.mjs')
