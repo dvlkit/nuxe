@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.42
+
+### Patch Changes
+
+- 5496d88: add apiPrefix configuration
+
 ## 0.7.41
 
 ### Patch Changes
