@@ -172,52 +172,54 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
     }
   }
 
-  let keyChanging = false
-  const hasScope = !!getCurrentScope()
-  let stopKeyWatch: (() => void) | undefined
-  let stopDepsWatch: (() => void) | undefined
+  if (isClient) {
+    let keyChanging = false
+    const hasScope = !!getCurrentScope()
+    let stopKeyWatch: (() => void) | undefined
+    let stopDepsWatch: (() => void) | undefined
 
-  if (isRef(key) || typeof key === 'function') {
-    stopKeyWatch = watch(
-      keyRef,
-      async (newKey, oldKey) => {
-        if (oldKey === undefined) return
-        if (newKey === oldKey) return
-        keyChanging = true
-        try {
-          data.value = null
-          error.value = null
-          pending.value = true
-          status.value = 'pending'
-          await runHandler(newKey)
-        } finally {
-          await nextTick()
-          keyChanging = false
+    if (isRef(key) || typeof key === 'function') {
+      stopKeyWatch = watch(
+        keyRef,
+        async (newKey, oldKey) => {
+          if (oldKey === undefined) return
+          if (newKey === oldKey) return
+          keyChanging = true
+          try {
+            data.value = null
+            error.value = null
+            pending.value = true
+            status.value = 'pending'
+            await runHandler(newKey)
+          } finally {
+            await nextTick()
+            keyChanging = false
+          }
+        },
+        { flush: 'sync' },
+      )
+    }
+
+    if (options.watch !== undefined) {
+      stopDepsWatch = watch(options.watch, () => {
+        if (keyChanging) return
+        pending.value = true
+        status.value = 'pending'
+        if (ctx) {
+          const p = runHandler(keyRef.value)
+          ctx.pending.set(keyRef.value, p)
+        } else {
+          void runHandler(keyRef.value)
         }
-      },
-      { flush: 'sync' },
-    )
-  }
+      })
+    }
 
-  if (options.watch !== undefined) {
-    stopDepsWatch = watch(options.watch, () => {
-      if (keyChanging) return
-      pending.value = true
-      status.value = 'pending'
-      if (ctx) {
-        const p = runHandler(keyRef.value)
-        ctx.pending.set(keyRef.value, p)
-      } else {
-        void runHandler(keyRef.value)
-      }
-    })
-  }
-
-  if (hasScope) {
-    onScopeDispose(() => {
-      stopKeyWatch?.()
-      stopDepsWatch?.()
-    })
+    if (hasScope) {
+      onScopeDispose(() => {
+        stopKeyWatch?.()
+        stopDepsWatch?.()
+      })
+    }
   }
 
   const refresh = async (): Promise<void> => {
