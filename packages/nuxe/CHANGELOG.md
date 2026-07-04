@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.44
+
+### Patch Changes
+
+- dbe8e86: patch global fetch for internal SSR routing and add request event context utilities
+
 ## 0.7.43
 
 ### Patch Changes
