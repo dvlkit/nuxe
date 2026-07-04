@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.47
+
+### Patch Changes
+
+- 5a1227f: move key watching logic inside client check in useAsyncData
+
 ## 0.7.46
 
 ### Patch Changes
