@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.46
+
+### Patch Changes
+
+- a403d4f: add scrollBehavior to router for saved position, hash scrolling, and default fallback
+
 ## 0.7.45
 
 ### Patch Changes
