@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.45
+
+### Patch Changes
+
+- 244a84b: add support for internal fetch installation in server build configuration
+
 ## 0.7.44
 
 ### Patch Changes
