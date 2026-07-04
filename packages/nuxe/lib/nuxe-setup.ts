@@ -136,6 +136,9 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
             createRequire(join(cwd, 'package.json')).resolve(
               '@dvlkit/nuxe/server/nitro-log-request',
             ),
+            createRequire(join(cwd, 'package.json')).resolve(
+              '@dvlkit/nuxe/server/install-internal-fetch',
+            )
           ]
         } catch {
           return []

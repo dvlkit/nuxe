@@ -19,12 +19,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
-import { createViteNodeClient } from '../vite/vite-node-client.js'
-import { serializePayload } from './payload.js'
+import { createViteNodeClient } from '../vite/vite-node-client'
+import { serializePayload } from './payload'
 import { createError, serializeError } from '../runtime'
-import { getPublicRuntimeConfig, type RuntimeConfig } from '../config/runtime-config.js'
+import { runWithRequest } from '../runtime/request-event-context'
+import { getPublicRuntimeConfig, type RuntimeConfig } from '../config/runtime-config'
 import { loadRuntimeConfig } from './config.js'
-import { setupRuntimeEnv } from '../config/config.js'
+import { setupRuntimeEnv } from '../config'
 
 await setupRuntimeEnv(process.cwd())
 
@@ -373,16 +374,16 @@ export default async function handler(request: Request): Promise<Response> {
 
       const { app, manifest, createApp, client } = await loadAppAndManifestDev(options, ssrContext)
       try {
-        return await renderApp(request, ssrContext, app, manifest, createApp, true, runtimeConfig, async () =>
+        return await runWithRequest(request, () => renderApp(request, ssrContext, app, manifest, createApp, true, runtimeConfig, async () =>
           (await client.manifest() as RendererManifest | null) ?? null,
-        )
+        ))
       } finally {
         await client.close()
       }
     }
 
     const { app, manifest, createApp } = await loadAppAndManifestProd(ssrContext)
-    return renderApp(request, ssrContext, app, manifest, createApp, false, runtimeConfig)
+    return runWithRequest(request, () => renderApp(request, ssrContext, app, manifest, createApp, false, runtimeConfig))
   } catch (error) {
     console.error('[nuxe] handler error', error)
     return renderErrorResponse(500, error instanceof Error ? error.message : String(error))
