@@ -9,6 +9,7 @@ export {
   setResponseStatus,
   setHeader,
   sendRedirect,
+  redirect,
   createError,
   getCookie,
   setCookie,
