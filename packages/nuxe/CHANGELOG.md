@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.51
+
+### Patch Changes
+
+- c1aabdf: add loadRuntimeConfig function to server module declaration
+
 ## 0.7.50
 
 ### Patch Changes
