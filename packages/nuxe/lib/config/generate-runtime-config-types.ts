@@ -45,5 +45,9 @@ declare module '@dvlkit/nuxe' {
 declare module '@dvlkit/nuxe/runtime' {
   export function useRuntimeConfig(): RuntimeConfig
 }
+
+declare module '@dvlkit/nuxe/server' {
+  export function loadRuntimeConfig(): RuntimeConfig
+}
 `
 }
