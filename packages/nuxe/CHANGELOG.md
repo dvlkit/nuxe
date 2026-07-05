@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.48
+
+### Patch Changes
+
+- fa9cc87: enhance router scroll behavior with configurable hash scrolling and extend runtime config for public router settings
+
 ## 0.7.47
 
 ### Patch Changes
