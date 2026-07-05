@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.49
+
+### Patch Changes
+
+- 6158231: add page loading hooks and NuxePage component for enhanced navigation events and layout management
+
 ## 0.7.48
 
 ### Patch Changes
