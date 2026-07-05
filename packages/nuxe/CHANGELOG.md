@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.54
+
+### Patch Changes
+
+- ba9a407: correct execution logic in useAsyncData for Nuxe app integration
+
 ## 0.7.53
 
 ### Patch Changes
