@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.53
+
+### Patch Changes
+
+- 8981f39: update Nuxe plugin and async data handling for improved SSR support
+
 ## 0.7.52
 
 ### Patch Changes
