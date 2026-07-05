@@ -103,8 +103,8 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
     }
         
     const exec: () => Promise<T> = nuxeApp && !isClient
-      ? () => runWithNuxeApp(nuxeApp, buildExec() as any) 
-      : buildExec()
+      ? () => runWithNuxeApp(nuxeApp, () => (buildExec() as any)() as any)
+      : () => (buildExec() as () => Promise<T>)()
     
     try {
       const result = await exec()
