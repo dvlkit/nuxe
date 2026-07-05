@@ -15,6 +15,8 @@ import {
   type WatchSource,
 } from 'vue'
 import { getCurrentContext, runWithContext } from './request-context'
+import { getCurrentRequest, runWithRequest } from './request-event-context'
+import { tryUseNuxeApp } from '../plugins/runtime'
 
 export type AsyncDataKey = string | Ref<string> | (() => string)
 
@@ -90,11 +92,16 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
   const retryDelay = Math.max(0, options.retryDelayMs ?? 0)
 
   const runHandler = async (currentKey: string): Promise<void> => {
-    const exec = ctx
-      ? () => runWithContext(ctx, () =>
-          runWithRetries(handler, retries, retryDelay),
-        )
-      : () => runWithRetries(handler, retries, retryDelay)
+    const ssrRequest = isClient
+        ? undefined
+        : (tryUseNuxeApp()?.ssrContext?.request as Request | undefined)
+        
+    const exec = (() => {
+        const base = () => runWithRetries(handler, retries, retryDelay)
+        const wrapped = ssrRequest ? () => runWithRequest(ssrRequest, base) : base
+        return ctx ? () => runWithContext(ctx, wrapped) : wrapped
+    })()
+    
     try {
       const result = await exec()
       data.value = result
@@ -226,7 +233,9 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
     pending.value = true
     status.value = 'pending'
     try {
-      data.value = await runWithRetries(handler, retries, retryDelay)
+      const execute = () => runWithRetries(handler, retries, retryDelay)
+      const ssrRequest = !isClient ? (tryUseNuxeApp()?.ssrContext?.request as Request | undefined) : undefined
+      data.value = ssrRequest ? await runWithRequest(ssrRequest, execute) : await execute()
       status.value = 'success'
       error.value = null
     } catch (err) {
