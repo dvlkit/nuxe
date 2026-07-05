@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.50
+
+### Patch Changes
+
+- 672022c: add missing export for redirect function in server index
+
 ## 0.7.49
 
 ### Patch Changes
