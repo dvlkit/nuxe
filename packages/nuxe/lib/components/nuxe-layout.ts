@@ -1,4 +1,4 @@
-import { computed, defineComponent, h, Transition, type PropType } from 'vue'
+import { computed, defineComponent, h, Transition, type ComputedRef, type PropType } from 'vue'
 import { useRoute, type NavigationGuard, type RouteMeta } from 'vue-router'
 import layouts from '#nuxe/layouts.mjs'
 
@@ -60,6 +60,11 @@ export const NuxeLayout = defineComponent({
       return null
     })
 
+    const layoutProps: ComputedRef<Record<string, unknown>> = computed(() => {
+      const meta = route.meta as { layoutProps?: Record<string, unknown> }
+      return (meta.layoutProps ?? attrs) as Record<string, unknown>
+    })
+
     return () => {
       const LayoutComponent = resolvedLayout.value as any
 
@@ -67,10 +72,7 @@ export const NuxeLayout = defineComponent({
         return slots.default?.() ?? null
       }
 
-      const metaLayout = route.meta as { layoutProps?: Record<string, unknown> }
-      const layoutProps = (metaLayout.layoutProps ?? attrs) as Record<string, unknown>
-
-      const layoutVNode = h(LayoutComponent, layoutProps, {default: slots.default})
+      const layoutVNode = h(LayoutComponent, layoutProps.value, {default: slots.default})
 
       if (props.transition) {
         const transitionProps = typeof props.transition === 'object' ? props.transition : {name: 'fade'}

@@ -19,6 +19,7 @@ export interface NuxeApp {
   state: NuxeState
   payload: { state: NuxeState }
   hook: <N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]) => void
+  hookOnce: <N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]) => void
   callHook: <N extends keyof NuxeAppHooks>(
     name: N,
     ...args: Parameters<NuxeAppHooks[N]>
@@ -32,6 +33,8 @@ export interface NuxeAppHooks {
   'app:mounted': () => void | Promise<void>
   'page:start': () => void | Promise<void>
   'page:finish': () => void | Promise<void>
+  'page:loading:start': () => void | Promise<void>
+  'page:loading:end': () => void | Promise<void>
 }
 
 export interface NuxePluginObject {
@@ -55,6 +58,21 @@ class Hookable {
       this.hooks[name] = []
     }
     this.hooks[name]!.push(fn)
+  }
+
+  remove<N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]): void {
+    const arr = this.hooks[name]
+    if (!arr) return
+    const idx = arr.indexOf(fn)
+    if (idx >= 0) arr.splice(idx, 1)
+  }
+
+  once<N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]): void {
+    const wrapped = ((...args: unknown[]) => {
+      this.remove(name, wrapped as NuxeAppHooks[N])
+      return (fn as (...a: unknown[]) => unknown)(...args)
+    }) as NuxeAppHooks[N]
+    this.add(name, wrapped)
   }
 
   async call<N extends keyof NuxeAppHooks>(
@@ -88,8 +106,9 @@ export function createNuxeApp(options: CreateNuxeAppOptions): NuxeApp {
     ssrContext: options.ssrContext,
     config: options.config,
     state,
-    payload: { state },
+    payload: {state},
     hook: (name, fn) => hooks.add(name, fn),
+    hookOnce: (name, fn) => hooks.once(name, fn),
     callHook: (name, ...args) => hooks.call(name, ...args),
   }
   options.vueApp.provide(NUXE_APP_KEY, nuxeApp)

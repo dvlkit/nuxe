@@ -72,3 +72,4 @@ export { useState, createNuxeState, clearNuxeState, type NuxeState } from './run
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './runtime/cookie'
 export { useRequestEvent, useRequestHeaders, useRequestURL } from './runtime/request'
 export { useRequestFetch } from './runtime/request-fetch'
+export { default as NuxePage } from './components/nuxe-page'

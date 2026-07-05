@@ -106,7 +106,7 @@ async function __nuxe_runNamedMiddlewares(app, to, from, ssrContext) {
 `
 
 const ENTRY_CLIENT_SOURCE = `import { createSSRApp, ref } from 'vue'
-import { RouterView, createRouter, createWebHistory } from 'vue-router'
+import { START_LOCATION, RouterView, createRouter, createWebHistory } from 'vue-router'
 import { createHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import App from '/app/app.vue'
@@ -188,17 +188,28 @@ async function main() {
         : metaScrollToTop
       if (routeAllowsScrollToTop === false) return false
       
-      if (savedPosition) return savedPosition
-      
-      if (to.hash) {
-        return {
-          el: to.hash,
-          top: getHashElementScrollMarginTop(to.hash),
-          behavior: hashScrollBehavior,
+      const resolvePosition = () => {
+        if (savedPosition) return savedPosition
+        
+        if (to.hash) {
+          return {
+            el: to.hash,
+            top: getHashElementScrollMarginTop(to.hash),
+            behavior: hashScrollBehavior,
+          }
         }
+      
+        return { top: 0 }
       }
       
-      return { top: 0 }
+      if (from === START_LOCATION) return resolvePosition()
+      
+      return new Promise((resolve) => {
+        const doScroll = () => {
+          requestAnimationFrame(() => resolve(resolvePosition()))
+        }
+        __nuxeApp.hookOnce('page:loading:end', doScroll)
+      })
     },
   })
   
@@ -213,6 +224,7 @@ async function main() {
   await runPlugins(plugins, nuxeApp)
   await nuxeApp.callHook('app:created')
   router.beforeEach(() => nuxeApp.callHook('page:start'))
+  router.beforeEach(() => nuxeApp.callHook('page:loading:start'))
   let isFirstNavigation = true
   router.beforeEach((to, from) => {
     if (isFirstNavigation) {
@@ -335,6 +347,7 @@ async function createApp(ssrContext) {
   router.beforeEach((to, from) => __nuxe_runNamedMiddlewares(nuxeApp, to, from, ssrContext))
 
   await nuxeApp.callHook('page:start')
+  await nuxeApp.callHook('page:loading:start')
   try {
     await router.push(href)
   } catch (err) {
@@ -439,7 +452,7 @@ export default function nuxe(options: NuxeOptions): Plugin {
     const mod = server.moduleGraph.getModuleById('\0virtual:nuxe/routes')
     if (mod) {
       server.moduleGraph.invalidateModule(mod)
-      server.ws.send({ type: 'full-reload', path: '*' })
+      server.ws.send({type: 'full-reload', path: '*'})
     }
   }
 
