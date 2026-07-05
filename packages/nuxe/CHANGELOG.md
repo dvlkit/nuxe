@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.52
+
+### Patch Changes
+
+- 5e12b63: enhance useAsyncData to support SSR context and request handling
+
 ## 0.7.51
 
 ### Patch Changes
