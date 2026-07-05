@@ -16,7 +16,7 @@ import {
 } from 'vue'
 import { getCurrentContext, runWithContext } from './request-context'
 import { getCurrentRequest, runWithRequest } from './request-event-context'
-import { tryUseNuxeApp } from '../plugins/runtime'
+import { tryUseNuxeApp, runWithNuxeApp } from '../plugins/runtime'
 
 export type AsyncDataKey = string | Ref<string> | (() => string)
 
@@ -92,15 +92,19 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
   const retryDelay = Math.max(0, options.retryDelayMs ?? 0)
 
   const runHandler = async (currentKey: string): Promise<void> => {
-    const ssrRequest = isClient
-        ? undefined
-        : (tryUseNuxeApp()?.ssrContext?.request as Request | undefined)
+    const nuxeApp = !isClient ? tryUseNuxeApp() : null
+    const ssrRequest = nuxeApp?.ssrContext?.request as Request | undefined
+    
+    const buildExec = (): (() => Promise<T>) => {
+      const base = (): Promise<T> => runWithRetries<T>(handler, retries, retryDelay)
+      const withRequest: () => Promise<T> = ssrRequest ? () => runWithRequest<T>(ssrRequest, base) : base
+      const withCtx: () => Promise<T> = ctx ? () => runWithContext<T>(ctx, withRequest) : withRequest
+      return withCtx
+    }
         
-    const exec = (() => {
-        const base = () => runWithRetries(handler, retries, retryDelay)
-        const wrapped = ssrRequest ? () => runWithRequest(ssrRequest, base) : base
-        return ctx ? () => runWithContext(ctx, wrapped) : wrapped
-    })()
+    const exec: () => Promise<T> = nuxeApp && !isClient
+      ? () => runWithNuxeApp(nuxeApp, buildExec() as any) 
+      : buildExec()
     
     try {
       const result = await exec()
@@ -230,12 +234,28 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
   }
 
   const refresh = async (): Promise<void> => {
+    const nuxeApp = !isClient ? tryUseNuxeApp() : null
+    const ssrRequest = nuxeApp?.ssrContext?.request as Request | undefined
+
+    const buildExec = (): (() => Promise<T>) => {
+      const base = (): Promise<T> => runWithRetries<T>(handler, retries, retryDelay)
+      const withRequest: () => Promise<T> = ssrRequest
+        ? () => runWithRequest<T>(ssrRequest, base)
+        : base
+      const withCtx: () => Promise<T> = ctx
+        ? () => runWithContext<T>(ctx, withRequest)
+        : withRequest
+      return withCtx
+    }
+    
+    const exec: () => Promise<T> = nuxeApp && !isClient
+      ? () => runWithNuxeApp(nuxeApp, buildExec() as any)
+      : buildExec()
+    
     pending.value = true
     status.value = 'pending'
     try {
-      const execute = () => runWithRetries(handler, retries, retryDelay)
-      const ssrRequest = !isClient ? (tryUseNuxeApp()?.ssrContext?.request as Request | undefined) : undefined
-      data.value = ssrRequest ? await runWithRequest(ssrRequest, execute) : await execute()
+      data.value = await exec()
       status.value = 'success'
       error.value = null
     } catch (err) {

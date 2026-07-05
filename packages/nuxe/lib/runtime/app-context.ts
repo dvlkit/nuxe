@@ -5,7 +5,7 @@ import { getContext } from 'unctx'
 export const NUXE_APP_INJECTION_KEY: InjectionKey<NuxeApp> =
   Symbol.for('@dvlkit/nuxe-app') as unknown as InjectionKey<NuxeApp>
 
-const nuxeAppContext = getContext<NuxeApp>('nuxe-app', {
+export const nuxeAppContext = getContext<NuxeApp>('nuxe-app', {
   asyncContext: import.meta.server,
 })
 
