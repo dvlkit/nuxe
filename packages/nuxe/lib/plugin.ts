@@ -142,20 +142,70 @@ async function main() {
     }
   }
   provideRuntimeConfig(app, runtimeConfig)
+  
+  const routerPublicCfg = (runtimeConfig?.public?.router ?? {}) as { scrollBehaviorType?: 'auto' | 'smooth' | 'instant' }
+  const hashScrollBehavior = routerPublicCfg?.scrollBehaviorType ?? 'auto'
+  
   const originalWarn = console.warn
   console.warn = (...args) => {
     if (typeof args[0] === 'string' && args[0].includes('No match found')) return
     originalWarn(...args)
   }
+  
+  function getHashElementScrollMarginTop(selector: string): number {
+    try {
+      const elem = document.querySelector(selector)
+      if (elem) {
+        return (Number.parseFloat(getComputedStyle(elem).scrollMarginTop) || 0) + (Number.parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0)
+      }
+    } catch {
+      // ignore
+    }
+    return 0
+  }
+  
   const router = createRouter({
     history: createWebHistory(),
     routes,
     scrollBehavior(to, from, savedPosition) {
+      const stripTrailingSlash = (p: string) => (p.endsWith('/') ? p.slice(0, -1) : p)
+      const samePath = stripTrailingSlash(to.path) === stripTrailingSlash(from.path)
+      if (samePath) {
+        if (from.hash && !to.hash) return { left: 0, top: 0 }
+        if (to.hash) {
+          return {
+            el: to.hash,
+            top: getHashElementScrollMarginTop(to.hash),
+            behavior: hashScrollBehavior,
+          }
+        }
+        return false
+      }
+      
+      const metaScrollToTop = to.meta?.scrollToTop
+      const routeAllowsScrollToTop = typeof metaScrollToTop === 'function'
+        ? metaScrollToTop(to, from)
+        : metaScrollToTop
+      if (routeAllowsScrollToTop === false) return false
+      
       if (savedPosition) return savedPosition
-      if (to.hash) return { el: to.hash, behavior: 'smooth' }
+      
+      if (to.hash) {
+        return {
+          el: to.hash,
+          top: getHashElementScrollMarginTop(to.hash),
+          behavior: hashScrollBehavior,
+        }
+      }
+      
       return { top: 0 }
     },
   })
+  
+  if (import.meta.client && 'scrollRestoration' in window.history) {
+    window.history.scrollRestoration = 'auto'
+  }
+  
   handleHotUpdate(router)
   const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, state: createNuxeState(initialState) })
   __nuxeApp = nuxeApp
@@ -204,7 +254,7 @@ ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 async function createApp(ssrContext) {
   const ctx = createRequestContext()
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
-  provideRuntimeConfig(app, runtimeConfig)
+  provideRuntimeConfig(app, runtimeConfig)  
   provideBaseURL(app, (runtimeConfig as { baseUrl?: string }).baseUrl)
   const error = ref(ssrContext.error || null)
   provideError(app, error)
@@ -222,9 +272,6 @@ async function createApp(ssrContext) {
   const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, ssrContext, state })
   ssrContext.nuxeApp = nuxeApp
   await runPlugins(plugins, nuxeApp)
-  // The request context is created up top so it can carry the app to
-  // async handlers; we attach it to the Vue app now that everything is
-  // initialized (otherwise we'd hit a TDZ on nuxeApp).
   await nuxeApp.callHook('app:created')
   app.use(router)
   provideRequestContext(app, ctx)

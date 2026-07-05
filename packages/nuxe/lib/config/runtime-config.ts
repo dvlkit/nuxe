@@ -12,15 +12,22 @@ export const NUXE_RESERVED_ENV = new Set([
   'NUXE_VITE_NODE_OPTIONS',
 ])
 
+export interface PublicRuntimeConfig {
+  router?: {
+    scrollBehaviorType?: 'auto' | 'smooth' | 'instant'
+  }
+}
+
 export interface RuntimeConfig {
-  public: Record<string, unknown>
+  public: PublicRuntimeConfig & Record<string, unknown>
+
   [key: string]: unknown
 }
 
 function isRuntimeConfigValue(value: unknown): value is RuntimeConfig | Record<string, unknown> | string | number | boolean | null | undefined {
   if (value === null || value === undefined) return true
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true
-  return typeof value === 'object' && !Array.isArray(value);
+  return typeof value === 'object' && !Array.isArray(value)
 
 }
 
@@ -91,7 +98,7 @@ export function injectRuntimeConfigFromEnv(target: RuntimeConfig): void {
 
 function collectKeys(prefix: string, obj: unknown, keys: string[] = []): Array<{ keys: string[], value: unknown }> {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-    return [{ keys, value: obj }]
+    return [{keys, value: obj}]
   }
   const result: Array<{ keys: string[], value: unknown }> = []
   for (const [key, value] of Object.entries(obj)) {
@@ -100,21 +107,19 @@ function collectKeys(prefix: string, obj: unknown, keys: string[] = []): Array<{
   return result
 }
 
-export function resolveRuntimeConfig(config: RuntimeConfig = { public: {} }): RuntimeConfig {
+export function resolveRuntimeConfig(config: RuntimeConfig = {public: {}}): RuntimeConfig {
   const resolved: RuntimeConfig = {
-    public: config.public ? { ...config.public } : {},
+    public: config.public ? {...config.public} : {},
   }
   for (const [key, value] of Object.entries(config)) {
     if (key === 'public') continue
     resolved[key] = isRuntimeConfigValue(value) && typeof value === 'object' && value !== null
-      ? { ...(value as Record<string, unknown>) }
+      ? {...(value as Record<string, unknown>)}
       : value
   }
 
-  // Pass 1: override declared keys from NUXE_* / NUXE_PUBLIC_* env vars.
-  // Supports nested paths (e.g. `public.api.timeout` -> NUXE_PUBLIC_API_TIMEOUT).
   const envKeys = collectKeys('', resolved)
-  for (const { keys } of envKeys) {
+  for (const {keys} of envKeys) {
     if (keys.length === 0) continue
     const prefix = keys[0] === 'public' ? 'NUXE_PUBLIC_' : 'NUXE_'
     const envKey = `${prefix}${keys.slice(keys[0] === 'public' ? 1 : 0).map(camelToUpperSnake).join('_')}`
@@ -124,13 +129,12 @@ export function resolveRuntimeConfig(config: RuntimeConfig = { public: {} }): Ru
     }
   }
 
-  // Pass 2: auto-inject env vars that have no matching declared key.
   injectRuntimeConfigFromEnv(resolved)
 
   return resolved
 }
 
 export function getPublicRuntimeConfig(config: RuntimeConfig): RuntimeConfig {
-  return { public: config.public }
+  return {public: config.public}
 }
 
