@@ -30,13 +30,6 @@ export {
   type NuxeErrorPayload,
 } from './runtime/error'
 export {
-  createRequestContext,
-  runWithContext,
-  getCurrentContext,
-  provideRequestContext,
-  type NuxeRequestContext,
-} from './runtime/request-context'
-export {
   $fetch,
   createFetch,
   FetchError,
@@ -57,7 +50,6 @@ export {
 export {
   defineNuxePlugin,
   createNuxeApp,
-  provideNuxeApp,
   runPlugins,
   runWithNuxeApp,
   useNuxeApp,
@@ -71,5 +63,4 @@ export { default as NuxeLoadingIndicator } from './components/nuxe-loading-indic
 export { useState, createNuxeState, clearNuxeState, type NuxeState } from './runtime/state'
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './runtime/cookie'
 export { useRequestEvent, useRequestHeaders, useRequestURL } from './runtime/request'
-export { useRequestFetch } from './runtime/request-fetch'
 export { default as NuxePage } from './components/nuxe-page'

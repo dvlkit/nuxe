@@ -114,7 +114,7 @@ import { ErrorComponent } from 'virtual:nuxe/error'
 import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
-import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxeApp, provideNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
+import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
 import publicRuntimeConfig from '/.nuxe/runtime-config-public.json'
 let __nuxeApp
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
@@ -220,7 +220,6 @@ async function main() {
   handleHotUpdate(router)
   const nuxeApp = createNuxeApp({ vueApp: app, router, config: runtimeConfig, state: createNuxeState(initialState) })
   __nuxeApp = nuxeApp
-  provideNuxeApp({ nuxeApp }, nuxeApp)
   await runPlugins(plugins, nuxeApp)
   await nuxeApp.callHook('app:created')
   router.beforeEach(() => nuxeApp.callHook('page:start'))
@@ -255,7 +254,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { createStreamableHead } from '@dvlkit/nuxe/runtime/server-head'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { ErrorComponent } from 'virtual:nuxe/error'
-import { createRequestContext, provideRequestContext, createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, provideNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
+import { createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
 import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import routes from 'virtual:nuxe/routes'
@@ -264,7 +263,7 @@ import { plugins } from 'virtual:nuxe/plugins-server'
 ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 
 async function createApp(ssrContext) {
-  const ctx = createRequestContext()
+  ;(globalThis as { __NUXE_SSR_CONTEXT__?: typeof ssrContext }).__NUXE_SSR_CONTEXT__ = ssrContext
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
   provideRuntimeConfig(app, runtimeConfig)  
   provideBaseURL(app, (runtimeConfig as { baseUrl?: string }).baseUrl)
@@ -286,8 +285,6 @@ async function createApp(ssrContext) {
   await runPlugins(plugins, nuxeApp)
   await nuxeApp.callHook('app:created')
   app.use(router)
-  provideRequestContext(app, ctx)
-  provideNuxeApp(ctx, nuxeApp)
 
   const url = new URL(ssrContext.url, 'http://localhost')
   const href = url.pathname + url.search
@@ -314,15 +311,13 @@ async function createApp(ssrContext) {
     })
     ssrContext.modules = ssrContext.modules || new Set()
     ssrContext.head = head
-    ssrContext.ctx = ctx
     return app
   }
 
   if (routeRules?.ssr === false) {
-    ctx.routeRules = { ssr: false }
+    ssrContext.routeRules = { ssr: false }
     ssrContext.modules = ssrContext.modules || new Set()
     ssrContext.head = head
-    ssrContext.ctx = ctx
     ssrContext._spa = true
     return app
   }
@@ -331,7 +326,6 @@ async function createApp(ssrContext) {
   if (ssrContext._renderResponse) {
     ssrContext.modules = ssrContext.modules || new Set()
     ssrContext.head = head
-    ssrContext.ctx = ctx
     return app
   }
 
@@ -340,7 +334,6 @@ async function createApp(ssrContext) {
     error.value = ssrContext.error
     ssrContext.modules = ssrContext.modules || new Set()
     ssrContext.head = head
-    ssrContext.ctx = ctx
     return app
   }
 
@@ -362,7 +355,6 @@ async function createApp(ssrContext) {
   if (ssrContext._renderResponse) {
     ssrContext.modules = ssrContext.modules || new Set()
     ssrContext.head = head
-    ssrContext.ctx = ctx
     return app
   }
 
@@ -371,7 +363,6 @@ async function createApp(ssrContext) {
 
   ssrContext.modules = ssrContext.modules || new Set()
   ssrContext.head = head
-  ssrContext.ctx = ctx
 
   return app
 }

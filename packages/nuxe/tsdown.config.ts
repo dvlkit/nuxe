@@ -19,7 +19,6 @@ export default defineConfig([
       'server/index': 'lib/server/index.ts',
       'server/handler': 'lib/server/handler.ts',
       'server/nitro-log-request': 'lib/server/nitro-log-request.ts',
-      'server/install-internal-fetch': 'lib/server/install-internal-fetch.ts',
     },
     deps: {
       onlyBundle: [],
@@ -72,8 +71,6 @@ export default defineConfig([
         await copyFile(join(outDir, 'server/handler.d.mts'), join(outDir, 'server/handler.d.ts'))
         await copyFile(join(outDir, 'server/nitro-log-request.mjs'), join(outDir, 'server/nitro-log-request.js'))
         await copyFile(join(outDir, 'server/nitro-log-request.d.mts'), join(outDir, 'server/nitro-log-request.d.ts'))
-        await copyFile(join(outDir, 'server/install-internal-fetch.mjs'), join(outDir, 'server/install-internal-fetch.js'))
-        await copyFile(join(outDir, 'server/install-internal-fetch.d.mts'), join(outDir, 'server/install-internal-fetch.d.ts'))
       },
     },
   },

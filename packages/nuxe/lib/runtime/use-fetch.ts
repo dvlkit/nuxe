@@ -20,8 +20,10 @@ import {
   type UseAsyncDataOptions,
   type UseAsyncDataReturn,
 } from './use-async-data'
-import { getCurrentContext } from './request-context'
-import { useBaseURL } from './base-url'
+import { resolveBaseURL } from './fetch'
+import { tryUseNuxeApp } from './app-context'
+import type { NuxeApp } from '../plugins/runtime'
+import type { NuxeSSRContext } from '../types/ssr-context'
 
 const REF_OR_GETTER_OPTIONS = [
   'method',
@@ -48,20 +50,11 @@ export interface UseFetchReturn<T> extends UseAsyncDataReturn<T> {
   statusCode: Ref<number | null>
 }
 
-function resolveServerBaseURL(explicit: unknown): string | undefined {
-  if (typeof window !== 'undefined') return toValue(explicit) as string | undefined
-  const v = toValue(explicit) as string | undefined
-  if (v) return v
-  // Priority:
-  //   1. `runtimeConfig.app.baseURL` from `nuxe.config.ts` (provided via
-  //      `provideBaseURL` to the Vue app).
-  //   2. `process.env.NUXE_BASE_URL` (set by the CLI at startup).
-  //   3. `http://localhost:3000` so the request still produces a valid URL.
-  return (
-    useBaseURL()
-    ?? process.env.NUXE_BASE_URL
-    ?? 'http://localhost:3000'
-  )
+function getSSRContext(): NuxeSSRContext | undefined {
+  if (typeof window !== 'undefined') return undefined
+  const nuxeApp = tryUseNuxeApp()
+  if (nuxeApp?.ssrContext) return nuxeApp.ssrContext as NuxeSSRContext
+  return (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
 }
 
 async function runHook<C>(hook: unknown, ctx: C): Promise<void> {
@@ -114,9 +107,9 @@ export function useFetch<T = unknown>(
 
   const _options = reactive(options as UseFetchOptions<T>)
 
-  const ssrCtx = getCurrentContext()
+  const ssrCtx = getSSRContext()
 
-  const handler = async (): Promise<T> => {
+  const handler = async (_nuxeApp: NuxeApp, { signal }: { signal: AbortSignal }): Promise<T> => {
     const resolvedUrl = typeof url === 'string' ? url : url()
 
     const callOptions: Record<string, unknown> = {}
@@ -132,7 +125,8 @@ export function useFetch<T = unknown>(
     return await $fetch<T>(resolvedUrl, {
       ...(callOptions as UseFetchOptions<T>),
       retry: (callOptions.retry as number | false | undefined) ?? 0,
-      baseURL: resolveServerBaseURL(callOptions.baseURL),
+      baseURL: resolveBaseURL(callOptions.baseURL),
+      signal,
       onResponse: async (ctx: FetchContext & { response: FetchResponse<T> }) => {
         statusCode.value = ctx.response.status
         if (ssrCtx) ssrCtx.payload[`${key}::__statusCode`] = ctx.response.status

@@ -1,6 +1,9 @@
-import type { NavigationGuard, NavigationGuardReturn, RouteLocationRaw } from 'vue-router'
+import type { NavigationGuardReturn, RouteLocationNormalized, RouteLocationRaw } from 'vue-router'
 
-export type RouteMiddleware = NavigationGuard
+export type RouteMiddleware = (
+  to: RouteLocationNormalized,
+  from: RouteLocationNormalized,
+) => NavigationGuardReturn | Promise<NavigationGuardReturn>
 
 export function defineNuxeRouteMiddleware(middleware: RouteMiddleware): RouteMiddleware {
   return middleware

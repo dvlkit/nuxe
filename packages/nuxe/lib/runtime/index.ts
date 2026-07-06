@@ -1,4 +1,3 @@
-export { createRequestContext, runWithContext, getCurrentContext, provideRequestContext, type NuxeRequestContext } from './request-context'
 export {
   createError,
   isNuxeError,
@@ -11,7 +10,7 @@ export {
   type NuxeError,
   type NuxeErrorPayload,
 } from './error'
-export { useAsyncData, setHydratedPayload, readHydratedKey, type UseAsyncDataOptions, type UseAsyncDataReturn } from './use-async-data'
+export { useAsyncData, setHydratedPayload, readHydratedKey, type UseAsyncDataOptions, type UseAsyncDataReturn, type AsyncDataHandler, type AsyncDataHandlerOptions } from './use-async-data'
 export {
   $fetch,
   createFetch,
@@ -33,7 +32,6 @@ export { useRuntimeConfig, provideRuntimeConfig, type RuntimeConfig } from './co
 export {
   defineNuxePlugin,
   createNuxeApp,
-  provideNuxeApp,
   runPlugins,
   runWithNuxeApp,
   useNuxeApp,
@@ -46,6 +44,5 @@ export { useLoadingIndicator, type LoadingIndicator } from './use-loading-indica
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './cookie'
 export { createNuxeState, clearNuxeState, useState, type NuxeState } from './state'
 export { useRequestEvent, useRequestHeaders, useRequestURL } from './request'
-export { useRequestFetch } from './request-fetch'
 export { provideBaseURL, useBaseURL, resetBaseURLCache } from './base-url'
 export { createHead } from '@unhead/vue/client'

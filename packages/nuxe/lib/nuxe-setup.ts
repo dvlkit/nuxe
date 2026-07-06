@@ -109,7 +109,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
           ],
         },
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxePlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders', 'useRequestURL', 'useRequestFetch']},
+        {'@dvlkit/nuxe': ['definePage', 'defineNuxePlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders', 'useRequestURL']},
         {'@dvlkit/nuxe/components/client-only': [['default', 'ClientOnly']]},
       ],
       dirs: ['app/composables', '.nuxe/composables'],
@@ -136,9 +136,6 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
             createRequire(join(cwd, 'package.json')).resolve(
               '@dvlkit/nuxe/server/nitro-log-request',
             ),
-            createRequire(join(cwd, 'package.json')).resolve(
-              '@dvlkit/nuxe/server/install-internal-fetch',
-            )
           ]
         } catch {
           return []

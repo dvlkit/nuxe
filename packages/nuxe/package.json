@@ -42,10 +42,6 @@
       "types": "./dist/server/nitro-log-request.d.ts",
       "default": "./dist/server/nitro-log-request.js"
     },
-    "./server/install-internal-fetch": {
-      "types": "./dist/server/install-internal-fetch.d.ts",
-      "default": "./dist/server/install-internal-fetch.js"
-    },
     "./runtime/server/handler": {
       "types": "./dist/server/handler.d.ts",
       "default": "./dist/server/handler.js"

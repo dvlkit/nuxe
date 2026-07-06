@@ -16,7 +16,7 @@ export function useState<T>(key: string, init?: () => T): Ref<T> {
   if (!app) {
     throw new Error(
       '[nuxe] useState() must be called inside a Nuxe plugin or setup function, '
-      + 'or inside a runWithContext that has provided an app via provideNuxeApp().',
+      + 'or inside a Vue runWithContext where tryUseNuxeApp() can find the active app.',
     )
   }
 

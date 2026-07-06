@@ -7,8 +7,6 @@ import {
 import {
   NUXE_APP_INJECTION_KEY,
   tryUseNuxeApp,
-  setNuxeApp,
-  nuxeAppContext,
 } from '../runtime/app-context'
 export { tryUseNuxeApp } from '../runtime/app-context'
 
@@ -118,18 +116,8 @@ export function createNuxeApp(options: CreateNuxeAppOptions): NuxeApp {
   return nuxeApp
 }
 
-export function provideNuxeApp(
-  ctx: { nuxeApp?: NuxeApp },
-  nuxeApp: NuxeApp,
-): void {
-  ctx.nuxeApp = nuxeApp
-  setNuxeApp(nuxeApp)
-}
-
 export function runWithNuxeApp<T>(nuxeApp: NuxeApp, fn: () => T): Promise<T> {
-  return nuxeApp.vueApp.runWithContext(() => (
-    nuxeAppContext.callAsync(nuxeApp, fn)
-  )) as Promise<T>
+  return nuxeApp.vueApp.runWithContext(fn) as Promise<T>
 }
 
 export function useNuxeApp(): NuxeApp {

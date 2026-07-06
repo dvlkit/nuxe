@@ -22,10 +22,10 @@ import { createRequire } from 'node:module'
 import { createViteNodeClient } from '../vite/vite-node-client'
 import { serializePayload } from './payload'
 import { createError, serializeError } from '../runtime'
-import { runWithRequest } from '../runtime/request-event-context'
 import { getPublicRuntimeConfig, type RuntimeConfig } from '../config/runtime-config'
 import { loadRuntimeConfig } from './config.js'
 import { setupRuntimeEnv } from '../config'
+import type { NuxeSSRContext } from '../types/ssr-context'
 
 await setupRuntimeEnv(process.cwd())
 
@@ -33,23 +33,6 @@ interface NuxeViteNodeOptions {
   socketPath: string
   root: string
   entryPath: string
-}
-
-interface NuxeSSRContext extends VueSSRContext {
-  url: string
-  modules: Set<string>
-  request: Request
-  _renderResponse?: Response
-  _spa?: boolean
-  error?: import('../runtime/error').NuxeError | null
-  head?: ReturnType<typeof createStreamableHead>['head']
-  nuxeApp?: import('../plugins/runtime').NuxeApp
-  ctx?: {
-    payload: Record<string, unknown>
-    pending: Map<string, Promise<unknown>>
-    awaitAll: () => Promise<void>
-    routeRules?: import('../pages/scanner').RouteRules
-  }
 }
 
 const SOCKET_STATE_FILE = `${process.cwd()}/.nuxe/vite-node-socket-path`
@@ -76,7 +59,7 @@ function renderErrorResponse(status: number, message: string): Response {
     + `<p>${message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p></body></html>`,
     {
       status,
-      headers: { 'Content-Type': 'text/html' },
+      headers: {'Content-Type': 'text/html'},
     },
   )
 }
@@ -84,7 +67,7 @@ function renderErrorResponse(status: number, message: string): Response {
 function createRouteStylesTracker() {
   const emitted = new Set<string>()
   return (ssrContext: NuxeSSRContext, rendererContext: RendererContext): string => {
-    const { styles } = getRequestDependencies(ssrContext as VueSSRContext, rendererContext)
+    const {styles} = getRequestDependencies(ssrContext as VueSSRContext, rendererContext)
     let html = ''
     for (const key in styles) {
       const resource = styles[key]
@@ -126,7 +109,12 @@ function getEntryClientStyles(rendererContext: RendererContext): string {
 async function loadAppAndManifestDev(
   options: NuxeViteNodeOptions,
   ssrContext: NuxeSSRContext,
-): Promise<{ app: App, manifest: RendererManifest, createApp: (ctx: NuxeSSRContext) => Promise<App>, client: ReturnType<typeof createViteNodeClient> }> {
+): Promise<{
+  app: App,
+  manifest: RendererManifest,
+  createApp: (ctx: NuxeSSRContext) => Promise<App>,
+  client: ReturnType<typeof createViteNodeClient>
+}> {
   const client = createViteNodeClient(options.socketPath)
   let manifest: RendererManifest
   let entry: { default?: (ssrContext: NuxeSSRContext) => Promise<App> | App }
@@ -152,7 +140,7 @@ async function loadAppAndManifestDev(
   }
   const createApp = (ctx: NuxeSSRContext) => Promise.resolve(entry.default!(ctx))
   const app = await createApp(ssrContext)
-  return { app, manifest, createApp, client }
+  return {app, manifest, createApp, client}
 }
 
 async function loadAppAndManifestProd(
@@ -161,7 +149,7 @@ async function loadAppAndManifestProd(
   const serverDir = join(process.cwd(), '.output', 'server')
   const ssrUrl = pathToFileURL(join(serverDir, 'ssr', 'index.js')).href
   const manifestUrl = pathToFileURL(join(serverDir, 'client-manifest.mjs')).href
-  const [{ default: rawCreateApp }, { default: manifest }] = await Promise.all([
+  const [{default: rawCreateApp}, {default: manifest}] = await Promise.all([
     import(/* @vite-ignore */ ssrUrl),
     import(/* @vite-ignore */ manifestUrl),
   ]) as [
@@ -170,7 +158,7 @@ async function loadAppAndManifestProd(
   ]
   const createApp = (ctx: NuxeSSRContext) => Promise.resolve(rawCreateApp(ctx))
   const app = await createApp(ssrContext)
-  return { app, manifest, createApp }
+  return {app, manifest, createApp}
 }
 
 async function loadRenderDependenciesDev() {
@@ -201,7 +189,7 @@ async function renderApp(
   updateManifest?: () => Promise<RendererManifest | null>,
 ): Promise<Response> {
   try {
-    const rendererContext = createRendererContext({ manifest })
+    const rendererContext = createRendererContext({manifest})
 
     if (ssrContext._renderResponse) {
       return ssrContext._renderResponse
@@ -214,10 +202,10 @@ async function renderApp(
         ? DEV_CLIENT_SCRIPTS
         : `<script type="module" src="${entryUrl}"></script>`
       const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />${entryStyles}</head><body><div id="app"></div>${entryScript}</body></html>`
-      return new Response(html, { headers: { 'Content-Type': 'text/html' } })
+      return new Response(html, {headers: {'Content-Type': 'text/html'}})
     }
 
-    const { renderToWebStream, renderSSRHeadShell, renderSSRHeadSuspenseChunk } = isDev
+    const {renderToWebStream, renderSSRHeadShell, renderSSRHeadSuspenseChunk} = isDev
       ? await loadRenderDependenciesDev()
       : loadRenderDependenciesProd()
 
@@ -233,7 +221,8 @@ async function renderApp(
     if (!firstResult.done) firstChunk = firstResult.value
 
     if (ssrContext._renderResponse) {
-      reader.cancel().catch(() => {})
+      reader.cancel().catch(() => {
+      })
       return ssrContext._renderResponse
     }
 
@@ -273,7 +262,7 @@ async function renderApp(
           }
 
           while (true) {
-            const { done, value } = await reader.read()
+            const {done, value} = await reader.read()
             if (done) break
             controller.enqueue(value)
             const lateStyles = renderRouteStyles(ssrContext, rendererContext)
@@ -284,7 +273,7 @@ async function renderApp(
             }
           }
 
-          const ctx = ssrContext.ctx!
+          const ctx = ssrContext
           await ctx.awaitAll()
           const nuxePayload: Record<string, unknown> = {
             runtimeConfig: getPublicRuntimeConfig(runtimeConfig),
@@ -325,7 +314,8 @@ async function renderApp(
         }
       },
       cancel(reason) {
-        reader.cancel(reason).catch(() => {})
+        reader.cancel(reason).catch(() => {
+        })
       },
     })
 
@@ -360,6 +350,12 @@ export default async function handler(request: Request): Promise<Response> {
     url: request.url,
     request,
     modules: new Set<string>(),
+    payload: {},
+    pending: new Map<string, Promise<unknown>>(),
+    async awaitAll() {
+      if (ssrContext.pending.size === 0) return
+      await Promise.allSettled(ssrContext.pending.values())
+    }
   } as unknown as NuxeSSRContext
 
   try {
@@ -368,22 +364,30 @@ export default async function handler(request: Request): Promise<Response> {
       if (!options) {
         return new Response(
           `[nuxe] Could not read ${SOCKET_STATE_FILE}; the vite-node plugin is missing or failed to start.`,
-          { status: 500 },
+          {status: 500},
         )
       }
 
-      const { app, manifest, createApp, client } = await loadAppAndManifestDev(options, ssrContext)
+      const {app, manifest, createApp, client} = await loadAppAndManifestDev(options, ssrContext)
       try {
-        return await runWithRequest(request, () => renderApp(request, ssrContext, app, manifest, createApp, true, runtimeConfig, async () =>
-          (await client.manifest() as RendererManifest | null) ?? null,
-        ))
+        ;(globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__ = ssrContext
+        try {
+          return await renderApp(request, ssrContext, app, manifest, createApp, true, runtimeConfig, async () => (await client.manifest() as RendererManifest | null) ?? null)
+        } finally {
+          delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+        }
       } finally {
         await client.close()
       }
     }
 
-    const { app, manifest, createApp } = await loadAppAndManifestProd(ssrContext)
-    return runWithRequest(request, () => renderApp(request, ssrContext, app, manifest, createApp, false, runtimeConfig))
+    const {app, manifest, createApp} = await loadAppAndManifestProd(ssrContext)
+    ;(globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__ = ssrContext
+    try {
+      return await renderApp(request, ssrContext, app, manifest, createApp, false, runtimeConfig)
+    } finally {
+      delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+    }
   } catch (error) {
     console.error('[nuxe] handler error', error)
     return renderErrorResponse(500, error instanceof Error ? error.message : String(error))

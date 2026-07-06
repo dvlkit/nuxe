@@ -14,11 +14,20 @@ import {
   type Ref,
   type WatchSource,
 } from 'vue'
-import { getCurrentContext, runWithContext } from './request-context'
-import { getCurrentRequest, runWithRequest } from './request-event-context'
-import { tryUseNuxeApp, runWithNuxeApp } from '../plugins/runtime'
+import { tryUseNuxeApp } from './app-context'
+import type { NuxeApp } from '../plugins/runtime'
+import type { NuxeSSRContext } from '../types/ssr-context'
 
 export type AsyncDataKey = string | Ref<string> | (() => string)
+
+export interface AsyncDataHandlerOptions {
+  signal: AbortSignal
+}
+
+export type AsyncDataHandler<T> = (
+  nuxeApp: NuxeApp,
+  options: AsyncDataHandlerOptions,
+) => Promise<T>
 
 export interface UseAsyncDataOptions<T> {
   default?: () => T | Ref<T>
@@ -54,15 +63,24 @@ export function readHydratedKey<T = unknown>(key: string): T | undefined {
   return hydratedPayload[key] as T
 }
 
+function getSSRContext(): NuxeSSRContext | undefined {
+  if (typeof window !== 'undefined') return undefined
+  const nuxeApp = tryUseNuxeApp()
+  if (nuxeApp?.ssrContext) return nuxeApp.ssrContext as NuxeSSRContext
+  return (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+}
+
 async function runWithRetries<T>(
-  handler: () => Promise<T>,
+  handler: AsyncDataHandler<T>,
+  nuxeApp: NuxeApp,
+  signal: AbortSignal,
   retries: number,
   delay: number,
 ): Promise<T> {
   let lastError: unknown
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await handler()
+      return await handler(nuxeApp, {signal})
     } catch (err) {
       lastError = err
       if (attempt < retries && delay > 0) {
@@ -73,13 +91,13 @@ async function runWithRetries<T>(
   throw lastError
 }
 
-export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, options: UseAsyncDataOptions<T> = {}): UseAsyncDataReturn<T> {
+export function useAsyncData<T>(key: AsyncDataKey, handler: AsyncDataHandler<T>, options: UseAsyncDataOptions<T> = {}): UseAsyncDataReturn<T> {
   if (!key) throw new Error('[nuxe] useAsyncData: `key` is required')
 
   const isClient = typeof window !== 'undefined'
-  const ctx = getCurrentContext()
-  const ssrDisabled = ctx?.routeRules?.ssr === false
-  const runOnServer = !isClient && ctx !== undefined && options.server !== false && !ssrDisabled
+  const ssrContext = getSSRContext()
+  const ssrDisabled = ssrContext?.routeRules?.ssr === false
+  const runOnServer = !isClient && ssrContext !== undefined && options.server !== false && !ssrDisabled
 
   const keyRef = computed(() => toValue(key))
 
@@ -93,19 +111,14 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
 
   const runHandler = async (currentKey: string): Promise<void> => {
     const nuxeApp = !isClient ? tryUseNuxeApp() : null
-    const ssrRequest = nuxeApp?.ssrContext?.request as Request | undefined
-    
-    const buildExec = (): (() => Promise<T>) => {
-      const base = (): Promise<T> => runWithRetries<T>(handler, retries, retryDelay)
-      const withRequest: () => Promise<T> = ssrRequest ? () => runWithRequest<T>(ssrRequest, base) : base
-      const withCtx: () => Promise<T> = ctx ? () => runWithContext<T>(ctx, withRequest) : withRequest
-      return withCtx
+    const ctx = ssrContext
+    const abortController = new AbortController()
+
+    const exec = (): Promise<T> => {
+      const callHandler = () => runWithRetries<T>(handler, nuxeApp as NuxeApp, abortController.signal, retries, retryDelay)
+      return nuxeApp && !isClient ? nuxeApp.vueApp.runWithContext(callHandler) : callHandler()
     }
-        
-    const exec: () => Promise<T> = nuxeApp && !isClient
-      ? () => runWithNuxeApp(nuxeApp, () => (buildExec() as any)() as any)
-      : () => (buildExec() as () => Promise<T>)()
-    
+
     try {
       const result = await exec()
       data.value = result
@@ -161,12 +174,12 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
   if (status.value === 'idle' && runOnServer) {
     if (options.lazy) {
       const handlerPromise = runHandler(keyRef.value)
-      if (ctx) ctx.pending.set(keyRef.value, handlerPromise)
+      if (ssrContext) ssrContext.pending.set(keyRef.value, handlerPromise)
     } else {
       pending.value = true
       status.value = 'pending'
       const handlerPromise = runHandler(keyRef.value)
-      if (ctx) ctx.pending.set(keyRef.value, handlerPromise)
+      if (ssrContext) ssrContext.pending.set(keyRef.value, handlerPromise)
       if (getCurrentInstance()) {
         onServerPrefetch(() => handlerPromise)
       }
@@ -176,8 +189,8 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
   if (status.value === 'idle' && isClient && !options.lazy) {
     pending.value = true
     status.value = 'pending'
-    if (ctx) {
-      ctx.pending.set(keyRef.value, runHandler(keyRef.value))
+    if (ssrContext) {
+      ssrContext.pending.set(keyRef.value, runHandler(keyRef.value))
     } else {
       void runHandler(keyRef.value)
     }
@@ -190,25 +203,21 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
     let stopDepsWatch: (() => void) | undefined
 
     if (isRef(key) || typeof key === 'function') {
-      stopKeyWatch = watch(
-        keyRef,
-        async (newKey, oldKey) => {
-          if (oldKey === undefined) return
-          if (newKey === oldKey) return
-          keyChanging = true
-          try {
-            data.value = null
-            error.value = null
-            pending.value = true
-            status.value = 'pending'
-            await runHandler(newKey)
-          } finally {
-            await nextTick()
-            keyChanging = false
-          }
-        },
-        { flush: 'sync' },
-      )
+      stopKeyWatch = watch(keyRef, async (newKey, oldKey) => {
+        if (oldKey === undefined) return
+        if (newKey === oldKey) return
+        keyChanging = true
+        try {
+          data.value = null
+          error.value = null
+          pending.value = true
+          status.value = 'pending'
+          await runHandler(newKey)
+        } finally {
+          await nextTick()
+          keyChanging = false
+        }
+      }, {flush: 'sync'})
     }
 
     if (options.watch !== undefined) {
@@ -216,9 +225,9 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
         if (keyChanging) return
         pending.value = true
         status.value = 'pending'
-        if (ctx) {
+        if (ssrContext) {
           const p = runHandler(keyRef.value)
-          ctx.pending.set(keyRef.value, p)
+          ssrContext.pending.set(keyRef.value, p)
         } else {
           void runHandler(keyRef.value)
         }
@@ -235,23 +244,15 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: () => Promise<T>, op
 
   const refresh = async (): Promise<void> => {
     const nuxeApp = !isClient ? tryUseNuxeApp() : null
-    const ssrRequest = nuxeApp?.ssrContext?.request as Request | undefined
+    const abortController = new AbortController()
 
-    const buildExec = (): (() => Promise<T>) => {
-      const base = (): Promise<T> => runWithRetries<T>(handler, retries, retryDelay)
-      const withRequest: () => Promise<T> = ssrRequest
-        ? () => runWithRequest<T>(ssrRequest, base)
-        : base
-      const withCtx: () => Promise<T> = ctx
-        ? () => runWithContext<T>(ctx, withRequest)
-        : withRequest
-      return withCtx
+    const exec = (): Promise<T> => {
+      const callHandler = () => runWithRetries<T>(handler, nuxeApp as NuxeApp, abortController.signal, retries, retryDelay)
+      return nuxeApp && !isClient
+        ? nuxeApp.vueApp.runWithContext(callHandler)
+        : callHandler()
     }
-    
-    const exec: () => Promise<T> = nuxeApp && !isClient
-      ? () => runWithNuxeApp(nuxeApp, buildExec() as any)
-      : buildExec()
-    
+
     pending.value = true
     status.value = 'pending'
     try {

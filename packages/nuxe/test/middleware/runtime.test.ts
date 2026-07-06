@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
 import { createSSRApp, defineComponent } from 'vue'
+import type { NuxeSSRContext } from '../../lib/types/ssr-context'
 import {
   clearNuxeState,
   createNuxeApp,
@@ -12,7 +13,6 @@ import {
   useState,
   type RouteMiddleware,
 } from '../../lib'
-import { setNuxeApp } from '../../lib/runtime/app-context'
 
 const NAVIGATE_TO_MARKER = Symbol.for('@dvlkit/nuxe/navigate-to')
 const ABORT_NAVIGATION_MARKER = Symbol.for('@dvlkit/nuxe/abort-navigation')
@@ -197,16 +197,13 @@ describe('abortNavigation', () => {
 })
 
 describe('runWithNuxeApp (middleware context)', () => {
-  // setNuxeApp uses unctx's force-set, so a previous test leaking a nuxeApp
-  // would mask regressions. Reset both the unctx context and the payload
-  // state before each test so useState() can be re-initialized fresh.
   beforeEach(() => {
-    setNuxeApp(undefined)
+    delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
     clearNuxeState()
   })
 
   afterEach(() => {
-    setNuxeApp(undefined)
+    delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
     clearNuxeState()
   })
 
@@ -233,8 +230,6 @@ describe('runWithNuxeApp (middleware context)', () => {
     const nuxeApp = makeNuxeApp()
     let session: ReturnType<typeof useState<string>> | null = null
     runWithNuxeApp(nuxeApp, () => {
-      // This is the exact pattern that used to throw with
-      // `[nuxe] useState() must be called inside a Nuxe plugin or setup function...`
       session = useState('pg:session', () => 'seeded')
     })
     expect(session).not.toBeNull()
@@ -242,8 +237,6 @@ describe('runWithNuxeApp (middleware context)', () => {
   })
 
   it('lets useState() work inside an async middleware before any await', async () => {
-    // The common middleware shape: async function that decides based on
-    // an already-cached state value before hitting the network.
     const nuxeApp = makeNuxeApp()
     const sessionRef = await runWithNuxeApp(nuxeApp, async () => {
       const ref = useState<string | undefined>('pg:session')

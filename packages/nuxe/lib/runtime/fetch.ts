@@ -9,6 +9,26 @@ import {
   type FetchResponse,
   type FetchRequest,
 } from 'ofetch'
+import { toValue } from 'vue'
+import { useBaseURL } from './base-url'
+import { NuxeSSRContext } from '../types/ssr-context'
+
+export function resolveBaseURL(explicit?: unknown): string {
+  const v = explicit !== undefined ? toValue(explicit) as string | undefined : undefined
+  if (v) return v
+  if (typeof window !== 'undefined') {
+    return window.location?.origin ?? ''
+  }
+
+  const ssrContext = (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+  if (ssrContext?.request) {
+    try {
+      return new URL(ssrContext.request.url).origin
+    } catch {
+    }
+  }
+  return useBaseURL() ?? process.env.NUXE_BASE_URL ?? 'http://localhost:3000'
+}
 
 function defaultBaseURL(): string {
   if (typeof window !== 'undefined') {

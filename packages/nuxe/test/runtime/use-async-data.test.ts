@@ -1,11 +1,39 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { effectScope, nextTick, ref, type Ref } from 'vue'
+import { createSSRApp, defineComponent, effectScope, nextTick, ref, type Ref } from 'vue'
+import { createNuxeApp, createNuxeState } from '../../lib'
+import type { NuxeSSRContext } from '../../lib/types/ssr-context'
 import {
-  createRequestContext,
-  runWithContext,
   setHydratedPayload,
   useAsyncData,
-} from '../../lib/runtime'
+} from '../../lib'
+
+function setupServerContext() {
+  const app = createSSRApp(defineComponent({ render: () => null }))
+  const ssrContext: NuxeSSRContext = {
+    url: '/',
+    request: new Request('http://localhost/'),
+    modules: new Set<string>(),
+    payload: {},
+    pending: new Map(),
+    async awaitAll() {
+      if (this.pending.size === 0) return
+      await Promise.allSettled(this.pending.values())
+    },
+  }
+  const nuxeApp = createNuxeApp({
+    vueApp: app,
+    router: {} as any,
+    config: { public: {} },
+    ssrContext,
+    state: createNuxeState(),
+  })
+  ;(globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__ = ssrContext
+  return { app, ctx: ssrContext, nuxeApp }
+}
+
+afterEach(() => {
+  delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+})
 
 describe('useAsyncData (server)', () => {
   beforeEach(() => {
@@ -19,10 +47,10 @@ describe('useAsyncData (server)', () => {
   })
 
   it('runs the handler and writes the result into the request context payload', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
     const handler = vi.fn().mockResolvedValue({ hello: 'world' })
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       const { data, status, error } = useAsyncData<{ hello: string }>('greeting', handler)
       await ctx.awaitAll()
       await nextTick()
@@ -36,10 +64,10 @@ describe('useAsyncData (server)', () => {
   })
 
   it('writes __error to payload on failure and exposes the error on the return', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
     const failure = new Error('boom')
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       const { data, status, error } = useAsyncData('oops', () => Promise.reject(failure))
       await ctx.awaitAll()
       await nextTick()
@@ -52,9 +80,9 @@ describe('useAsyncData (server)', () => {
   })
 
   it('wraps non-Error rejections through the Error constructor', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       const { error, status } = useAsyncData('weird', () =>
         Promise.reject('string-failure'),
       )
@@ -69,11 +97,11 @@ describe('useAsyncData (server)', () => {
   })
 
   it('populates data from default() before the handler resolves', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
     let resolveHandler!: (v: number) => void
     const handler = vi.fn(() => new Promise<number>((r) => { resolveHandler = r }))
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       const { data, status } = useAsyncData<number>('slow', handler, {
         default: () => 42,
       })
@@ -92,10 +120,10 @@ describe('useAsyncData (server)', () => {
   })
 
   it('skips handler entirely when server: false is passed', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
     const handler = vi.fn().mockResolvedValue('ignored')
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       useAsyncData('client-only', handler, { server: false })
       await ctx.awaitAll()
 
@@ -105,7 +133,7 @@ describe('useAsyncData (server)', () => {
   })
 
   it('refresh() re-runs the handler and clears a prior error', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
     let attempts = 0
     const handler = vi.fn(async () => {
       attempts += 1
@@ -113,7 +141,7 @@ describe('useAsyncData (server)', () => {
       return 'ok'
     })
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       const { refresh, data, status, error } = useAsyncData<string>('flaky', handler)
       await ctx.awaitAll()
       await nextTick()
@@ -132,7 +160,7 @@ describe('useAsyncData (server)', () => {
   })
 
   it('retries a failing handler up to retry times and then succeeds', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
     let attempts = 0
     const handler = vi.fn(async () => {
       attempts += 1
@@ -140,7 +168,7 @@ describe('useAsyncData (server)', () => {
       return 'finally'
     })
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       const { data, status, error } = useAsyncData<string>('retried', handler, { retryCount: 2 })
       await ctx.awaitAll()
       await nextTick()
@@ -153,7 +181,7 @@ describe('useAsyncData (server)', () => {
   })
 
   it('retries respect retryDelay', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
     vi.useFakeTimers()
     let attempts = 0
     const handler = vi.fn(async () => {
@@ -162,7 +190,7 @@ describe('useAsyncData (server)', () => {
       return 'ok'
     })
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       const promise = (async () => {
         const { data, status } = useAsyncData<string>('delayed', handler, { retryCount: 1, retryDelayMs: 100 })
         await ctx.awaitAll()
@@ -486,17 +514,22 @@ describe('useAsyncData (reactive key + watch)', () => {
       expect(data.value).toBe('static-ok')
     })
 
-    // Several ticks with no other reactivity — handler must not re-run.
     await nextTick()
     await nextTick()
     expect(handler).toHaveBeenCalledTimes(1)
   })
+})
+
+describe('useAsyncData (server, reactive key)', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+  })
 
   it('reactive key on the server uses the current key in the payload', async () => {
-    const ctx = createRequestContext()
+    const { ctx, app } = setupServerContext()
     const key: Ref<string> = ref('first')
 
-    await runWithContext(ctx, async () => {
+    await app.runWithContext(async () => {
       useAsyncData<string>(key, async () => `result-${key.value}`)
       await ctx.awaitAll()
       await nextTick()

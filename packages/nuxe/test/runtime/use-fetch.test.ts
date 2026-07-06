@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick, ref } from 'vue'
+import { createSSRApp, defineComponent, nextTick, ref } from 'vue'
 
 import { useFetch } from '../../lib'
-import { createRequestContext, runWithContext, resetBaseURLCache } from '../../lib/runtime'
+import { createNuxeApp, createNuxeState, provideBaseURL } from '../../lib'
+import { resetBaseURLCache } from '../../lib'
+import type { NuxeSSRContext } from '../../lib/types/ssr-context'
 import { setHydratedPayload } from '../../lib'
 
 let fetchMock: ReturnType<typeof vi.fn>
@@ -17,11 +19,40 @@ function mockResponseOnce(response: Response): void {
   fetchMock.mockResolvedValueOnce(response.clone())
 }
 
+function setupServerContext(opts: { withRequest?: boolean; requestUrl?: string } = {}) {
+  const app = createSSRApp(defineComponent({ render: () => null }))
+  const ssrContext: NuxeSSRContext = {
+    url: '/',
+    modules: new Set<string>(),
+    payload: {},
+    pending: new Map(),
+    async awaitAll() {
+      if (this.pending.size === 0) return
+      await Promise.allSettled(this.pending.values())
+    },
+  }
+  if (opts.withRequest !== false) {
+    ssrContext.request = new Request(opts.requestUrl ?? 'http://localhost/')
+  }
+  const nuxeApp = createNuxeApp({
+    vueApp: app,
+    router: {} as any,
+    config: { public: {} },
+    ssrContext,
+    state: createNuxeState(),
+  })
+  ;(globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__ = ssrContext
+  return { app, ctx: ssrContext, nuxeApp }
+}
+
+afterEach(() => {
+  delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+})
+
 describe('useFetch', () => {
   beforeEach(() => {
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
-    vi.stubGlobal('window', {})
     resetBaseURLCache()
   })
 
@@ -30,6 +61,10 @@ describe('useFetch', () => {
   })
 
   describe('return shape', () => {
+    beforeEach(() => {
+      vi.stubGlobal('window', {})
+    })
+
     it('returns the useAsyncData shape plus statusCode', () => {
       mockResponseOnce(jsonResponse({}))
       const result = useFetch('/api/x')
@@ -51,6 +86,10 @@ describe('useFetch', () => {
   })
 
   describe('successful fetch', () => {
+    beforeEach(() => {
+      vi.stubGlobal('window', {})
+    })
+
     it('populates data and sets statusCode to 200 on success', async () => {
       mockResponseOnce(jsonResponse({ hello: 'world' }))
       const { data, status, statusCode } = useFetch<{ hello: string }>('/api/x')
@@ -74,6 +113,10 @@ describe('useFetch', () => {
   })
 
   describe('error handling', () => {
+    beforeEach(() => {
+      vi.stubGlobal('window', {})
+    })
+
     it('captures statusCode on non-OK response (e.g., 404)', async () => {
       mockResponseOnce(jsonResponse({ message: 'not found' }, { status: 404, statusText: 'Not Found' }))
       const { data, error, statusCode, status } = useFetch('/api/x', { key: 'err' })
@@ -128,10 +171,10 @@ describe('useFetch', () => {
 
   describe('key handling', () => {
     it('defaults the key to the url string when none provided', async () => {
-      const ctx = createRequestContext()
+      const { ctx, app } = setupServerContext()
       mockResponseOnce(jsonResponse({ ok: 1 }))
 
-      await runWithContext(ctx, async () => {
+      await app.runWithContext(async () => {
         useFetch('/api/x')
         await ctx.awaitAll()
         expect(ctx.payload['/api/x']).toEqual({ ok: 1 })
@@ -139,10 +182,10 @@ describe('useFetch', () => {
     })
 
     it('uses options.key when provided (overrides url-as-key default)', async () => {
-      const ctx = createRequestContext()
+      const { ctx, app } = setupServerContext()
       mockResponseOnce(jsonResponse({ ok: 1 }))
 
-      await runWithContext(ctx, async () => {
+      await app.runWithContext(async () => {
         useFetch('/api/x', { key: 'custom-key' })
         await ctx.awaitAll()
         expect(ctx.payload['custom-key']).toEqual({ ok: 1 })
@@ -157,10 +200,10 @@ describe('useFetch', () => {
     })
 
     it('accepts a function url with an explicit key', async () => {
-      const ctx = createRequestContext()
+      const { ctx, app } = setupServerContext()
       mockResponseOnce(jsonResponse({ ok: 1 }))
 
-      await runWithContext(ctx, async () => {
+      await app.runWithContext(async () => {
         useFetch(() => '/api/x', { key: 'fn-key' })
         await ctx.awaitAll()
         expect(ctx.payload['fn-key']).toEqual({ ok: 1 })
@@ -169,6 +212,10 @@ describe('useFetch', () => {
   })
 
   describe('reactivity', () => {
+    beforeEach(() => {
+      vi.stubGlobal('window', {})
+    })
+
     it('refetches when a reactive url (function form) changes', async () => {
       const urlRef = ref('/api/x')
       mockResponseOnce(jsonResponse({ url: 'x' }))
@@ -205,6 +252,7 @@ describe('useFetch', () => {
 
   describe('option pass-through', () => {
     it('passes query, headers, and baseURL through to fetch', async () => {
+      vi.stubGlobal('window', {})
       mockResponseOnce(jsonResponse({}))
       useFetch('/api/x', {
         key: 'opts',
@@ -222,6 +270,7 @@ describe('useFetch', () => {
     })
 
     it('applies default() while the handler is pending', async () => {
+      vi.stubGlobal('window', {})
       fetchMock.mockImplementation(() => new Promise(() => {}))
       const { data, pending } = useFetch<string>('/api/x', {
         key: 'defaulted',
@@ -233,13 +282,9 @@ describe('useFetch', () => {
     })
 
     it('skips the handler when server: false (on server)', async () => {
-      vi.unstubAllGlobals()
-      fetchMock = vi.fn()
-      vi.stubGlobal('fetch', fetchMock)
+      const { ctx, app } = setupServerContext()
 
-      const ctx = createRequestContext()
-
-      await runWithContext(ctx, async () => {
+      await app.runWithContext(async () => {
         useFetch('/api/x', { key: 'client-only', server: false })
         await ctx.awaitAll()
 
@@ -249,10 +294,10 @@ describe('useFetch', () => {
     })
 
     it('runs the handler normally when server is not specified', async () => {
-      const ctx = createRequestContext()
+      const { ctx, app } = setupServerContext()
       mockResponseOnce(jsonResponse({ ok: 1 }))
 
-      await runWithContext(ctx, async () => {
+      await app.runWithContext(async () => {
         useFetch('/api/x', { key: 'server-ok' })
         await ctx.awaitAll()
         expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -262,6 +307,10 @@ describe('useFetch', () => {
   })
 
   describe('client-side hydration', () => {
+    beforeEach(() => {
+      vi.stubGlobal('window', {})
+    })
+
     it('seeds data from the hydrated payload and skips the fetch', async () => {
       setHydratedPayload({ '/api/x': { hydrated: true } })
       const { data, status } = useFetch<{ hydrated: boolean }>('/api/x')
@@ -275,22 +324,13 @@ describe('useFetch', () => {
 
   describe('baseURL resolution (per-request)', () => {
     it('uses the URL provided via provideBaseURL when no explicit baseURL is given', async () => {
-      vi.unstubAllGlobals()
-      fetchMock = vi.fn()
-      vi.stubGlobal('fetch', fetchMock)
-
-      const { createSSRApp } = await import('vue')
-      const { provideBaseURL } = await import('../../lib')
-      const app = createSSRApp({ render: () => null })
-      provideBaseURL(app, 'https://myapp.example.com')
+      const { ctx, app: serverApp } = setupServerContext({ withRequest: false })
+      provideBaseURL(serverApp, 'https://myapp.example.com')
 
       mockResponseOnce(jsonResponse({ ok: true }))
-      await app.runWithContext(async () => {
-        const ctx = (await import('../../lib/runtime')).createRequestContext()
-        await (await import('../../lib/runtime')).runWithContext(ctx, async () => {
-          useFetch('/api/me', { key: 'b1' })
-          await ctx.awaitAll()
-        })
+      await serverApp.runWithContext(async () => {
+        useFetch('/api/me', { key: 'b1' })
+        await ctx.awaitAll()
       })
 
       const [url] = fetchMock.mock.calls[0] as [string]
@@ -298,23 +338,15 @@ describe('useFetch', () => {
     })
 
     it('falls back to NUXE_BASE_URL env when no provideBaseURL is set', async () => {
-      vi.unstubAllGlobals()
-      fetchMock = vi.fn()
-      vi.stubGlobal('fetch', fetchMock)
-
       const saved = process.env.NUXE_BASE_URL
       process.env.NUXE_BASE_URL = 'http://localhost:4000'
       try {
-        const { createSSRApp } = await import('vue')
-        const app = createSSRApp({ render: () => null })
+        const { ctx, app: serverApp } = setupServerContext({ withRequest: false })
 
         mockResponseOnce(jsonResponse({ ok: true }))
-        await app.runWithContext(async () => {
-          const ctx = (await import('../../lib/runtime')).createRequestContext()
-          await (await import('../../lib/runtime')).runWithContext(ctx, async () => {
-            useFetch('/api/me', { key: 'b2' })
-            await ctx.awaitAll()
-          })
+        await serverApp.runWithContext(async () => {
+          useFetch('/api/me', { key: 'b2' })
+          await ctx.awaitAll()
         })
 
         const [url] = fetchMock.mock.calls[0] as [string]
@@ -326,22 +358,13 @@ describe('useFetch', () => {
     })
 
     it('lets options.baseURL override the provided one', async () => {
-      vi.unstubAllGlobals()
-      fetchMock = vi.fn()
-      vi.stubGlobal('fetch', fetchMock)
-
-      const { createSSRApp } = await import('vue')
-      const { provideBaseURL } = await import('../../lib')
-      const app = createSSRApp({ render: () => null })
-      provideBaseURL(app, 'https://myapp.example.com')
+      const { ctx, app: serverApp } = setupServerContext({ withRequest: false })
+      provideBaseURL(serverApp, 'https://myapp.example.com')
 
       mockResponseOnce(jsonResponse({ ok: true }))
-      await app.runWithContext(async () => {
-        const ctx = (await import('../../lib/runtime')).createRequestContext()
-        await (await import('../../lib/runtime')).runWithContext(ctx, async () => {
-          useFetch('/api/me', { key: 'b3', baseURL: 'https://override.example.com' })
-          await ctx.awaitAll()
-        })
+      await serverApp.runWithContext(async () => {
+        useFetch('/api/me', { key: 'b3', baseURL: 'https://override.example.com' })
+        await ctx.awaitAll()
       })
 
       const [url] = fetchMock.mock.calls[0] as [string]
