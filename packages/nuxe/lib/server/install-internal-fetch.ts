@@ -1,6 +1,5 @@
 import { definePlugin } from 'nitro'
-import { fetchWithEvent, H3Event } from 'h3'
-import { type } from 'node:os'
+import { serverFetch } from 'nitro/app'
 import { getCurrentRequest } from '../runtime/request-event-context'
 
 const PATCHED = Symbol.for('@dvlkit/nuxe/internal-fetch-patched')
@@ -13,25 +12,28 @@ function resolveUrl(input: RequestInfo | URL): string {
   return input.url
 }
 
-function rawRequestToEvent(rawRequest: Request, app: unknown): H3Event {
-  return {
-    req: {
-      headers: rawRequest.headers,
-      ...(typeof (rawRequest as { runtime?: unknown }).runtime !== 'undefined' ? {
-        runtime: (rawRequest as {
-          runtime?: unknown
-        }).runtime
-      } : {}),
-      ...(typeof (rawRequest as { waitUntil?: unknown }).waitUntil !== 'undefined' ? {
-        waitUntil: (rawRequest as {
-          waitUntil?: unknown
-        }).waitUntil
-      } : {}),
-      ...(typeof (rawRequest as { ip?: unknown }).ip !== 'undefined' ? {ip: (rawRequest as { ip?: unknown }).ip} : {}),
-    },
-    url: new URL(rawRequest.url),
-    app,
-  } as unknown as H3Event
+function mergeHeaders(parentHeaders: HeadersInit | undefined, initHeaders: HeadersInit | undefined): Headers {
+  const merged = new Headers(parentHeaders)
+  const incoming = new Headers(initHeaders)
+
+  incoming.forEach((value, key) => {
+    merged.set(key, value)
+  })
+
+  return merged
+}
+
+function isInternalUrl(url: string): boolean {
+  if (url[0] === '/') return true
+
+  try {
+    const target = new URL(url)
+    const baseUrl = process.env.NUXE_BASE_URL ?? 'http://localhost:3000'
+    const base = new URL(baseUrl)
+    return target.origin === base.origin
+  } catch {
+    return false
+  }
 }
 
 export default definePlugin((nitroApp) => {
@@ -47,15 +49,22 @@ export default definePlugin((nitroApp) => {
 
   function patchedFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const url = resolveUrl(input)
+    const parentRequest = getCurrentRequest()
 
-    if (url[0] !== '/') {
+    if (!isInternalUrl(url)) {
       return originalFetch(input, init)
     }
 
-    const parentRequest = getCurrentRequest()
     if (parentRequest) {
-      const event = rawRequestToEvent(parentRequest, nitroApp)
-      return fetchWithEvent(event, url, init)
+      const headers = mergeHeaders(parentRequest.headers, init?.headers)
+      headers.set('host', new URL(parentRequest.url).host)
+
+      const req = new Request(typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url, {
+        ...init,
+        headers,
+      })
+
+      return serverFetch(req, undefined, { parent: parentRequest })
     }
 
     return (globals[NITRO_FETCH] as (i: RequestInfo | URL, init?: RequestInit) => Promise<Response>)(input, init)
@@ -64,6 +73,4 @@ export default definePlugin((nitroApp) => {
   globals[ORIGINAL_FETCH] = originalFetch
   globals[PATCHED] = true
   globalThis.fetch = patchedFetch as typeof globalThis.fetch
-
-  console.info('[nuxe] globalThis.fetch patched for internal SSR routing')
 })
