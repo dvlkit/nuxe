@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.7.55
+
+### Patch Changes
+
+- 62996b2: implement serverFetch in internal fetch logic and add tests for header logging
+
 ## 0.7.54
 
 ### Patch Changes
