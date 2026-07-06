@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.8.0
+
+### Minor Changes
+
+- 72477c9: feat!: refactor async context
+
 ## 0.7.55
 
 ### Patch Changes
