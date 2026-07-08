@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.8.4
+
+### Patch Changes
+
+- ce839e6: add sigstore dependency to changeset publish step in CI config
+
 ## 0.8.3
 
 ### Patch Changes
