@@ -430,7 +430,7 @@ export default function nuxe(options: NuxeOptions): Plugin {
 
   function rebuildRoutes(): void {
     if (!pagesCtx) return
-    routesModule = generateRoutesModule(pagesCtx.emit())
+    routesModule = generateRoutesModule(pagesCtx.emit(), pagesCtx.pagesRoot)
   }
 
   function isUnderPagesDir(absolutePath: string): boolean {

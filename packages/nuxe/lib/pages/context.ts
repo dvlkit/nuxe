@@ -7,6 +7,7 @@ export interface PagesContext {
   addFile(filePath: string): void
   removeFile(filePath: string): boolean
   readonly trackedFiles: Set<string>
+  readonly pagesRoot: string
 }
 
 export interface PagesContextOptions {
@@ -32,6 +33,7 @@ export function createPagesContext(options: PagesContextOptions): PagesContext {
   }
 
   return {
+    pagesRoot,
     emit() {
       return Array.from(files.values()).sort((a, b) =>
         a.path.localeCompare(b.path) || a.name.localeCompare(b.name),

@@ -1,3 +1,4 @@
+import { relative, sep } from 'node:path'
 import type { ScannedPage } from './scanner'
 
 export const ROUTES_HMR_CODE = `if (import.meta.hot) {
@@ -45,13 +46,15 @@ function serializeMeta(meta: Record<string, unknown> | undefined, routeRules?: i
   return JSON.stringify(combined)
 }
 
-function routeComponentPath(filePath: string): string {
-  const relative = filePath.split('/app/pages/').pop()
-  if (!relative) throw new Error(`[nuxe] page path is not under app/pages: ${filePath}`)
-  return `/app/pages/${relative}`
+function routeComponentPath(filePath: string, pagesRoot: string): string {
+  const rel = relative(pagesRoot, filePath).split(sep).join('/')
+  if (!rel || rel.startsWith('..')) {
+    throw new Error(`[nuxe] page path is not under app/pages: ${filePath}`)
+  }
+  return `/app/pages/${rel}`
 }
 
-export function generateRoutesModule(pages: ScannedPage[]): string {
+export function generateRoutesModule(pages: ScannedPage[], pagesRoot: string): string {
   if (pages.length === 0) {
     return `${ROUTES_HMR_CODE}\nexport default []\n`
   }
@@ -59,7 +62,7 @@ export function generateRoutesModule(pages: ScannedPage[]): string {
   const routes = pages
     .map((page) => {
       const meta = serializeMeta(page.meta, page.routeRules)
-      return `  {\n    path: ${JSON.stringify(page.path)},\n    name: ${JSON.stringify(page.name)},\n    component: () => import('${routeComponentPath(page.filePath)}'),\n    meta: ${meta},\n  }`
+      return `  {\n    path: ${JSON.stringify(page.path)},\n    name: ${JSON.stringify(page.name)},\n    component: () => import('${routeComponentPath(page.filePath, pagesRoot)}'),\n    meta: ${meta},\n  }`
     })
     .join(',\n')
 
