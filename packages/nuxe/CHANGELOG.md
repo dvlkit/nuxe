@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.8.2
+
+### Patch Changes
+
+- 67077f7: extend NuxeError to inherit from HTTPError
+
 ## 0.8.1
 
 ### Patch Changes
