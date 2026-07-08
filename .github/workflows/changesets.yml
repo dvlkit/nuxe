@@ -62,7 +62,9 @@ jobs:
 
       - name: Publish to npm
         if: steps.check.outputs.pending == 'true'
-        run: pnpm changeset publish
+        run: |
+          npm install -g sigstore@^4
+          NODE_PATH="$(npm root -g)" pnpm changeset publish
 
       - name: Create tags and GitHub Releases
         if: steps.check.outputs.pending == 'true'
