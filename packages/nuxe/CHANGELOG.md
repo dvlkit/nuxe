@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.8.1
+
+### Patch Changes
+
+- 6404f2e: fix: windows paths
+
 ## 0.8.0
 
 ### Minor Changes
