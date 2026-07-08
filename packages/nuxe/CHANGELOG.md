@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.8.7
+
+### Patch Changes
+
+- 59ef61b: update fetch
+
 ## 0.8.6
 
 ### Patch Changes
