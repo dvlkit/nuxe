@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.8.5
+
+### Patch Changes
+
+- c184358: chore: update pnpm version to 11 in changesets workflow config
+
 ## 0.8.4
 
 ### Patch Changes
