@@ -62,7 +62,7 @@ jobs:
 
       - name: Publish to npm
         if: steps.check.outputs.pending == 'true'
-        run: pnpm changeset publish --provenance
+        run: pnpm changeset publish
 
       - name: Create tags and GitHub Releases
         if: steps.check.outputs.pending == 'true'
