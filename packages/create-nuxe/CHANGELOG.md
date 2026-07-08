@@ -1,5 +1,11 @@
 # create-nuxe
 
+## 0.2.5
+
+### Patch Changes
+
+- f054895: -
+
 ## 0.2.4
 
 ### Patch Changes

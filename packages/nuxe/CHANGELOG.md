@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.8.6
+
+### Patch Changes
+
+- f054895: -
+
 ## 0.8.5
 
 ### Patch Changes
