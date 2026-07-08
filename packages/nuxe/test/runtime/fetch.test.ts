@@ -83,6 +83,67 @@ describe('nuxe $fetch wrapper', () => {
     const [url] = fetchMock.mock.calls[0] as [string]
     expect(url).toBe('https://coreapi.example.com/v1/users')
   })
+
+  it('forwards cookie and authorization from the SSR request to internal $fetch', async () => {
+    delete (globalThis as Record<string, unknown>).window
+    hadWindow = false
+    const ssrRequest = new Request('https://app.example.com/original', {
+      headers: {
+        cookie: 'sid=abc123',
+        authorization: 'Bearer xyz',
+        host: 'app.example.com',
+        'user-agent': 'Mozilla/5.0',
+      },
+    })
+    ;(globalThis as Record<string, unknown>).__NUXE_SSR_CONTEXT__ = { request: ssrRequest }
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }))
+
+    await $fetch('/api/me')
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const outgoingHeaders = init.headers instanceof Headers ? init.headers : new Headers(init.headers as HeadersInit)
+    expect(outgoingHeaders.get('cookie')).toBe('sid=abc123')
+    expect(outgoingHeaders.get('authorization')).toBe('Bearer xyz')
+    expect(outgoingHeaders.get('host')).toBeNull()
+    expect(outgoingHeaders.get('user-agent')).toBeNull()
+    delete (globalThis as Record<string, unknown>).__NUXE_SSR_CONTEXT__
+  })
+
+  it('does not forward SSR headers on the client (browser handles cookies)', async () => {
+    ;(globalThis as Record<string, unknown>).window = {
+      location: { origin: 'https://app.example.com' },
+    }
+    hadWindow = true
+    const ssrRequest = new Request('https://app.example.com/original', {
+      headers: { cookie: 'sid=should-not-leak' },
+    })
+    ;(globalThis as Record<string, unknown>).__NUXE_SSR_CONTEXT__ = { request: ssrRequest }
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }))
+
+    await $fetch('/api/me')
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const outgoingHeaders = init.headers instanceof Headers ? init.headers : new Headers(init.headers as HeadersInit)
+    expect(outgoingHeaders.get('cookie')).toBeNull()
+    delete (globalThis as Record<string, unknown>).__NUXE_SSR_CONTEXT__
+  })
+
+  it('user-supplied headers win over forwarded ones', async () => {
+    delete (globalThis as Record<string, unknown>).window
+    hadWindow = false
+    const ssrRequest = new Request('https://app.example.com/original', {
+      headers: { cookie: 'sid=forwarded' },
+    })
+    ;(globalThis as Record<string, unknown>).__NUXE_SSR_CONTEXT__ = { request: ssrRequest }
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }))
+
+    await $fetch('/api/me', { headers: { cookie: 'sid=override' } })
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const outgoingHeaders = init.headers instanceof Headers ? init.headers : new Headers(init.headers as HeadersInit)
+    expect(outgoingHeaders.get('cookie')).toBe('sid=override')
+    delete (globalThis as Record<string, unknown>).__NUXE_SSR_CONTEXT__
+  })
 })
 
 describe('nuxe $fetch exports', () => {
