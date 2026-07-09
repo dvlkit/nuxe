@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useHead } from '@dvlkit/nuxe'
 import { NuxeLoadingIndicator } from '@dvlkit/nuxe'
-import { NuxeLayout } from '@dvlkit/nuxe/components/nuxe-layout'
 import './assets/main.css'
 import { NuxePage } from '@dvlkit/nuxe'
 

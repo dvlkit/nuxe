@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { loadNuxeConfig } from './config'
 import { createNuxeProjectSetup } from './nuxe-setup'
-import { prepareLayouts } from './prepare-layouts'
+import { prepareNuxeLayoutComponent } from './prepare-nuxe-layout-component'
 import { scanPages } from './pages/scanner'
 import { logInfo, logSuccess, logWarn } from './utils/logger'
 
@@ -37,7 +37,7 @@ async function prerenderRoutes(cwd: string): Promise<void> {
 
 export async function runBuild(cwd: string): Promise<void> {
   const startedAt = Date.now()
-  prepareLayouts(cwd)
+  prepareNuxeLayoutComponent(cwd)
   const config = await loadNuxeConfig({ cwd })
   const setup = await createNuxeProjectSetup(cwd, config)
 

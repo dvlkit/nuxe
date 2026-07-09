@@ -11,7 +11,6 @@ export default defineConfig([
       'setup': 'lib/nuxe-setup.ts',
       'plugin': 'lib/plugin.ts',
       'components/client-only': 'lib/components/client-only.ts',
-      'components/nuxe-layout': 'lib/components/nuxe-layout.ts',
       'components/nuxe-root': 'lib/components/nuxe-root.ts',
       'runtime/index': 'lib/runtime/index.ts',
       'runtime/server-head': 'lib/runtime/server-head.ts',
@@ -37,7 +36,6 @@ export default defineConfig([
         'c12',
         'valibot',
         'citty',
-        '#nuxe/layouts.mjs',
         './ssr/index.js',
         './client.manifest.mjs',
       ],
@@ -55,8 +53,6 @@ export default defineConfig([
         await copyFile(join(outDir, 'plugin.d.mts'), join(outDir, 'plugin.d.ts'))
         await copyFile(join(outDir, 'components/client-only.mjs'), join(outDir, 'components/client-only.js'))
         await copyFile(join(outDir, 'components/client-only.d.mts'), join(outDir, 'components/client-only.d.ts'))
-        await copyFile(join(outDir, 'components/nuxe-layout.mjs'), join(outDir, 'components/nuxe-layout.js'))
-        await copyFile(join(outDir, 'components/nuxe-layout.d.mts'), join(outDir, 'components/nuxe-layout.d.ts'))
         await copyFile(join(outDir, 'components/nuxe-root.mjs'), join(outDir, 'components/nuxe-root.js'))
         await copyFile(join(outDir, 'components/nuxe-root.d.mts'), join(outDir, 'components/nuxe-root.d.ts'))
         await copyFile(join(outDir, 'runtime/index.mjs'), join(outDir, 'runtime/index.js'))

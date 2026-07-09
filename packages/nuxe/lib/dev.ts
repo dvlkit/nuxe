@@ -2,7 +2,7 @@ import { listen } from 'listhen'
 import { createServer as createViteServer } from 'vite'
 import { loadNuxeConfig } from './config'
 import { createNuxeProjectSetup } from './nuxe-setup'
-import { prepareLayouts } from './prepare-layouts'
+import { prepareNuxeLayoutComponent } from './prepare-nuxe-layout-component'
 import { printDevBanner } from './utils/banner'
 import { logInfo } from './utils/logger'
 
@@ -11,7 +11,7 @@ export async function runDev(cwd: string): Promise<void> {
   process.env.NODE_ENV = process.env.NODE_ENV || 'development'
 
   const startedAt = Date.now()
-  prepareLayouts(cwd)
+  prepareNuxeLayoutComponent(cwd)
   const config = await loadNuxeConfig({ cwd })
   process.env.NUXE_API_PREFIX = config.server.apiPrefix
   const port = config.server.port

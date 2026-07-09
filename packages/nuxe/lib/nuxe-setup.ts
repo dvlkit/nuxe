@@ -116,7 +116,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
       dts: '.nuxe/auto-imports.d.ts',
     }),
     Components({
-      dirs: ['app/components'],
+      dirs: ['app/components', '.nuxe/components'],
       dts: '.nuxe/components.d.ts',
       directoryAsNamespace: true,
     }),

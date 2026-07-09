@@ -382,21 +382,7 @@ export interface NuxeOptions {
   errorComponent?: boolean
 }
 
-function buildLayoutsModule(layouts: string[]): string {
-  if (layouts.length === 0) {
-    return 'export default {}\n'
-  }
-  const imports = layouts
-    .map((file, i) => `import __layout_${i} from '/app/layouts/${file}'`)
-    .join('\n')
-  const map = layouts
-    .map((file, i) => {
-      const name = file.replace(/\.vue$/, '').toLowerCase()
-      return `  '${name}': __layout_${i}`
-    })
-    .join(',\n')
-  return `${imports}\n\nexport default {\n${map}\n}\n`
-}
+
 
 function buildErrorModule(hasErrorComponent: boolean): string {
   if (hasErrorComponent) {
@@ -418,7 +404,6 @@ export const ErrorComponent = defineComponent({
 }
 
 export default function nuxe(options: NuxeOptions): Plugin {
-  const layoutsModule = buildLayoutsModule(options.layouts)
   const clientMiddlewaresModule = generateClientMiddlewaresModule(options.middlewares ?? [])
   const serverMiddlewaresModule = generateServerMiddlewaresModule(options.middlewares ?? [])
   const clientPluginsModule = generateClientPluginsModule(options.plugins ?? [])
@@ -481,9 +466,6 @@ export default function nuxe(options: NuxeOptions): Plugin {
     },
 
     resolveId(id) {
-      if (id === 'virtual:nuxe/layouts' || id === '\0virtual:nuxe/layouts') {
-        return '\0virtual:nuxe/layouts'
-      }
       if (id === 'virtual:nuxe/middlewares-client' || id === '\0virtual:nuxe/middlewares-client') {
         return '\0virtual:nuxe/middlewares-client'
       }
@@ -505,7 +487,6 @@ export default function nuxe(options: NuxeOptions): Plugin {
     },
 
     load(id) {
-      if (id === '\0virtual:nuxe/layouts') return layoutsModule
       if (id === '\0virtual:nuxe/middlewares-client') return clientMiddlewaresModule
       if (id === '\0virtual:nuxe/middlewares-server') return serverMiddlewaresModule
       if (id === '\0virtual:nuxe/routes') return routesModule
