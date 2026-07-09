@@ -29,17 +29,21 @@ const layouts: Record<string, unknown> = {
 ${mapEntries}
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   name?: string | false | null
   fallback?: string | null
   transition?: boolean | Record<string, unknown>
-}>()
+}>(), {
+  name: null,
+  fallback: null,
+  transition: false,
+})
 
 const attrs = useAttrs()
 const route = useRoute()
 
 const layoutName = computed<string | null>(() => {
-  if (props.name != null) {
+  if (props.name !== null) {
     return props.name === false ? null : (props.name as string)
   }
   const metaLayout = (route.meta as { layout?: string | false | null }).layout
