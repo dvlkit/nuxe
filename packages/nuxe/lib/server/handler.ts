@@ -275,25 +275,30 @@ async function renderApp(
 
           const ctx = ssrContext
           await ctx.awaitAll()
-          const nuxePayload: Record<string, unknown> = {
-            runtimeConfig: getPublicRuntimeConfig(runtimeConfig),
-          }
+
+          const dataPayload: Record<string, unknown> = {}
           if (Object.keys(ctx.payload).length > 0) {
-            nuxePayload.data = ctx.payload
+            dataPayload.data = ctx.payload
           }
           if (ssrContext.error) {
             const serializedError = serializeError(ssrContext.error)
             if (serializedError) {
-              nuxePayload.error = serializedError
+              dataPayload.error = serializedError
             }
           }
           if (ssrContext.nuxeApp?.state && Object.keys(ssrContext.nuxeApp.state).length > 0) {
-            nuxePayload.state = Object.fromEntries(
-              Object.entries(ssrContext.nuxeApp.state).map(([k, ref]) => [k, ref.value]),
+            dataPayload.state = Object.fromEntries(
+                Object.entries(ssrContext.nuxeApp.state).map(([k, ref]) => [k, ref.value])
             )
           }
-          const serialized = serializePayload(nuxePayload)
-          controller.enqueue(encoder.encode(`<script>window.__NUXE__=${serialized};</script>`))
+          if (Object.keys(dataPayload).length > 0) {
+            const dataScript = serializePayload(dataPayload)
+            controller.enqueue(encoder.encode(
+                `<script type="application/json" id="__NUXE_DATA__" data-ssr="true">${dataScript}</script>`,
+            ))
+          }
+          const configScript = serializePayload({runtimeConfig: getPublicRuntimeConfig(runtimeConfig)})
+          controller.enqueue(encoder.encode(`<script>window.__NUXE__=${configScript};</script>`))
 
           controller.enqueue(encoder.encode(`${entryScript}${HTML_CLOSE}`))
           controller.close()

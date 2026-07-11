@@ -46,3 +46,4 @@ export { createNuxeState, clearNuxeState, useState, type NuxeState } from './sta
 export { useRequestEvent, useRequestHeaders, useRequestURL } from './request'
 export { provideBaseURL, useBaseURL, resetBaseURLCache } from './base-url'
 export { createHead } from '@unhead/vue/client'
+export { readHydrationPayload, type HydrationPayload } from './payload'

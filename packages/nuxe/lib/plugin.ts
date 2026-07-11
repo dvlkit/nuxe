@@ -114,7 +114,7 @@ import { ErrorComponent } from 'virtual:nuxe/error'
 import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
-import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
+import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, readHydrationPayload, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
 import publicRuntimeConfig from '/.nuxe/runtime-config-public.json'
 let __nuxeApp
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
@@ -129,18 +129,16 @@ async function main() {
     error.value = createError(err)
   }
   let runtimeConfig: RuntimeConfig = publicRuntimeConfig
-  const initialState = typeof window !== 'undefined' && window.__NUXE__?.state
-    ? window.__NUXE__.state
-    : {}
-  if (typeof window !== 'undefined' && window.__NUXE__) {
-    setHydratedPayload(window.__NUXE__.data || null)
-    if (window.__NUXE__.runtimeConfig) {
-      runtimeConfig = window.__NUXE__.runtimeConfig as RuntimeConfig
-    }
-    if (window.__NUXE__.error) {
-      error.value = deserializeError(window.__NUXE__.error)
-    }
+  const hydrated = readHydrationPayload()
+  const initialState = hydrated?.state ?? {}
+  setHydratedPayload(hydrated?.data ?? null)
+  if (window.__NUXE__?.runtimeConfig) {
+    runtimeConfig = window.__NUXE__.runtimeConfig as RuntimeConfig
   }
+  if (hydrated?.error) {
+    error.value = deserializeError(hydrated.error)
+  }
+  delete window.__NUXE__
   provideRuntimeConfig(app, runtimeConfig)
   
   const routerPublicCfg = (runtimeConfig?.public?.router ?? {}) as { scrollBehaviorType?: 'auto' | 'smooth' | 'instant' }
