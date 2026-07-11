@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.1
+
+### Patch Changes
+
+- 7f881ee: update **NUXE**
+
 ## 0.9.0
 
 ### Minor Changes
