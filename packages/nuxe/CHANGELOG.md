@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.3
+
+### Patch Changes
+
+- 302aa22: fix tests
+
 ## 0.9.2
 
 ### Patch Changes
