@@ -7,6 +7,7 @@ const runtimeConfigValueSchema: v.GenericSchema<unknown> = v.lazy(() =>
     v.number(),
     v.boolean(),
     v.null(),
+    v.undefined(),
     v.record(v.string(), runtimeConfigValueSchema),
   ]),
 )
