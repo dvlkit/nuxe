@@ -80,7 +80,7 @@ describe('playground SSR integration', () => {
     const html = await response.text()
     expect(response.status).toBe(200)
     expect(html).toContain('Session cookie: demo123')
-    expect(html).toContain('id="__NUXE_DATA__" type="application/json"')
+    expect(html).toMatch(/<script(?=[^>]*\bid="__NUXE_DATA__")(?=[^>]*\btype="application\/json")[^>]*>/)
     expect(html).toContain('window.__NUXE__')
   })
 
