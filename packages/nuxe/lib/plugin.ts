@@ -115,6 +115,7 @@ import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
 import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, readHydrationPayload, EMPTY, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
+import { parse } from 'devalue'
 let __nuxeApp
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
