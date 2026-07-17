@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.5
+
+### Patch Changes
+
+- 07760a3: feat(nuxe): runtime config reaches the client at request time
+
 ## 0.9.4
 
 ### Patch Changes
