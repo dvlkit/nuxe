@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.8
+
+### Patch Changes
+
+- 5f646db: fix: runtime config
+
 ## 0.9.7
 
 ### Patch Changes
