@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.6
+
+### Patch Changes
+
+- b01c790: fix: runtime config
+
 ## 0.9.5
 
 ### Patch Changes
