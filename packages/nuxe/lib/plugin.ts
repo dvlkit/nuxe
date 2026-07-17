@@ -127,7 +127,14 @@ async function main() {
   app.config.errorHandler = (err) => {
     error.value = createError(err)
   }
-  let runtimeConfig: RuntimeConfig = (window.__NUXE__?.runtimeConfig as RuntimeConfig | undefined) ?? EMPTY
+  let runtimeConfig: RuntimeConfig = EMPTY
+   const nuxeGlobal = window.__NUXE__
+   if (Array.isArray(nuxeGlobal)) {
+     const parsed = parse(nuxeGlobal) as { runtimeConfig?: RuntimeConfig } | null
+     if (parsed?.runtimeConfig) runtimeConfig = parsed.runtimeConfig
+   } else if (nuxeGlobal && typeof nuxeGlobal === 'object' && 'runtimeConfig' in nuxeGlobal) {
+     runtimeConfig = (nuxeGlobal as { runtimeConfig: RuntimeConfig }).runtimeConfig
+   }
   const hydrated = readHydrationPayload()
   const initialState = hydrated?.state ?? {}
   setHydratedPayload(hydrated?.data ?? null)
