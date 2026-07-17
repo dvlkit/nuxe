@@ -351,7 +351,7 @@ export function createHandler(runtimeConfigInput: RuntimeConfig) {
     const isDev = process.env.NUXE_DEV === 'true'
 
     const runtimeConfig = loadRuntimeConfig(runtimeConfigInput)
-    const configScript = serializePayload({runtimeConfig: getPublicRuntimeConfig(runtimeConfig)})
+    const configScript = JSON.stringify({runtimeConfig: getPublicRuntimeConfig(runtimeConfig)})
 
     const ssrContext: NuxeSSRContext = {
       url: request.url,

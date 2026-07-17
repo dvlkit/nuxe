@@ -115,7 +115,6 @@ import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
 import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, readHydrationPayload, EMPTY, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
-import { parse } from 'devalue'
 let __nuxeApp
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
@@ -128,14 +127,7 @@ async function main() {
   app.config.errorHandler = (err) => {
     error.value = createError(err)
   }
-  let runtimeConfig: RuntimeConfig = EMPTY
-   const nuxeGlobal = window.__NUXE__
-   if (Array.isArray(nuxeGlobal)) {
-     const parsed = parse(nuxeGlobal) as { runtimeConfig?: RuntimeConfig } | null
-     if (parsed?.runtimeConfig) runtimeConfig = parsed.runtimeConfig
-   } else if (nuxeGlobal && typeof nuxeGlobal === 'object' && 'runtimeConfig' in nuxeGlobal) {
-     runtimeConfig = (nuxeGlobal as { runtimeConfig: RuntimeConfig }).runtimeConfig
-   }
+  let runtimeConfig: RuntimeConfig = (window.__NUXE__?.runtimeConfig as RuntimeConfig | undefined) ?? EMPTY
   const hydrated = readHydrationPayload()
   const initialState = hydrated?.state ?? {}
   setHydratedPayload(hydrated?.data ?? null)
