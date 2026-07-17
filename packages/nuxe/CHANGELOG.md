@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.4
+
+### Patch Changes
+
+- 60a579e: feat(nuxe): deduplicate useAsyncData entries per key
+
 ## 0.9.3
 
 ### Patch Changes
