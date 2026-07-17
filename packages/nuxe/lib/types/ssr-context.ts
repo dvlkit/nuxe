@@ -2,6 +2,7 @@ import type { SSRContext } from 'vue/server-renderer'
 import { NuxeApp, NuxeError } from '../runtime'
 import { createStreamableHead } from '@unhead/vue/stream/server'
 import { RouteRules } from '../pages/scanner'
+import type { RuntimeConfig } from '../config/runtime-config'
 
 export interface NuxeSSRContext extends SSRContext {
   url: string
@@ -16,4 +17,5 @@ export interface NuxeSSRContext extends SSRContext {
   pending: Map<string, Promise<unknown>>
   awaitAll: () => Promise<void>
   routeRules?: RouteRules
+  runtimeConfig: RuntimeConfig
 }

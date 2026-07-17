@@ -6,7 +6,7 @@ export type { RuntimeConfig }
 const NUXE_RUNTIME_CONFIG_KEY: InjectionKey<RuntimeConfig> =
   Symbol('@dvlkit/nuxe/runtime-config')
 
-const EMPTY: RuntimeConfig = { public: {} }
+export const EMPTY: RuntimeConfig = { public: {} }
 
 export function useRuntimeConfig(): RuntimeConfig {
   if (hasInjectionContext()) {

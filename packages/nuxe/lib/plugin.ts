@@ -114,8 +114,7 @@ import { ErrorComponent } from 'virtual:nuxe/error'
 import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
-import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, readHydrationPayload, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
-import publicRuntimeConfig from '/.nuxe/runtime-config-public.json'
+import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, readHydrationPayload, EMPTY, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
 let __nuxeApp
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
@@ -128,13 +127,10 @@ async function main() {
   app.config.errorHandler = (err) => {
     error.value = createError(err)
   }
-  let runtimeConfig: RuntimeConfig = publicRuntimeConfig
+  let runtimeConfig: RuntimeConfig = (window.__NUXE__?.runtimeConfig as RuntimeConfig | undefined) ?? EMPTY
   const hydrated = readHydrationPayload()
   const initialState = hydrated?.state ?? {}
   setHydratedPayload(hydrated?.data ?? null)
-  if (window.__NUXE__?.runtimeConfig) {
-    runtimeConfig = window.__NUXE__.runtimeConfig as RuntimeConfig
-  }
   if (hydrated?.error) {
     error.value = deserializeError(hydrated.error)
   }
@@ -253,7 +249,6 @@ import { createStreamableHead } from '@dvlkit/nuxe/runtime/server-head'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import { ErrorComponent } from 'virtual:nuxe/error'
 import { createError, provideError, provideRuntimeConfig, provideBaseURL, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
-import runtimeConfig from '/.nuxe/runtime-config.json'
 import App from '/app/app.vue'
 import routes from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
@@ -262,8 +257,9 @@ ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 
 async function createApp(ssrContext) {
   ;(globalThis as { __NUXE_SSR_CONTEXT__?: typeof ssrContext }).__NUXE_SSR_CONTEXT__ = ssrContext
+  const runtimeConfig = ssrContext.runtimeConfig
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
-  provideRuntimeConfig(app, runtimeConfig)  
+  provideRuntimeConfig(app, runtimeConfig)
   provideBaseURL(app, (runtimeConfig as { baseUrl?: string }).baseUrl)
   const error = ref(ssrContext.error || null)
   provideError(app, error)

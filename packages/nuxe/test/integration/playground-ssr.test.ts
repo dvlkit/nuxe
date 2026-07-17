@@ -91,3 +91,53 @@ describe('playground SSR integration', () => {
     expect(json.message).toBe('pong')
   })
 })
+
+describe('playground runtime config injection', () => {
+  let server: ReturnType<typeof spawn> | null = null
+  let port: number
+
+  beforeAll(async () => {
+    port = 3000 + Math.floor(Math.random() * 1000)
+
+    execSync('pnpm build', {
+      cwd: playgroundDir,
+      stdio: 'pipe',
+      env: { ...process.env, NODE_ENV: 'production' },
+    })
+
+    server = spawn('node', ['.output/server/index.mjs'], {
+      cwd: playgroundDir,
+      env: {
+        ...process.env,
+        PORT: String(port),
+        NUXE_DEV: 'false',
+        NODE_ENV: 'production',
+        NUXE_PUBLIC_RUNTIME_INJECTED: 'hello-from-runtime',
+      },
+      detached: true,
+    })
+
+    await waitForPort(port)
+  }, 120_000)
+
+  afterAll(() => {
+    if (server && server.pid) {
+      try {
+        process.kill(-server.pid, 'SIGTERM')
+      } catch {
+        server.kill('SIGTERM')
+      }
+    }
+  })
+
+  it('injects NUXE_PUBLIC_* env vars into window.__NUXE__ at request time', async () => {
+    const response = await fetch(`http://localhost:${port}/`)
+    const html = await response.text()
+    expect(response.status).toBe(200)
+    expect(html).toContain('window.__NUXE__')
+    const match = html.match(/window\.__NUXE__=([\s\S]*?);<\/script>/)
+    expect(match).not.toBeNull()
+    expect(match![1]).toContain('hello-from-runtime')
+    expect(match![1]).toContain('runtimeInjected')
+  })
+})

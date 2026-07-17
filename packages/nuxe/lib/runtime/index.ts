@@ -28,7 +28,7 @@ export {
   type UseFetchReturn,
   type UseFetchError,
 } from './use-fetch'
-export { useRuntimeConfig, provideRuntimeConfig, type RuntimeConfig } from './config'
+export { useRuntimeConfig, provideRuntimeConfig, EMPTY, type RuntimeConfig } from './config'
 export {
   defineNuxePlugin,
   createNuxeApp,

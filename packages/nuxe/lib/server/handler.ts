@@ -185,7 +185,7 @@ async function renderApp(
   manifest: RendererManifest,
   createApp: (ctx: NuxeSSRContext) => Promise<App>,
   isDev: boolean,
-  runtimeConfig: RuntimeConfig,
+  configScript: string,
   updateManifest?: () => Promise<RendererManifest | null>,
 ): Promise<Response> {
   try {
@@ -201,7 +201,7 @@ async function renderApp(
       const entryScript = isDev
         ? DEV_CLIENT_SCRIPTS
         : `<script type="module" src="${entryUrl}"></script>`
-      const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />${entryStyles}</head><body><div id="app"></div>${entryScript}</body></html>`
+      const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />${entryStyles}</head><body><div id="app"></div><script>window.__NUXE__=${configScript};</script>${entryScript}</body></html>`
       return new Response(html, {headers: {'Content-Type': 'text/html'}})
     }
 
@@ -297,7 +297,6 @@ async function renderApp(
                 `<script type="application/json" id="__NUXE_DATA__" data-ssr="true">${dataScript}</script>`,
             ))
           }
-          const configScript = serializePayload({runtimeConfig: getPublicRuntimeConfig(runtimeConfig)})
           controller.enqueue(encoder.encode(`<script>window.__NUXE__=${configScript};</script>`))
 
           controller.enqueue(encoder.encode(`${entryScript}${HTML_CLOSE}`))
@@ -343,58 +342,65 @@ async function renderApp(
     }
     ssrContext.error = createError(error instanceof Error ? error : String(error))
     const errorApp = await createApp(ssrContext)
-    return renderApp(request, ssrContext, errorApp, manifest, createApp, isDev, runtimeConfig, updateManifest)
+    return renderApp(request, ssrContext, errorApp, manifest, createApp, isDev, configScript, updateManifest)
   }
 }
 
-export default async function handler(request: Request): Promise<Response> {
-  const isDev = process.env.NUXE_DEV === 'true'
-  const runtimeConfig = loadRuntimeConfig()
+export function createHandler(runtimeConfigInput: RuntimeConfig) {
+  return async function handler(request: Request): Promise<Response> {
+    const isDev = process.env.NUXE_DEV === 'true'
 
-  const ssrContext: NuxeSSRContext = {
-    url: request.url,
-    request,
-    modules: new Set<string>(),
-    payload: {},
-    pending: new Map<string, Promise<unknown>>(),
-    async awaitAll() {
-      if (ssrContext.pending.size === 0) return
-      await Promise.allSettled(ssrContext.pending.values())
-    }
-  } as unknown as NuxeSSRContext
+    const runtimeConfig = loadRuntimeConfig(runtimeConfigInput)
+    const configScript = serializePayload({runtimeConfig: getPublicRuntimeConfig(runtimeConfig)})
 
-  try {
-    if (isDev) {
-      const options = loadOptions()
-      if (!options) {
-        return new Response(
-          `[nuxe] Could not read ${SOCKET_STATE_FILE}; the vite-node plugin is missing or failed to start.`,
-          {status: 500},
-        )
+    const ssrContext: NuxeSSRContext = {
+      url: request.url,
+      request,
+      modules: new Set<string>(),
+      payload: {},
+      pending: new Map<string, Promise<unknown>>(),
+      runtimeConfig,
+      async awaitAll() {
+        if (ssrContext.pending.size === 0) return
+        await Promise.allSettled(ssrContext.pending.values())
       }
+    } as unknown as NuxeSSRContext
 
-      const {app, manifest, createApp, client} = await loadAppAndManifestDev(options, ssrContext)
-      try {
-        ;(globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__ = ssrContext
-        try {
-          return await renderApp(request, ssrContext, app, manifest, createApp, true, runtimeConfig, async () => (await client.manifest() as RendererManifest | null) ?? null)
-        } finally {
-          delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
-        }
-      } finally {
-        await client.close()
-      }
-    }
-
-    const {app, manifest, createApp} = await loadAppAndManifestProd(ssrContext)
-    ;(globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__ = ssrContext
     try {
-      return await renderApp(request, ssrContext, app, manifest, createApp, false, runtimeConfig)
-    } finally {
-      delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+      if (isDev) {
+        const options = loadOptions()
+        if (!options) {
+          return new Response(
+            `[nuxe] Could not read ${SOCKET_STATE_FILE}; the vite-node plugin is missing or failed to start.`,
+            {status: 500},
+          )
+        }
+
+        const {app, manifest, createApp, client} = await loadAppAndManifestDev(options, ssrContext)
+        try {
+          ;(globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__ = ssrContext
+          try {
+            return await renderApp(request, ssrContext, app, manifest, createApp, true, configScript, async () => (await client.manifest() as RendererManifest | null) ?? null)
+          } finally {
+            delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+          }
+        } finally {
+          await client.close()
+        }
+      }
+
+      const {app, manifest, createApp} = await loadAppAndManifestProd(ssrContext)
+      ;(globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__ = ssrContext
+      try {
+        return await renderApp(request, ssrContext, app, manifest, createApp, false, configScript)
+      } finally {
+        delete (globalThis as { __NUXE_SSR_CONTEXT__?: NuxeSSRContext }).__NUXE_SSR_CONTEXT__
+      }
+    } catch (error) {
+      console.error('[nuxe] handler error', error)
+      return renderErrorResponse(500, error instanceof Error ? error.message : String(error))
     }
-  } catch (error) {
-    console.error('[nuxe] handler error', error)
-    return renderErrorResponse(500, error instanceof Error ? error.message : String(error))
   }
 }
+
+export default createHandler({public: {}})
