@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.7
+
+### Patch Changes
+
+- 60fcbf2: fix: missing inport devalue
+
 ## 0.9.6
 
 ### Patch Changes
