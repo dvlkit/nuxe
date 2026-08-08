@@ -8,11 +8,12 @@
     "start": "nuxe start"
   },
   "dependencies": {
-    "vue": "3.5.38",
-    "vue-router": "5.1.0",
-    "@dvlkit/nuxe": "0.2.0"
+    "vue": "3.5.41",
+    "vue-router": "5.2.0",
+    "@dvlkit/nuxe": "0.9.8"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "7.0.2",
+    "@types/node": "26.2.0"
   }
 }
