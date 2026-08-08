@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.9
+
+### Patch Changes
+
+- fbab89c: feat: add shared directory with utils and types, update auto-imports and aliases
+
 ## 0.9.8
 
 ### Patch Changes

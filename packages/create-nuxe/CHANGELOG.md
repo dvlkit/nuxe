@@ -1,5 +1,11 @@
 # create-nuxe
 
+## 0.2.6
+
+### Patch Changes
+
+- fbab89c: feat: add shared directory with utils and types, update auto-imports and aliases
+
 ## 0.2.5
 
 ### Patch Changes

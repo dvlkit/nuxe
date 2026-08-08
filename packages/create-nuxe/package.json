@@ -1,6 +1,6 @@
 {
   "name": "create-nuxe",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Scaffold a new nuxe project",
   "repository": {
     "type": "git",
