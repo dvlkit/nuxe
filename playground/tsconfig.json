@@ -2,6 +2,9 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["vite/client", "node"],
+    "paths": {
+      "#shared/*": ["shared/*"]
+    }
   },
   "include": [
     ".nuxe/**/*.d.ts",

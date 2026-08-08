@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useFetch, useHead } from '@dvlkit/nuxe'
+import { formatTime } from '#shared/format'
 
 definePage({
   meta: { layout: 'default' },
@@ -12,12 +13,6 @@ useHead({
     { name: 'description', content: 'Demonstrates useFetch with $fetch (built on ofetch) for reactive data fetching' },
   ],
 })
-
-interface PingResponse {
-  message: string
-  timestamp: number
-  query: string | null
-}
 
 const {
   data: basicData,
@@ -47,10 +42,6 @@ const {
   key: 'fetch-demo-error',
   query: { status: 500 },
 })
-
-function formatTime(ts: number) {
-  return new Date(ts).toLocaleTimeString()
-}
 </script>
 
 <template>

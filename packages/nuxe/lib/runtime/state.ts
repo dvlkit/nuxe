@@ -4,12 +4,9 @@ import { tryUseNuxeApp } from './app-context'
 
 export type NuxeState = Record<string, Ref<unknown>>
 
-export function useState<T>(key: string, init?: () => T): Ref<T> {
+export function useState<T>(key: string, init?: T | (() => T)): Ref<T> {
   if (!key || typeof key !== 'string') {
     throw new TypeError(`[nuxe] [useState] key must be a non-empty string: ${String(key)}`)
-  }
-  if (init !== undefined && typeof init !== 'function') {
-    throw new Error(`[nuxe] [useState] init must be a function: ${String(init)}`)
   }
 
   const app = tryUseNuxeApp()
@@ -27,8 +24,10 @@ export function useState<T>(key: string, init?: () => T): Ref<T> {
   const state = payload.state
 
   if (!(key in state)) {
-    state[key] = ref(init ? init() : undefined) as unknown as Ref
+    const initialValue: T | undefined = typeof init === 'function' ? (init as () => T)() : init
+    state[key] = ref(initialValue) as unknown as Ref
   }
+
   return state[key] as Ref<T>
 }
 

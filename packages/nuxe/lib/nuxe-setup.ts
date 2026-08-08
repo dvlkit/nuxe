@@ -117,7 +117,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
         {'@dvlkit/nuxe': ['definePage', 'defineNuxePlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders', 'useRequestURL']},
         {'@dvlkit/nuxe/components/client-only': [['default', 'ClientOnly']]},
       ],
-      dirs: ['app/composables', '.nuxe/composables'],
+      dirs: ['app/composables', '.nuxe/composables', 'shared/utils', 'shared/types'],
       dts: '.nuxe/auto-imports.d.ts',
     }),
     Components({
@@ -132,6 +132,9 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
       apiBaseURL: config.server.apiPrefix,
       renderer: {
         handler: join(cwd, '.nuxe', 'handler.mjs'),
+      },
+      imports: {
+        dirs: ['shared/utils', 'shared/types']
       },
       plugins: (() => {
         try {
@@ -152,6 +155,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
     resolve: {
       alias: {
         '#nuxe': resolve(cwd, '.nuxe'),
+        '#shared': resolve(cwd, 'shared'),
       },
     },
     optimizeDeps: {

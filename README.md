@@ -39,6 +39,9 @@ my-app/
 │   └── admin.vue
 ├── components/            # Auto-imported en templates
 ├── composables/           # Auto-imported en setup
+|-- shared/
+|   |-- utils/             # Auto-imported en app y server
+|   └─- types/             # Auto-imported en app y server
 └── nuxe.config.ts         # Framework config (opcional)
 ```
 
@@ -64,6 +67,16 @@ definePage({
 ```
 
 meta.layout es case-insensitive — admin y Admin matchean layouts/admin.vue. Pages sin meta.layout usan layouts/default.vue. Para agregar un layout nuevo: crear layouts/blog.vue, listo — el framework lo descubre.
+
+## Shared
+
+Código que se usa tanto en la Vue app como en el server vive en `shared/`, peer a `app/` y `server/`.
+
+- `shared/utils/` — funciones y helpers auto-imported en client, SSR y handlers del server.
+- `shared/types/` — types e interfaces auto-imported en los mismos tres lados.
+- Otros archivos bajo `shared/` se importan explícito con el alias `#shared/...`.
+
+
 
 ## Head management
 

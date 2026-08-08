@@ -6,7 +6,10 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "#shared/*": ["./shared/*"]
+    }
   },
   "include": [
     ".nuxe/**/*.d.ts",
