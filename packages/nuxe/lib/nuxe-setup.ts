@@ -125,6 +125,19 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
             dirs: ['app/components', '.nuxe/components', 'app/features'],
             globalNamespaces: ["components"],
             collapseSamePrefixes: true,
+            resolvers: [
+                (name) => {
+                    if (name === 'ClientOnly') {
+                        return {from: '@dvlkit/nuxe/components/client-only'}
+                    }
+                    if (name === 'NuxePage') {
+                        return {from: '@dvlkit/nuxe', name: 'NuxePage'}
+                    }
+                    if (name === 'NuxeLoadingIndicator') {
+                        return {from: '@dvlkit/nuxe', name: 'NuxeLoadingIndicator'}
+                    }
+                }
+            ],
             dts: '.nuxe/components.d.ts',
             directoryAsNamespace: true,
         }),
