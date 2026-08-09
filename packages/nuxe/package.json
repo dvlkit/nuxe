@@ -1,6 +1,6 @@
 {
   "name": "@dvlkit/nuxe",
-  "version": "0.9.12",
+  "version": "0.9.13",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.13
+
+### Patch Changes
+
+- 42d6c9e: update auto imports
+
 ## 0.9.12
 
 ### Patch Changes
