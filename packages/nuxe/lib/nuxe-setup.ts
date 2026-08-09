@@ -123,6 +123,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
     Components({
       dirs: ['app/components', '.nuxe/components', 'app/features'],
       globalNamespaces: ["components"],
+      collapseSamePrefixes: true,
       dts: '.nuxe/components.d.ts',
       directoryAsNamespace: true,
     }),
