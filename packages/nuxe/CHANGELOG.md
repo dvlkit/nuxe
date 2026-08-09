@@ -1,5 +1,12 @@
 # nuxe
 
+## 0.9.10
+
+### Patch Changes
+
+- af0a474: update imports and auto-imports
+- 0eff607: update dependencies
+
 ## 0.9.9
 
 ### Patch Changes
