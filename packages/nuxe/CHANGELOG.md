@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.14
+
+### Patch Changes
+
+- a5b27bd: register `ClientOnly`, `NuxePage`, and `NuxeLoadingIndicator` globally, update auto-imports, and handle stream enqueue errors
+
 ## 0.9.13
 
 ### Patch Changes
