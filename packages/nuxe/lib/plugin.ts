@@ -115,7 +115,7 @@ import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
 import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, readHydrationPayload, EMPTY, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
-import { ClientOnly } from '@dvlkit/nuxe/components/client-only'
+import ClientOnly from '@dvlkit/nuxe/components/client-only'
 import { NuxePage } from '@dvlkit/nuxe'
 import { NuxeLoadingIndicator } from '@dvlkit/nuxe'
 let __nuxeApp
@@ -259,7 +259,7 @@ import App from '/app/app.vue'
 import routes from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
 import { plugins } from 'virtual:nuxe/plugins-server'
-import { ClientOnly } from '@dvlkit/nuxe/components/client-only'
+import ClientOnly from '@dvlkit/nuxe/components/client-only'
 import { NuxePage, NuxeLoadingIndicator } from '@dvlkit/nuxe'
 ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 
