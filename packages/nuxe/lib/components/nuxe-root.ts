@@ -26,6 +26,7 @@ export const NuxeRoot = defineComponent({
     const error = useError()
 
     onErrorCaptured((err) => {
+      console.error('[nuxe] captured error:', err)
       error.value = createError(err instanceof Error ? err : String(err))
       return false
     })

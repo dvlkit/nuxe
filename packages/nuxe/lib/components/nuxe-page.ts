@@ -1,18 +1,27 @@
 import { defineComponent, h, Suspense } from 'vue'
-import { RouterView } from 'vue-router'
+import { type RouteLocationNormalizedLoaded, RouterView } from 'vue-router'
 import { useNuxeApp } from '../plugins/runtime'
 
 export default defineComponent({
   name: 'NuxePage',
-  setup() {
+  inheritAttrs: false,
+  setup(_, { attrs }) {
     const nuxeApp = useNuxeApp()
 
-    return () => h(Suspense, {
-      onResolve: () => {
-        void nuxeApp.callHook('page:loading:end')
+    return () => h(RouterView, attrs, {
+      default: (routeProps: { Component: any; route: RouteLocationNormalizedLoaded }) => {
+        return h(Suspense, {
+          suspensible: true,
+          onPending: () => {
+            void nuxeApp.callHook('page:loading:start')
+          },
+          onResolve: () => {
+            void nuxeApp.callHook('page:loading:end')
+          }
+        }, {
+          default: () => h(routeProps.Component)
+        })
       }
-    }, {
-      default: () => h(RouterView)
     })
   }
 })

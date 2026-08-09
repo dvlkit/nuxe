@@ -64,6 +64,12 @@ function renderErrorResponse(status: number, message: string): Response {
   )
 }
 
+function safeEnqueue(controller: ReadableStreamDefaultController<Uint8Array>, chunk: Uint8Array): void {
+  if (controller.desiredSize !== null) {
+    controller.enqueue(chunk)
+  }
+}
+
 function createRouteStylesTracker() {
   const emitted = new Set<string>()
   return (ssrContext: NuxeSSRContext, rendererContext: RendererContext): string => {
@@ -249,27 +255,27 @@ async function renderApp(
     const htmlStream = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          controller.enqueue(encoder.encode(shellHtml))
+          safeEnqueue(controller, encoder.encode(shellHtml))
 
           if (firstChunk) {
-            controller.enqueue(firstChunk)
+            safeEnqueue(controller, firstChunk)
             const lateStyles = renderRouteStyles(ssrContext, rendererContext)
-            if (lateStyles) controller.enqueue(encoder.encode(lateStyles))
+            if (lateStyles) safeEnqueue(controller, encoder.encode(lateStyles))
             const headChunk = renderSSRHeadSuspenseChunk(head)
             if (headChunk) {
-              controller.enqueue(encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
+              safeEnqueue(controller, encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
             }
           }
 
           while (true) {
             const {done, value} = await reader.read()
             if (done) break
-            controller.enqueue(value)
+            safeEnqueue(controller, value)
             const lateStyles = renderRouteStyles(ssrContext, rendererContext)
-            if (lateStyles) controller.enqueue(encoder.encode(lateStyles))
+            if (lateStyles) safeEnqueue(controller, encoder.encode(lateStyles))
             const headChunk = renderSSRHeadSuspenseChunk(head)
             if (headChunk) {
-              controller.enqueue(encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
+              safeEnqueue(controller, encoder.encode(`<script>${headChunk};document.currentScript.remove()</script>`))
             }
           }
 
@@ -293,25 +299,32 @@ async function renderApp(
           }
           if (Object.keys(dataPayload).length > 0) {
             const dataScript = serializePayload(dataPayload)
-            controller.enqueue(encoder.encode(
+            safeEnqueue(controller, encoder.encode(
                 `<script type="application/json" id="__NUXE_DATA__" data-ssr="true">${dataScript}</script>`,
             ))
           }
-          controller.enqueue(encoder.encode(`<script>window.__NUXE__=${configScript};</script>`))
+          safeEnqueue(controller, encoder.encode(`<script>window.__NUXE__=${configScript};</script>`))
 
-          controller.enqueue(encoder.encode(`${entryScript}${HTML_CLOSE}`))
-          controller.close()
+          safeEnqueue(controller, encoder.encode(`${entryScript}${HTML_CLOSE}`))
+
+          if (controller.desiredSize !== null) {
+            controller.close()
+          }
         } catch (error) {
           console.error('[nuxe] stream error', error)
           try {
             const message = error instanceof Error ? error.message : String(error)
-            controller.enqueue(encoder.encode(
+            safeEnqueue(controller, encoder.encode(
               `<script>document.body.innerHTML='<div style="font-family:sans-serif;padding:2rem">'`
               + `+ '<h1>500 — Error rendering page</h1><p>' + ${JSON.stringify(message)} + '</p></div>'</script>${HTML_CLOSE}`,
             ))
-            controller.close()
+            if (controller.desiredSize !== null) {
+              controller.close()
+            }
           } catch {
-            controller.error(error)
+            if (controller.desiredSize !== null) {
+              controller.error(error)
+            }
           }
         } finally {
           reader.releaseLock()

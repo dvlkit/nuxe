@@ -14,4 +14,5 @@ onMounted(() => {
   <p v-else>Current time: --</p>
   <Hello name="nuxe" />
   <FormsInput label="Test" />
+  <AuthHelloAuth />
 </template>
