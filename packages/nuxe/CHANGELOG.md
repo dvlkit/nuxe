@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.12
+
+### Patch Changes
+
+- b055912: add `NuxePage` and `NuxeLoadingIndicator` to auto-imports configuration
+
 ## 0.9.11
 
 ### Patch Changes
