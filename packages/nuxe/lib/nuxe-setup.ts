@@ -114,7 +114,7 @@ export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeCo
           ],
         },
         {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxePlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders', 'useRequestURL']},
+        {'@dvlkit/nuxe': ['definePage', 'defineNuxePlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders', 'useRequestURL', 'NuxePage', 'NuxeLoadingIndicator']},
         {'@dvlkit/nuxe/components/client-only': [['default', 'ClientOnly']]},
       ],
       dirs: ['app/composables', '.nuxe/composables', 'shared/utils', 'shared/types', 'app/features/*/composables'],
