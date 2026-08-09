@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.11
+
+### Patch Changes
+
+- 73c6e55: enable `collapseSamePrefixes` in components auto-import configuration
+
 ## 0.9.10
 
 ### Patch Changes
