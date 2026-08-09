@@ -1,5 +1,11 @@
 # nuxe
 
+## 0.9.16
+
+### Patch Changes
+
+- c9f2d57: add custom resolvers for `ClientOnly`, `NuxePage`, and `NuxeLoadingIndicator` in auto-imports configuration
+
 ## 0.9.15
 
 ### Patch Changes
