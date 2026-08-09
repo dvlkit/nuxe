@@ -1,234 +1,243 @@
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import { resolve, join } from 'node:path'
-import { mergeConfig } from 'vite'
-import type { Plugin, PluginOption, UserConfig } from 'vite'
-import { nitro } from 'nitro/vite'
-import type { ResolvedNuxeConfig } from './config'
-import { scanMiddlewares } from './middleware/scanner'
-import nuxe, { NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER } from './plugin'
-import { scanPlugins } from './plugins/scanner'
-import { scanPages } from './pages/scanner'
-import { generateTypedRouter } from './pages/typed-router'
-import { generateNavigateTo, generateUseRoute } from './pages/generated-composables'
-import { generateRuntimeConfigTypes } from './config/generate-runtime-config-types'
+import {existsSync, mkdirSync, readdirSync, writeFileSync} from 'node:fs'
+import {createRequire} from 'node:module'
+import {resolve, join} from 'node:path'
+import {mergeConfig} from 'vite'
+import type {Plugin, PluginOption, UserConfig} from 'vite'
+import {nitro} from 'nitro/vite'
+import type {ResolvedNuxeConfig} from './config'
+import {scanMiddlewares} from './middleware/scanner'
+import nuxe, {NUXE_ENTRY_CLIENT, NUXE_ENTRY_SERVER} from './plugin'
+import {scanPlugins} from './plugins/scanner'
+import {scanPages} from './pages/scanner'
+import {generateTypedRouter} from './pages/typed-router'
+import {generateNavigateTo, generateUseRoute} from './pages/generated-composables'
+import {generateRuntimeConfigTypes} from './config/generate-runtime-config-types'
 import nuxePageMetaPlugin from './pages/page-meta-plugin'
 import vue from '@vitejs/plugin-vue'
-import { NuxeViteNodePlugin } from './vite/vite-node-server'
-import { NuxeClientManifestPlugin } from './vite/client-manifest'
-import { NuxeDevStyleSSRPlugin } from './vite/dev-style-ssr'
+import {NuxeViteNodePlugin} from './vite/vite-node-server'
+import {NuxeClientManifestPlugin} from './vite/client-manifest'
+import {NuxeDevStyleSSRPlugin} from './vite/dev-style-ssr'
 
 export interface NuxeProjectSetup {
-  layoutFiles: string[]
-  frameworkPlugins: PluginOption[]
-  baseConfig: UserConfig
+    layoutFiles: string[]
+    frameworkPlugins: PluginOption[]
+    baseConfig: UserConfig
 }
 
 function generateNuxeEntries(cwd: string): void {
-  const nuxeDir = join(cwd, '.nuxe')
-  if (!existsSync(nuxeDir)) {
-    mkdirSync(nuxeDir, {recursive: true})
-  }
-  writeFileSync(join(nuxeDir, 'entry-server.ts'), NUXE_ENTRY_SERVER)
-  writeFileSync(join(nuxeDir, 'entry-client.ts'), NUXE_ENTRY_CLIENT)
+    const nuxeDir = join(cwd, '.nuxe')
+    if (!existsSync(nuxeDir)) {
+        mkdirSync(nuxeDir, {recursive: true})
+    }
+    writeFileSync(join(nuxeDir, 'entry-server.ts'), NUXE_ENTRY_SERVER)
+    writeFileSync(join(nuxeDir, 'entry-client.ts'), NUXE_ENTRY_CLIENT)
 }
 
 // Workaround for https://github.com/vitejs/vite-plugin-vue/issues/677
 type VuePlugin = Plugin & {
-  transform: {
-    handler: (code: string, id: string, options?: unknown) => unknown
-  }
+    transform: {
+        handler: (code: string, id: string, options?: unknown) => unknown
+    }
 }
 
 function patchVueExclude(plugin: VuePlugin, exclude: RegExp) {
-  if (!plugin?.transform?.handler) return plugin
-  const original = plugin.transform.handler
-  plugin.transform.handler = function (...args) {
-    if (exclude.test(args[1])) return
-    return original.call(this, ...args)
-  }
-  return plugin
+    if (!plugin?.transform?.handler) return plugin
+    const original = plugin.transform.handler
+    plugin.transform.handler = function (...args) {
+        if (exclude.test(args[1])) return
+        return original.call(this, ...args)
+    }
+    return plugin
 }
 
 export async function createNuxeProjectSetup(cwd: string, config: ResolvedNuxeConfig): Promise<NuxeProjectSetup> {
-  generateNuxeEntries(cwd)
+    generateNuxeEntries(cwd)
 
-  const layoutsDir = resolve(cwd, 'app/layouts')
-  const layoutFiles = existsSync(layoutsDir)
-    ? readdirSync(layoutsDir).filter(f => f.endsWith('.vue'))
-    : []
-  const scannedMiddlewares = scanMiddlewares(cwd)
-  const scannedPages = scanPages(cwd)
-  const scannedPlugins = scanPlugins(cwd)
-  const hasErrorComponent = existsSync(join(cwd, 'app', 'error.vue'))
+    const layoutsDir = resolve(cwd, 'app/layouts')
+    const layoutFiles = existsSync(layoutsDir)
+        ? readdirSync(layoutsDir).filter(f => f.endsWith('.vue'))
+        : []
+    const scannedMiddlewares = scanMiddlewares(cwd)
+    const scannedPages = scanPages(cwd)
+    const scannedPlugins = scanPlugins(cwd)
+    const hasErrorComponent = existsSync(join(cwd, 'app', 'error.vue'))
 
-  writeFileSync(join(cwd, '.nuxe', 'typed-router.d.ts'), generateTypedRouter(scannedPages))
-  writeFileSync(join(cwd, '.nuxe', 'runtime-config.d.ts'), generateRuntimeConfigTypes(config.runtimeConfig))
-  writeFileSync(
-    join(cwd, '.nuxe', 'runtime-config.mjs'),
-    `// Generated by nuxe — runtime config input (build-time defaults).\n`
-    + `// Env vars (NUXE_* / NUXE_PUBLIC_*) are overlaid at request time in the handler.\n`
-    + `export default ${JSON.stringify({ ...config.runtimeConfigInput, baseUrl: config.baseUrl }, null, 2)}\n`,
-  )
-  writeFileSync(
-    join(cwd, '.nuxe', 'handler.mjs'),
-    `// Generated by nuxe — wires the user's runtime config input into the request handler.\n`
-    + `import { createHandler } from '@dvlkit/nuxe/server/handler'\n`
-    + `import runtimeConfigInput from './runtime-config.mjs'\n`
-    + `export default createHandler(runtimeConfigInput)\n`,
-  )
+    writeFileSync(join(cwd, '.nuxe', 'typed-router.d.ts'), generateTypedRouter(scannedPages))
+    writeFileSync(join(cwd, '.nuxe', 'runtime-config.d.ts'), generateRuntimeConfigTypes(config.runtimeConfig))
+    writeFileSync(
+        join(cwd, '.nuxe', 'runtime-config.mjs'),
+        `// Generated by nuxe — runtime config input (build-time defaults).\n`
+        + `// Env vars (NUXE_* / NUXE_PUBLIC_*) are overlaid at request time in the handler.\n`
+        + `export default ${JSON.stringify({...config.runtimeConfigInput, baseUrl: config.baseUrl}, null, 2)}\n`,
+    )
+    writeFileSync(
+        join(cwd, '.nuxe', 'handler.mjs'),
+        `// Generated by nuxe — wires the user's runtime config input into the request handler.\n`
+        + `import { createHandler } from '@dvlkit/nuxe/server/handler'\n`
+        + `import runtimeConfigInput from './runtime-config.mjs'\n`
+        + `export default createHandler(runtimeConfigInput)\n`,
+    )
 
-  const nuxeComposablesDir = join(cwd, '.nuxe', 'composables')
-  if (!existsSync(nuxeComposablesDir)) {
-    mkdirSync(nuxeComposablesDir, { recursive: true })
-  }
-  writeFileSync(join(nuxeComposablesDir, 'navigateTo.ts'), generateNavigateTo())
-  writeFileSync(join(nuxeComposablesDir, 'useNuxeRoute.ts'), generateUseRoute())
+    const nuxeComposablesDir = join(cwd, '.nuxe', 'composables')
+    if (!existsSync(nuxeComposablesDir)) {
+        mkdirSync(nuxeComposablesDir, {recursive: true})
+    }
+    writeFileSync(join(nuxeComposablesDir, 'navigateTo.ts'), generateNavigateTo())
+    writeFileSync(join(nuxeComposablesDir, 'useNuxeRoute.ts'), generateUseRoute())
 
-  const nodeOnlyExternal = (id: string): boolean =>
-    /^(node:|node_modules\/.pnpm\/(c12|chokidar|jiti|exsolve|confbox|pkg-types|readdirp)@)/.test(id)
+    const nodeOnlyExternal = (id: string): boolean =>
+        /^(node:|node_modules\/.pnpm\/(c12|chokidar|jiti|exsolve|confbox|pkg-types|readdirp)@)/.test(id)
 
-  const frameworkPlugins: PluginOption[] = [
-    patchVueExclude(vue() as VuePlugin, /\?assets/),
-    nuxePageMetaPlugin(),
-    NuxeViteNodePlugin({
-      root: cwd,
-      entryPath: join(cwd, '.nuxe', 'entry-server.ts'),
-    }),
-    NuxeClientManifestPlugin({
-      clientEntry: join(cwd, '.nuxe', 'entry-client.ts'),
-      serverOutDir: join(cwd, '.output', 'server'),
-    }),
-    NuxeDevStyleSSRPlugin({ root: cwd }),
-    AutoImport({
-      imports: [
-        'vue',
-        {
-          'vue-router': [
-            'useRoute',
-            'useRouter',
-            'onBeforeRouteLeave',
-            'onBeforeRouteUpdate',
-          ],
+    const frameworkPlugins: PluginOption[] = [
+        patchVueExclude(vue() as VuePlugin, /\?assets/),
+        nuxePageMetaPlugin(),
+        NuxeViteNodePlugin({
+            root: cwd,
+            entryPath: join(cwd, '.nuxe', 'entry-server.ts'),
+        }),
+        NuxeClientManifestPlugin({
+            clientEntry: join(cwd, '.nuxe', 'entry-client.ts'),
+            serverOutDir: join(cwd, '.output', 'server'),
+        }),
+        NuxeDevStyleSSRPlugin({root: cwd}),
+        AutoImport({
+            imports: [
+                'vue',
+                {
+                    'vue-router': [
+                        'useRoute',
+                        'useRouter',
+                        'RouterLink',
+                        'RouterView',
+                        'onBeforeRouteLeave',
+                        'onBeforeRouteUpdate',
+                    ],
+                },
+                {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
+                {'@dvlkit/nuxe': ['definePage', 'defineNuxePlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders', 'useRequestURL', 'NuxePage', 'NuxeLoadingIndicator']},
+                {'@dvlkit/nuxe/components/client-only': [['default', 'ClientOnly']]},
+            ],
+            dirs: ['app/composables', '.nuxe/composables', 'shared/utils', 'shared/types', 'app/features/*/composables'],
+            dts: '.nuxe/auto-imports.d.ts',
+        }),
+        Components({
+            dirs: ['app/components', '.nuxe/components', 'app/features'],
+            globalNamespaces: ["components"],
+            collapseSamePrefixes: true,
+            dts: '.nuxe/components.d.ts',
+            directoryAsNamespace: true,
+        }),
+        nuxe({
+            layouts: layoutFiles,
+            cwd,
+            pagesDir: 'app/pages',
+            middlewares: scannedMiddlewares,
+            plugins: scannedPlugins,
+            errorComponent: hasErrorComponent
+        }),
+        nitro({
+            preset: 'node-server',
+            serverDir: 'server',
+            apiBaseURL: config.server.apiPrefix,
+            renderer: {
+                handler: join(cwd, '.nuxe', 'handler.mjs'),
+            },
+            imports: {
+                dirs: ['shared/utils', 'shared/types']
+            },
+            plugins: (() => {
+                try {
+                    return [
+                        createRequire(join(cwd, 'package.json')).resolve(
+                            '@dvlkit/nuxe/server/nitro-log-request',
+                        ),
+                    ]
+                } catch {
+                    return []
+                }
+            })(),
+        } as Parameters<typeof nitro>[0]),
+    ]
+
+    const baseConfig = mergeConfig({
+        root: cwd,
+        resolve: {
+            alias: {
+                '#nuxe': resolve(cwd, '.nuxe'),
+                '#shared': resolve(cwd, 'shared'),
+            },
         },
-        {'@dvlkit/nuxe/runtime': ['useAsyncData', 'useFetch', '$fetch', 'createFetch']},
-        {'@dvlkit/nuxe': ['definePage', 'defineNuxePlugin', 'defineNuxeRouteMiddleware', 'abortNavigation', 'useHead', 'createError', 'showError', 'useError', 'clearError', 'useRuntimeConfig', 'useState', 'useCookie', 'useRequestEvent', 'useRequestHeaders', 'useRequestURL', 'NuxePage', 'NuxeLoadingIndicator']},
-        {'@dvlkit/nuxe/components/client-only': [['default', 'ClientOnly']]},
-      ],
-      dirs: ['app/composables', '.nuxe/composables', 'shared/utils', 'shared/types', 'app/features/*/composables'],
-      dts: '.nuxe/auto-imports.d.ts',
-    }),
-    Components({
-      dirs: ['app/components', '.nuxe/components', 'app/features'],
-      globalNamespaces: ["components"],
-      collapseSamePrefixes: true,
-      dts: '.nuxe/components.d.ts',
-      directoryAsNamespace: true,
-    }),
-    nuxe({layouts: layoutFiles, cwd, pagesDir: 'app/pages', middlewares: scannedMiddlewares, plugins: scannedPlugins, errorComponent: hasErrorComponent}),
-    nitro({
-      preset: 'node-server',
-      serverDir: 'server',
-      apiBaseURL: config.server.apiPrefix,
-      renderer: {
-        handler: join(cwd, '.nuxe', 'handler.mjs'),
-      },
-      imports: {
-        dirs: ['shared/utils', 'shared/types']
-      },
-      plugins: (() => {
-        try {
-          return [
-            createRequire(join(cwd, 'package.json')).resolve(
-              '@dvlkit/nuxe/server/nitro-log-request',
-            ),
-          ]
-        } catch {
-          return []
-        }
-      })(),
-    } as Parameters<typeof nitro>[0]),
-  ]
+        optimizeDeps: {
+            force: true,
+            exclude: [
+                '@dvlkit/nuxe',
+                '@dvlkit/nuxe/runtime',
+                '@dvlkit/nuxe/server',
+                '@dvlkit/nuxe/server/handler',
+                '@dvlkit/nuxe/runtime/server/handler',
+                '@dvlkit/nuxe/runtime/server-polyfill',
+                'vue',
+                '@vue/runtime-core',
+                '@vue/runtime-dom',
+                '@vue/shared',
+                '@vue/server-renderer',
+                'vue-router',
+                '@unhead/vue',
+                'unhead',
+                'c12',
+                'chokidar',
+                'jiti',
+                'exsolve',
+                'pkg-types',
+                'readdirp',
+                'confbox',
+            ],
+        },
+        plugins: frameworkPlugins,
+        environments: {
+            client: {
+                consumer: 'client',
+                keepProcessEnv: false,
+                build: {
+                    manifest: true,
+                    rollupOptions: {
+                        input: join(cwd, '.nuxe', 'entry-client.ts'),
+                        external: nodeOnlyExternal,
+                    },
+                },
+            },
+            ssr: {
+                consumer: 'server',
+                define: {
+                    'process.server': true,
+                    'process.client': false,
+                    'process.browser': false,
+                    'import.meta.server': true,
+                    'import.meta.client': false,
+                    'import.meta.browser': false,
+                    'window': 'undefined',
+                    'document': 'undefined',
+                    'navigator': 'undefined',
+                    'location': 'undefined',
+                    'XMLHttpRequest': 'undefined',
+                },
+                build: {
+                    outDir: join(cwd, '.output', 'server', 'ssr'),
+                    rollupOptions: {
+                        input: join(cwd, '.nuxe', 'entry-server.ts'),
+                    },
+                },
+            },
+        },
+        server: {middlewareMode: true},
+        appType: 'custom',
+    }, config.vite) as UserConfig
 
-  const baseConfig = mergeConfig({
-    root: cwd,
-    resolve: {
-      alias: {
-        '#nuxe': resolve(cwd, '.nuxe'),
-        '#shared': resolve(cwd, 'shared'),
-      },
-    },
-    optimizeDeps: {
-      force: true,
-      exclude: [
-        '@dvlkit/nuxe',
-        '@dvlkit/nuxe/runtime',
-        '@dvlkit/nuxe/server',
-        '@dvlkit/nuxe/server/handler',
-        '@dvlkit/nuxe/runtime/server/handler',
-        '@dvlkit/nuxe/runtime/server-polyfill',
-        'vue',
-        '@vue/runtime-core',
-        '@vue/runtime-dom',
-        '@vue/shared',
-        '@vue/server-renderer',
-        'vue-router',
-        '@unhead/vue',
-        'unhead',
-        'c12',
-        'chokidar',
-        'jiti',
-        'exsolve',
-        'pkg-types',
-        'readdirp',
-        'confbox',
-      ],
-    },
-    plugins: frameworkPlugins,
-    environments: {
-      client: {
-        consumer: 'client',
-        keepProcessEnv: false,
-        build: {
-          manifest: true,
-          rollupOptions: {
-            input: join(cwd, '.nuxe', 'entry-client.ts'),
-            external: nodeOnlyExternal,
-          },
-        },
-      },
-      ssr: {
-        consumer: 'server',
-        define: {
-          'process.server': true,
-          'process.client': false,
-          'process.browser': false,
-          'import.meta.server': true,
-          'import.meta.client': false,
-          'import.meta.browser': false,
-          'window': 'undefined',
-          'document': 'undefined',
-          'navigator': 'undefined',
-          'location': 'undefined',
-          'XMLHttpRequest': 'undefined',
-        },
-        build: {
-          outDir: join(cwd, '.output', 'server', 'ssr'),
-          rollupOptions: {
-            input: join(cwd, '.nuxe', 'entry-server.ts'),
-          },
-        },
-      },
-    },
-    server: {middlewareMode: true},
-    appType: 'custom',
-  }, config.vite) as UserConfig
-
-  return {
-    layoutFiles,
-    frameworkPlugins,
-    baseConfig,
-  }
+    return {
+        layoutFiles,
+        frameworkPlugins,
+        baseConfig,
+    }
 }
