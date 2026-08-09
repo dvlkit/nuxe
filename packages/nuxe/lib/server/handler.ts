@@ -6,7 +6,6 @@ import {
 import {
   renderSSRHeadShell as renderSSRHeadShellDev,
   renderSSRHeadSuspenseChunk as renderSSRHeadSuspenseChunkDev,
-  type createStreamableHead,
 } from '@unhead/vue/stream/server'
 import {
   createRendererContext,
