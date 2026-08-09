@@ -115,12 +115,18 @@ import routes, { handleHotUpdate } from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
 import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, readHydrationPayload, EMPTY, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
+import { ClientOnly } from '@dvlkit/nuxe/components/client-only'
+import { NuxePage } from '@dvlkit/nuxe'
+import { NuxeLoadingIndicator } from '@dvlkit/nuxe'
 let __nuxeApp
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
 
 async function main() {
   const head = createHead()
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
+  app.component('ClientOnly', ClientOnly)
+  app.component('NuxePage', NuxePage)
+  app.component('NuxeLoadingIndicator', NuxeLoadingIndicator)
   app.use(head)
   const error = ref(null)
   provideError(app, error)
@@ -253,12 +259,17 @@ import App from '/app/app.vue'
 import routes from 'virtual:nuxe/routes'
 import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-server'
 import { plugins } from 'virtual:nuxe/plugins-server'
+import { ClientOnly } from '@dvlkit/nuxe/components/client-only'
+import { NuxePage, NuxeLoadingIndicator } from '@dvlkit/nuxe'
 ${SERVER_MIDDLEWARE_CHAIN_LOGIC}
 
 async function createApp(ssrContext) {
   ;(globalThis as { __NUXE_SSR_CONTEXT__?: typeof ssrContext }).__NUXE_SSR_CONTEXT__ = ssrContext
   const runtimeConfig = ssrContext.runtimeConfig
   const app = createSSRApp(NuxeRoot, { app: App, errorComponent: ErrorComponent })
+  app.component('ClientOnly', ClientOnly)
+  app.component('NuxePage', NuxePage)
+  app.component('NuxeLoadingIndicator', NuxeLoadingIndicator)
   provideRuntimeConfig(app, runtimeConfig)
   provideBaseURL(app, (runtimeConfig as { baseUrl?: string }).baseUrl)
   const error = ref(ssrContext.error || null)

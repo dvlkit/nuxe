@@ -64,8 +64,11 @@ function renderErrorResponse(status: number, message: string): Response {
 }
 
 function safeEnqueue(controller: ReadableStreamDefaultController<Uint8Array>, chunk: Uint8Array): void {
-  if (controller.desiredSize !== null) {
+  if (controller.desiredSize === null) return
+  try {
     controller.enqueue(chunk)
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException)?.code !== 'ERR_INVALID_STATE') throw err
   }
 }
 
