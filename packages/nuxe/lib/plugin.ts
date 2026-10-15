@@ -106,7 +106,7 @@ async function __nuxe_runNamedMiddlewares(app, to, from, ssrContext) {
 `
 
 const ENTRY_CLIENT_SOURCE = `import { createSSRApp, ref } from 'vue'
-import { START_LOCATION, RouterView, createRouter, createWebHistory } from 'vue-router'
+import { RouterView, createRouter, createWebHistory } from 'vue-router'
 import { createHead } from '@dvlkit/nuxe/runtime'
 import { NuxeRoot } from '@dvlkit/nuxe/components/nuxe-root'
 import App from '/app/app.vue'
@@ -116,7 +116,7 @@ import { middlewares, globalMiddlewares } from 'virtual:nuxe/middlewares-client'
 import { plugins } from 'virtual:nuxe/plugins-client'
 import { setHydratedPayload, createError, provideError, deserializeError, provideRuntimeConfig, readHydrationPayload, EMPTY, type RuntimeConfig, createNuxeApp, runPlugins, runWithNuxeApp, createNuxeState } from '@dvlkit/nuxe/runtime'
 import ClientOnly from '@dvlkit/nuxe/components/client-only'
-import { NuxePage } from '@dvlkit/nuxe'
+import { NuxePage, createPageScrollBehavior } from '@dvlkit/nuxe'
 import { NuxeLoadingIndicator } from '@dvlkit/nuxe'
 let __nuxeApp
 ${CLIENT_MIDDLEWARE_CHAIN_LOGIC}
@@ -152,65 +152,10 @@ async function main() {
     originalWarn(...args)
   }
   
-  function getHashElementScrollMarginTop(selector: string): number {
-    try {
-      const elem = document.querySelector(selector)
-      if (elem) {
-        return (Number.parseFloat(getComputedStyle(elem).scrollMarginTop) || 0) + (Number.parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0)
-      }
-    } catch {
-      // ignore
-    }
-    return 0
-  }
-  
   const router = createRouter({
     history: createWebHistory(),
     routes,
-    scrollBehavior(to, from, savedPosition) {
-      const stripTrailingSlash = (p: string) => (p.endsWith('/') ? p.slice(0, -1) : p)
-      const samePath = stripTrailingSlash(to.path) === stripTrailingSlash(from.path)
-      if (samePath) {
-        if (from.hash && !to.hash) return { left: 0, top: 0 }
-        if (to.hash) {
-          return {
-            el: to.hash,
-            top: getHashElementScrollMarginTop(to.hash),
-            behavior: hashScrollBehavior,
-          }
-        }
-        return false
-      }
-      
-      const metaScrollToTop = to.meta?.scrollToTop
-      const routeAllowsScrollToTop = typeof metaScrollToTop === 'function'
-        ? metaScrollToTop(to, from)
-        : metaScrollToTop
-      if (routeAllowsScrollToTop === false) return false
-      
-      const resolvePosition = () => {
-        if (savedPosition) return savedPosition
-        
-        if (to.hash) {
-          return {
-            el: to.hash,
-            top: getHashElementScrollMarginTop(to.hash),
-            behavior: hashScrollBehavior,
-          }
-        }
-      
-        return { top: 0 }
-      }
-      
-      if (from === START_LOCATION) return resolvePosition()
-      
-      return new Promise((resolve) => {
-        const doScroll = () => {
-          requestAnimationFrame(() => resolve(resolvePosition()))
-        }
-        __nuxeApp.hookOnce('page:loading:end', doScroll)
-      })
-    },
+    scrollBehavior: createPageScrollBehavior(() => __nuxeApp, hashScrollBehavior),
   })
   
   if (import.meta.client && 'scrollRestoration' in window.history) {

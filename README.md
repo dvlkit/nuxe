@@ -45,7 +45,7 @@ my-app/
 └── nuxe.config.ts         # Framework config (opcional)
 ```
 
-Solo esos directorios. app.vue puede tener <RouterLink> y <RouterView> para la navegación.
+Solo esos directorios. `app.vue` muestra las páginas con `<NuxePage>`. `<RouterLink>` puede usarse para los enlaces. `<RouterView>` por sí solo no está soportado.
 
 ## Layouts
 

@@ -64,3 +64,4 @@ export { useState, createNuxeState, clearNuxeState, type NuxeState } from './run
 export { useCookie, parseCookieValue, serializeCookie, type CookieOptions } from './runtime/cookie'
 export { useRequestEvent, useRequestHeaders, useRequestURL } from './runtime/request'
 export { default as NuxePage } from './components/nuxe-page'
+export { createPageScrollBehavior } from './runtime/page-scroll'
