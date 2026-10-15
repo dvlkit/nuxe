@@ -46,6 +46,12 @@ export interface UseAsyncDataReturn<T> {
     refresh: () => Promise<void>
 }
 
+export type AsyncData<T> = UseAsyncDataReturn<T> & Promise<UseAsyncDataReturn<T>>
+
+function createAsyncData<T>(value: UseAsyncDataReturn<T>, pending: Promise<void> | null): AsyncData<T> {
+    return Object.assign(Promise.resolve(pending ?? undefined).then(() => value), value)
+}
+
 type Status = UseAsyncDataReturn<unknown>['status']['value']
 
 let hydratedPayload: Record<string, unknown> | null = null
@@ -133,7 +139,7 @@ async function runWithRetries<T>(
     throw lastError
 }
 
-export function useAsyncData<T>(key: AsyncDataKey, handler: AsyncDataHandler<T>, options: UseAsyncDataOptions<T> = {}): UseAsyncDataReturn<T> {
+export function useAsyncData<T>(key: AsyncDataKey, handler: AsyncDataHandler<T>, options: UseAsyncDataOptions<T> = {}): AsyncData<T> {
     if (!key) throw new Error('[nuxe] useAsyncData: `key` is required')
 
     const isClient = typeof window !== 'undefined'
@@ -333,5 +339,11 @@ export function useAsyncData<T>(key: AsyncDataKey, handler: AsyncDataHandler<T>,
         await runEntry(resolvedKey)
     }
 
-    return {data: entry.data, pending: entry.pending, error: entry.error, status: entry.status, refresh}
+    return createAsyncData({
+        data: entry.data,
+        pending: entry.pending,
+        error: entry.error,
+        status: entry.status,
+        refresh,
+    }, entry._inflight)
 }

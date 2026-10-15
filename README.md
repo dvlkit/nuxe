@@ -102,6 +102,26 @@ useHead({
 
 Funciona en SSR (los tags se inyectan en el HTML inicial) y client (se actualizan en navegaciones SPA).
 
+## Datos asíncronos
+
+`useAsyncData` carga datos desde `setup` y devuelve refs (`data`, `pending`, `error`, `status`) más `refresh`. El valor también se puede esperar: con `await` en `setup`, el `Suspense` de `NuxePage` no emite `page:loading:end` hasta que termina el handler.
+
+```vue
+<script setup lang="ts">
+import { useAsyncData } from '@dvlkit/nuxe'
+
+const { data } = await useAsyncData('post', async () => {
+  return { title: 'Hola' }
+})
+</script>
+
+<template>
+  <h1>{{ data?.title }}</h1>
+</template>
+```
+
+Si la key ya está en caché o llega hidratada, el `await` resuelve sin volver a ejecutar el handler. Si el handler falla, el `await` no rechaza y el error queda en `error`. Sin `await`, la petición sigue en segundo plano y no bloquea el `Suspense`. Con `lazy: true` en el cliente, el handler se agenda en el mount y el `await` resuelve sin esperarlo.
+
 ## Config
 
 Crea nuxe.config.ts solo si necesitas customizar:

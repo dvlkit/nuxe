@@ -74,6 +74,7 @@ describe('useFetch', () => {
       expect(result.error).toBeDefined()
       expect(result.status).toBeDefined()
       expect(result.refresh).toBeInstanceOf(Function)
+      expect(result.then).toBeUndefined()
       expect(result.statusCode).toBeDefined()
       expect(result.statusCode.value).toBeNull()
     })

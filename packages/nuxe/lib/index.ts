@@ -17,6 +17,7 @@ export {
   setHydratedPayload,
   type UseAsyncDataOptions,
   type UseAsyncDataReturn,
+  type AsyncData,
 } from './runtime'
 export {
   createError,

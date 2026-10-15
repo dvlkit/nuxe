@@ -695,3 +695,133 @@ describe('useAsyncData (deduplication)', () => {
         re.stop()
     })
 })
+
+describe('useAsyncData (await)', () => {
+    it('resolves after the handler and already has its result', async () => {
+        const {ctx, app} = setupServerContext()
+        let release!: (value: string) => void
+        const gate = new Promise<string>((resolve) => {
+            release = resolve
+        })
+        const handler = vi.fn(() => gate)
+
+        await app.runWithContext(async () => {
+            const pending = useAsyncData<string>('awaited', handler)
+            let settled = false
+            const done = pending.then((result) => {
+                settled = true
+                return result
+            })
+
+            await Promise.resolve()
+            expect(settled).toBe(false)
+            expect(handler).toHaveBeenCalledTimes(1)
+            expect(pending.data.value).toBeNull()
+
+            release('ready')
+            const result = await done
+            await ctx.awaitAll()
+
+            expect(result.data.value).toBe('ready')
+            expect(pending.data.value).toBe('ready')
+            expect(result.status.value).toBe('success')
+            expect(result.error.value).toBeNull()
+        })
+    })
+
+    it('does not reject when the handler fails and exposes the error', async () => {
+        const {ctx, app} = setupServerContext()
+        const failure = new Error('boom')
+
+        await app.runWithContext(async () => {
+            const result = await useAsyncData('await-fail', () => Promise.reject(failure))
+            await ctx.awaitAll()
+
+            expect(result.error.value).toBe(failure)
+            expect(result.status.value).toBe('error')
+            expect(result.data.value).toBeNull()
+        })
+    })
+
+    it('resolves a cached key without calling the handler again', async () => {
+        const {ctx, app} = setupServerContext()
+        const handler = vi.fn().mockResolvedValue('cached')
+
+        const first = await app.runWithContext(() => useAsyncData<string>('cached-key', handler))
+        await ctx.awaitAll()
+        expect(first.data.value).toBe('cached')
+        expect(handler).toHaveBeenCalledTimes(1)
+
+        const second = await app.runWithContext(() => useAsyncData<string>('cached-key', handler))
+
+        expect(handler).toHaveBeenCalledTimes(1)
+        expect(second.data.value).toBe('cached')
+        expect(second.data).toBe(first.data)
+    })
+
+    it('waits for an in-flight cached request without starting another handler', async () => {
+        const {app} = setupServerContext()
+        let release!: (value: string) => void
+        const gate = new Promise<string>((resolve) => {
+            release = resolve
+        })
+        const handler = vi.fn(() => gate)
+
+        await app.runWithContext(async () => {
+            const first = useAsyncData<string>('inflight', handler)
+            const second = useAsyncData<string>('inflight', handler)
+            expect(handler).toHaveBeenCalledTimes(1)
+
+            let secondSettled = false
+            const done = second.then(() => {
+                secondSettled = true
+            })
+            await Promise.resolve()
+            expect(secondSettled).toBe(false)
+
+            release('shared')
+            await Promise.all([first, done])
+
+            expect(handler).toHaveBeenCalledTimes(1)
+            expect(first.data.value).toBe('shared')
+            expect(second.data.value).toBe('shared')
+        })
+    })
+
+    it('resolves a hydrated key without calling the handler', async () => {
+        vi.stubGlobal('window', {})
+        setHydratedPayload({fromServer: {already: 'there'}})
+        const handler = vi.fn()
+
+        const result = await useAsyncData<{ already: string }>('fromServer', handler)
+
+        expect(handler).not.toHaveBeenCalled()
+        expect(result.data.value).toEqual({already: 'there'})
+        expect(result.status.value).toBe('success')
+        expect(result.pending.value).toBe(false)
+
+        vi.unstubAllGlobals()
+        setHydratedPayload({})
+    })
+
+    it('keeps the ref shape when it is not awaited', async () => {
+        const {ctx, app} = setupServerContext()
+        const handler = vi.fn().mockResolvedValue('later')
+
+        await app.runWithContext(async () => {
+            const {data, pending, error, status, refresh} = useAsyncData<string>('plain', handler)
+
+            expect(pending.value).toBe(true)
+            expect(data.value).toBeNull()
+            expect(typeof refresh).toBe('function')
+
+            await ctx.awaitAll()
+            await nextTick()
+
+            expect(data.value).toBe('later')
+            expect(status.value).toBe('success')
+            expect(error.value).toBeNull()
+            expect(handler).toHaveBeenCalledTimes(1)
+        })
+    })
+})
