@@ -1,4 +1,4 @@
-import { defineComponent, h, Suspense } from 'vue'
+import { defineComponent, h, onUnmounted, Suspense } from 'vue'
 import { type RouteLocationNormalizedLoaded, RouterView } from 'vue-router'
 import { useNuxeApp } from '../plugins/runtime'
 import { markCurrentNavigationResolved, resetCurrentNavigationResolved } from '../runtime/page-loading'
@@ -10,9 +10,13 @@ export default defineComponent({
     const nuxeApp = useNuxeApp()
     let navigationId = 0
 
-    nuxeApp.hook('page:start', () => {
+    const onPageStart = () => {
       navigationId += 1
       resetCurrentNavigationResolved(nuxeApp)
+    }
+    nuxeApp.hook('page:start', onPageStart)
+    onUnmounted(() => {
+      nuxeApp.removeHook('page:start', onPageStart)
     })
 
     return () => h(RouterView, attrs, {

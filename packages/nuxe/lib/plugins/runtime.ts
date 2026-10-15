@@ -20,6 +20,7 @@ export interface NuxeApp {
     payload: { state: NuxeState }
     _asyncData?: Map<string, unknown>
     hook: <N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]) => void
+    removeHook: <N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]) => void
     hookOnce: <N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]) => void
     callHook: <N extends keyof NuxeAppHooks>(
         name: N,
@@ -68,6 +69,10 @@ class Hookable {
         if (idx >= 0) arr.splice(idx, 1)
     }
 
+    count<N extends keyof NuxeAppHooks>(name: N): number {
+        return this.hooks[name]?.length ?? 0
+    }
+
     once<N extends keyof NuxeAppHooks>(name: N, fn: NuxeAppHooks[N]): void {
         const wrapped = ((...args: unknown[]) => {
             this.remove(name, wrapped as NuxeAppHooks[N])
@@ -98,6 +103,15 @@ interface CreateNuxeAppOptions {
 }
 
 
+const hookables = new WeakMap<NuxeApp, Hookable>()
+
+export function getHookListenerCount<N extends keyof NuxeAppHooks>(
+    nuxeApp: NuxeApp,
+    name: N,
+): number {
+    return hookables.get(nuxeApp)?.count(name) ?? 0
+}
+
 export function createNuxeApp(options: CreateNuxeAppOptions): NuxeApp {
     const hooks = new Hookable()
     const state = options.state
@@ -109,9 +123,11 @@ export function createNuxeApp(options: CreateNuxeAppOptions): NuxeApp {
         state,
         payload: {state},
         hook: (name, fn) => hooks.add(name, fn),
+        removeHook: (name, fn) => hooks.remove(name, fn),
         hookOnce: (name, fn) => hooks.once(name, fn),
         callHook: (name, ...args) => hooks.call(name, ...args),
     }
+    hookables.set(nuxeApp, hooks)
     options.vueApp.provide(NUXE_APP_KEY, nuxeApp)
     ;(options.vueApp as App & { $nuxe?: NuxeApp }).$nuxe = nuxeApp
     options.vueApp.provide(NUXE_STATE_KEY, state)
